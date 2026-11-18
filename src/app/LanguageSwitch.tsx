@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
-import { supportedLanguages, type Language } from '@/shared/i18n'
+import { cn, focusRing } from '@/shared/lib/utils'
+import { chooseLanguage, supportedLanguages, type Language } from '@/shared/i18n'
 
 export function LanguageSwitch() {
   const { t, i18n } = useTranslation()
@@ -13,9 +14,9 @@ export function LanguageSwitch() {
       </label>
       <select
         id={id}
-        className="rounded-md border border-input bg-background px-2 py-1"
+        className={cn('rounded-md border border-input bg-background px-2 py-1', focusRing)}
         value={i18n.resolvedLanguage}
-        onChange={(event) => void i18n.changeLanguage(event.target.value)}
+        onChange={(event) => void chooseLanguage(i18n, event.target.value as Language)}
       >
         {supportedLanguages.map((language: Language) => (
           <option key={language} value={language}>

@@ -50,8 +50,18 @@ src/
 English and Vietnamese live in `src/shared/i18n/locales/`. English is the source: translation keys are
 type-checked against `en.json`, so a mistyped key fails `npm run typecheck`.
 
-- No user-facing text in JSX: lint (`i18next/no-literal-string`) rejects literal text and attributes such as
-  `title` or `aria-label`. Use `t('…')`.
+- No user-facing text in JSX: lint (`i18next/no-literal-string`) rejects literal text, template literals and
+  attributes such as `title` or `aria-label`. Use `t('…')`. Lint only sees JSX, so text built in a variable or
+  a `.ts` file is on you: keep translation keys, not text, in data (see `src/app/navigation.ts`).
 - Add every new key to both files. A test fails when the two have different keys or a translation is empty.
-- The viewer's language choice is remembered in their browser. Once profiles exist, the user's saved locale
-  will take over.
+- Until the viewer picks a language, the app follows their browser. A language they pick is remembered in
+  their browser. Once profiles exist, the user's saved locale will take over.
+
+## Accessibility
+
+The target is WCAG 2.1 AA (spec section 8).
+
+- Lint runs `jsx-a11y-x`, the ESLint 10 compatible fork of `eslint-plugin-jsx-a11y`.
+- Every screen names itself in the browser tab with `useDocumentTitle`.
+- Controls styled by hand take the `focusRing` class from `src/shared/lib/utils.ts`, so keyboard focus is
+  always visible. shadcn primitives bring their own.

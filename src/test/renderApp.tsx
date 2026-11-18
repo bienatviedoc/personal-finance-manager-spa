@@ -3,12 +3,19 @@ import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router'
 import { AppProviders } from '@/app/AppProviders'
 import { createRoutes } from '@/app/routes'
-import { createI18n } from '@/shared/i18n'
+import { createI18n, type Language } from '@/shared/i18n'
 
-/** Renders the real app at a URL, in English, with an in-memory history. */
-export function renderApp(path = '/', options: { extraScreens?: RouteObject[] } = {}) {
-  const i18n = createI18n({ language: 'en' })
-  const router = createMemoryRouter(createRoutes(options.extraScreens), { initialEntries: [path] })
+type Options = {
+  /** Screens mounted inside the shell next to the real ones. */
+  extraScreens?: RouteObject[]
+  /** English unless told to detect the language the way the real app does. */
+  language?: Language | 'detect'
+}
+
+/** Renders the real app at a URL with an in-memory history. */
+export function renderApp(path = '/', { extraScreens, language = 'en' }: Options = {}) {
+  const i18n = createI18n(language === 'detect' ? {} : { language })
+  const router = createMemoryRouter(createRoutes(extraScreens), { initialEntries: [path] })
   const user = userEvent.setup()
 
   const result = render(

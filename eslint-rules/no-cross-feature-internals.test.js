@@ -54,6 +54,21 @@ ruleTester.run('no-cross-feature-internals', rule, {
       code: "import { useQuery } from '@tanstack/react-query'",
     },
     {
+      name: 'a glob import of its own internals',
+      filename: file('features/budgets/index.ts'),
+      code: "const pages = import.meta.glob('./routes/*.tsx')",
+    },
+    {
+      name: 'a dynamic import whose path is computed, which cannot be resolved',
+      filename: budgetsPage,
+      code: 'const page = import(`@/features/${name}/routes/Page`)',
+    },
+    {
+      name: 'an unrelated call with a feature path as its argument',
+      filename: budgetsPage,
+      code: "navigate('@/features/transactions/routes/TransactionsPage')",
+    },
+    {
       name: "app code using a feature's public index",
       filename: file('app/router.tsx'),
       code: "import { budgetsRoutes } from '@/features/budgets'",
@@ -88,6 +103,36 @@ ruleTester.run('no-cross-feature-internals', rule, {
       name: 'a dynamic import of internals',
       filename: budgetsPage,
       code: "const page = import('@/features/transactions/routes/TransactionsPage')",
+      errors: [{ messageId: 'internals', data: { feature: 'transactions' } }],
+    },
+    {
+      name: 'a dynamic import written as a template literal',
+      filename: budgetsPage,
+      code: 'const page = import(`@/features/transactions/routes/TransactionsPage`)',
+      errors: [{ messageId: 'internals', data: { feature: 'transactions' } }],
+    },
+    {
+      name: 'a glob import of internals',
+      filename: budgetsPage,
+      code: "const pages = import.meta.glob('../../transactions/routes/*.tsx')",
+      errors: [{ messageId: 'internals', data: { feature: 'transactions' } }],
+    },
+    {
+      name: 'a glob import of internals, among several patterns',
+      filename: budgetsPage,
+      code: "const pages = import.meta.glob(['./*.tsx', '@/features/transactions/routes/*.tsx'])",
+      errors: [{ messageId: 'internals', data: { feature: 'transactions' } }],
+    },
+    {
+      name: 'a require of internals',
+      filename: budgetsPage,
+      code: "const row = require('@/features/transactions/components/TransactionRow')",
+      errors: [{ messageId: 'internals', data: { feature: 'transactions' } }],
+    },
+    {
+      name: "a test mocking another feature's internals",
+      filename: file('features/budgets/routes/BudgetsPage.test.tsx'),
+      code: "vi.mock('@/features/transactions/components/TransactionRow')",
       errors: [{ messageId: 'internals', data: { feature: 'transactions' } }],
     },
   ],

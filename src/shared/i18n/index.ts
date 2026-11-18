@@ -9,9 +9,11 @@ export const resources = { en: { translation: en }, vi: { translation: vi } } as
 export const supportedLanguages = ['en', 'vi'] as const
 export type Language = (typeof supportedLanguages)[number]
 
+const storageKey = 'pfm.language'
+
 /**
- * Creates an initialised i18next instance. Without a language, it detects one from the
- * viewer's last choice, then the browser, falling back to English.
+ * Creates an initialised i18next instance. Without a language, it uses the one the viewer
+ * chose last time, then the browser's, falling back to English.
  */
 export function createI18n({ language }: { language?: Language } = {}): i18n {
   const instance = i18next.createInstance()
@@ -28,18 +30,27 @@ export function createI18n({ language }: { language?: Language } = {}): i18n {
     interpolation: { escapeValue: false },
     detection: {
       order: ['localStorage', 'navigator'],
-      lookupLocalStorage: 'pfm.language',
-      caches: ['localStorage'],
+      lookupLocalStorage: storageKey,
+      // Detection never writes: only an explicit choice is remembered (see chooseLanguage).
+      caches: [],
     },
   })
 
-  // The page's language and tab title follow the interface language.
   const setDocumentLanguage = (lng: string) => {
     document.documentElement.lang = lng
-    document.title = instance.t('app.name')
   }
   setDocumentLanguage(instance.resolvedLanguage ?? 'en')
   instance.on('languageChanged', setDocumentLanguage)
 
   return instance
+}
+
+/** Switches to a language the viewer picked and remembers it in their browser. */
+export async function chooseLanguage(instance: i18n, language: Language): Promise<void> {
+  await instance.changeLanguage(language)
+  try {
+    localStorage.setItem(storageKey, language)
+  } catch {
+    // Storage can be unavailable (private windows, blocked site data); the choice then lasts for this visit.
+  }
 }

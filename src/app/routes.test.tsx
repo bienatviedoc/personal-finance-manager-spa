@@ -1,4 +1,5 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
+import { data } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { renderApp } from '@/test/renderApp'
 
@@ -21,6 +22,15 @@ describe('app navigation', () => {
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: link })).toHaveAttribute('aria-current', 'page')
   })
+
+  it('names the current screen in the browser tab title', async () => {
+    const { user } = renderApp('/transactions')
+    await waitFor(() => expect(document.title).toBe('Transactions · Personal Finance Manager'))
+
+    await user.click(screen.getByRole('link', { name: 'Budgets' }))
+
+    await waitFor(() => expect(document.title).toBe('Budgets · Personal Finance Manager'))
+  })
 })
 
 describe('a screen that fails', () => {
@@ -42,6 +52,23 @@ describe('a screen that fails', () => {
 })
 
 describe('unknown addresses', () => {
+  it('show the not-found page when a screen reports that what it was asked for does not exist', async () => {
+    renderApp('/accounts-missing', {
+      extraScreens: [
+        {
+          path: 'accounts-missing',
+          loader: () => {
+            throw data(null, { status: 404 })
+          },
+          Component: () => null,
+        },
+      ],
+    })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument()
+    expect(document.title).toBe('Page not found · Personal Finance Manager')
+  })
+
   it('show the not-found page inside the shell, with a way back to the dashboard', async () => {
     const { user } = renderApp('/no-such-page')
 

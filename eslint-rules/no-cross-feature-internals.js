@@ -43,8 +43,9 @@ export default {
     const importerFeature = featureOf(importer)?.feature
 
     const check = (sourceNode) => {
-      if (sourceNode?.type !== 'Literal' || typeof sourceNode.value !== 'string') return
-      const target = resolve(sourceNode.value)
+      const source = staticString(sourceNode)
+      if (source === undefined) return
+      const target = resolve(source)
       if (!target) return
 
       const imported = featureOf(target)
@@ -61,6 +62,32 @@ export default {
       ExportNamedDeclaration: (node) => check(node.source),
       ExportAllDeclaration: (node) => check(node.source),
       ImportExpression: (node) => check(node.source),
+      CallExpression: (node) => {
+        if (!loadsModules(node.callee)) return
+        const [first] = node.arguments
+        // import.meta.glob takes one pattern or a list of them.
+        for (const argument of first?.type === 'ArrayExpression' ? first.elements : [first]) check(argument)
+      },
     }
   },
+}
+
+/** The value of a string literal or of a template literal with nothing interpolated. */
+function staticString(node) {
+  if (node?.type === 'Literal' && typeof node.value === 'string') return node.value
+  if (node?.type === 'TemplateLiteral' && node.expressions.length === 0) return node.quasis[0].value.cooked
+  return undefined
+}
+
+/** Calls whose first argument is a module path: require, import.meta.glob and Vitest's module mocks. */
+function loadsModules(callee) {
+  if (callee.type === 'Identifier') return callee.name === 'require'
+  if (callee.type !== 'MemberExpression' || callee.property.type !== 'Identifier') return false
+
+  const { object, property } = callee
+  const isImportMeta = object.type === 'MetaProperty' && object.meta.name === 'import' && object.property.name === 'meta'
+  if (isImportMeta) return property.name === 'glob'
+
+  const isVitest = object.type === 'Identifier' && object.name === 'vi'
+  return isVitest && ['mock', 'doMock', 'unmock', 'doUnmock', 'importActual', 'importMock'].includes(property.name)
 }

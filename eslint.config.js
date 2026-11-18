@@ -1,6 +1,7 @@
 import js from '@eslint/js'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import i18next from 'eslint-plugin-i18next'
+import jsxA11y from 'eslint-plugin-jsx-a11y-x'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import globals from 'globals'
@@ -20,7 +21,7 @@ export default defineConfig([
 
   {
     files: ['src/**/*.{ts,tsx}'],
-    extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+    extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite, jsxA11y.configs.recommended],
     plugins: { local },
     rules: {
       // Features are used from outside only through their public index (spec section 12).
@@ -44,10 +45,11 @@ export default defineConfig([
         'error',
         {
           mode: 'jsx-only',
+          'should-validate-template': true,
           'jsx-attributes': {
             exclude: [
               'className', 'style', 'type', 'key', 'id', 'width', 'height',
-              'to', 'href', 'path', 'role', 'variant', 'size', 'lang', 'htmlFor', 'name',
+              'to', 'href', 'path', 'role', 'variant', 'size', 'lang', 'htmlFor',
               'rel', 'target', 'src', 'end', 'data-.*', 'autoComplete',
             ],
           },

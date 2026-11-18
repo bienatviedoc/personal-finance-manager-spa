@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router'
-import { cn } from '@/shared/lib/utils'
+import { cn, focusRing } from '@/shared/lib/utils'
 import { LanguageSwitch } from './LanguageSwitch'
 import { navigation } from './navigation'
 
@@ -21,6 +21,7 @@ export function AppShell() {
                   className={({ isActive }) =>
                     cn(
                       'block rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent',
+                      focusRing,
                       isActive && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
                     )
                   }
