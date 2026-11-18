@@ -1,0 +1,46 @@
+{
+  "app": {
+    "name": "Personal Finance Manager"
+  },
+  "nav": {
+    "label": "Main",
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "accounts": "Accounts",
+    "budgets": "Budgets",
+    "reports": "Reports",
+    "recurring": "Recurring",
+    "import": "Import",
+    "settings": "Settings"
+  },
+  "screens": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "accounts": "Accounts",
+    "accountDetail": "Account",
+    "budgets": "Budgets",
+    "reports": "Reports",
+    "recurring": "Recurring",
+    "import": "Import statement",
+    "settings": "Settings",
+    "signIn": "Sign in",
+    "register": "Register",
+    "resetPassword": "Reset password"
+  },
+  "placeholder": {
+    "notBuilt": "This screen is not built yet."
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "vi": "Tiếng Việt"
+  },
+  "errors": {
+    "screenTitle": "Something went wrong",
+    "screenBody": "This screen could not be shown. Reload to try again, or go to the dashboard.",
+    "reload": "Reload",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "There is no page at this address.",
+    "toDashboard": "Go to the dashboard"
+  }
+}

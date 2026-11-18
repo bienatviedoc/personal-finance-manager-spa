@@ -1,0 +1,46 @@
+{
+  "app": {
+    "name": "Quản lý Tài chính Cá nhân"
+  },
+  "nav": {
+    "label": "Điều hướng chính",
+    "dashboard": "Tổng quan",
+    "transactions": "Giao dịch",
+    "accounts": "Tài khoản",
+    "budgets": "Ngân sách",
+    "reports": "Báo cáo",
+    "recurring": "Định kỳ",
+    "import": "Nhập sao kê",
+    "settings": "Cài đặt"
+  },
+  "screens": {
+    "dashboard": "Tổng quan",
+    "transactions": "Giao dịch",
+    "accounts": "Tài khoản",
+    "accountDetail": "Tài khoản",
+    "budgets": "Ngân sách",
+    "reports": "Báo cáo",
+    "recurring": "Định kỳ",
+    "import": "Nhập sao kê",
+    "settings": "Cài đặt",
+    "signIn": "Đăng nhập",
+    "register": "Đăng ký",
+    "resetPassword": "Đặt lại mật khẩu"
+  },
+  "placeholder": {
+    "notBuilt": "Màn hình này chưa được xây dựng."
+  },
+  "language": {
+    "label": "Ngôn ngữ",
+    "en": "English",
+    "vi": "Tiếng Việt"
+  },
+  "errors": {
+    "screenTitle": "Đã xảy ra lỗi",
+    "screenBody": "Không thể hiển thị màn hình này. Hãy tải lại để thử lần nữa, hoặc về trang tổng quan.",
+    "reload": "Tải lại",
+    "notFoundTitle": "Không tìm thấy trang",
+    "notFoundBody": "Không có trang nào ở địa chỉ này.",
+    "toDashboard": "Về trang tổng quan"
+  }
+}
