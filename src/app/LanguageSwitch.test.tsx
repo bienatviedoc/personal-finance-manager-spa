@@ -12,10 +12,12 @@ describe('language switch', () => {
     expect(within(nav).getByRole('link', { name: 'Ngân sách' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
     expect(document.documentElement.lang).toBe('vi')
+    expect(document.title).toBe('Quản lý Tài chính Cá nhân')
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Ngôn ngữ' }), 'English')
 
     expect(screen.getByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
     expect(document.documentElement.lang).toBe('en')
+    expect(document.title).toBe('Personal Finance Manager')
   })
 })

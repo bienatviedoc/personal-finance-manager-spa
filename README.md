@@ -30,7 +30,8 @@ CI runs lint, typecheck, tests and the build on every pull request.
 ```
 src/
   app/        the shell: routes, layout, providers, error and not-found pages
-  features/   one folder per feature: api/, components/, hooks/, routes/ and an index.ts
+  features/   one folder per feature, with an index.ts and routes/; api/, components/ and
+              hooks/ are added as a feature needs them
   shared/     UI primitives (shared/ui), shared components, i18n, utilities
   test/       test setup and helpers
 ```
@@ -38,8 +39,9 @@ src/
 - **Features are used through their index.** Other features and the app import only `@/features/<name>`;
   each feature's `index.ts` is its public interface. Reaching into another feature's folders fails lint
   (`eslint-rules/no-cross-feature-internals.js`). Inside a feature, import freely.
-- **Screens** are added to the route tree in `src/app/routes.tsx` by listing the feature's routes. Every screen
-  gets its own error boundary, so a failing screen leaves the shell and the other screens working.
+- **Screens** are added to the route tree in `src/app/routes.tsx` by listing the feature's routes, and to the
+  sidebar in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
+  shell and the other screens working.
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
 

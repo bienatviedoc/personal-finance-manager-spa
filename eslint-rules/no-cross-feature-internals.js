@@ -1,5 +1,10 @@
 import path from 'node:path'
 
+// Located from this file, not from ESLint's working directory, so the rule still applies when
+// an editor runs ESLint from a parent folder.
+const srcDir = path.resolve(import.meta.dirname, '..', 'src')
+const featuresDir = path.join(srcDir, 'features')
+
 /**
  * A feature (src/features/<name>) is used from outside only through its public index.
  * Code inside a feature may import its own internals freely; any other code, including
@@ -20,8 +25,6 @@ export default {
   },
 
   create(context) {
-    const srcDir = path.join(context.cwd, 'src')
-    const featuresDir = path.join(srcDir, 'features')
     const importer = context.filename
 
     const featureOf = (absolutePath) => {

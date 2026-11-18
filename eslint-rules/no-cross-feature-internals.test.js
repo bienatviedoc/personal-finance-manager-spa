@@ -7,7 +7,7 @@ RuleTester.describe = describe
 RuleTester.it = it
 RuleTester.afterAll = afterAll
 
-const src = path.join(process.cwd(), 'src')
+const src = path.resolve(import.meta.dirname, '..', 'src')
 const file = (relative) => path.join(src, relative)
 
 const ruleTester = new RuleTester({

@@ -33,8 +33,10 @@ export function createI18n({ language }: { language?: Language } = {}): i18n {
     },
   })
 
+  // The page's language and tab title follow the interface language.
   const setDocumentLanguage = (lng: string) => {
     document.documentElement.lang = lng
+    document.title = instance.t('app.name')
   }
   setDocumentLanguage(instance.resolvedLanguage ?? 'en')
   instance.on('languageChanged', setDocumentLanguage)
