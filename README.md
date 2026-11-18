@@ -8,12 +8,16 @@ terms in code, tests and the interface.
 
 ## Run it
 
-Requires Node 24.
+Requires Node 24, and the API running locally: `docker compose up --build` in the API repository.
 
 ```bash
 npm install
 npm run dev
 ```
+
+The dev server on http://localhost:5173 proxies `/api` to the API on :8080, so the browser sees one origin and
+the session cookie stays first-party. Emails the API sends, such as verification links, land in Mailpit at
+http://localhost:8025.
 
 | Script | What |
 | --- | --- |
@@ -22,8 +26,28 @@ npm run dev
 | `npm run typecheck` | `tsc` with no output |
 | `npm test` | Unit and component tests (Vitest) |
 | `npm run build` | Typecheck and production build into `dist/` |
+| `npm run api:sync` | Copy the API's OpenAPI document and regenerate the client's types |
 
-CI runs lint, typecheck, tests and the build on every pull request.
+CI runs lint, typecheck, tests and the build on every pull request, and fails when the generated API client no
+longer matches the API.
+
+## Talking to the API
+
+- **The client is generated.** `src/shared/api/schema.d.ts` is generated from the API's OpenAPI document; never
+  write request or response types by hand. Call the API through `api` from `src/shared/api/client.ts`.
+- **Keeping in step.** `npm run api:sync` copies the document from the API clone next to this one (or the file
+  `PFM_OPENAPI` points to) and regenerates the types; commit both. CI copies it from the API's `main` branch
+  instead, so merge an API change first, then the SPA change that uses it.
+- **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
+  every request that changes something, and forgets it after signing in or out.
+- **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
+  returns them to where they were going.
+
+## Tests
+
+Tests render the real app and routes. The API is mocked at the network with [MSW](https://mswjs.io)
+(`src/test/server.ts`), signed in as a test user unless a test says otherwise; `fakeAuthApi` stands in for the
+sign-in endpoints and follows the same rules as the real API. A request no handler expects fails the test.
 
 ## Layout
 

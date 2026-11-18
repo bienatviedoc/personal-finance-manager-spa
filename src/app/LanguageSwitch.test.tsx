@@ -6,7 +6,7 @@ describe('language switch', () => {
   it('switches the whole interface to Vietnamese and back', async () => {
     const { user } = renderApp('/budgets')
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'Tiếng Việt')
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Language' }), 'Tiếng Việt')
 
     const nav = screen.getByRole('navigation', { name: 'Điều hướng chính' })
     expect(within(nav).getByRole('link', { name: 'Ngân sách' })).toBeInTheDocument()
@@ -23,22 +23,22 @@ describe('language switch', () => {
 
   it('remembers a language the viewer chose, and stores nothing until they choose', async () => {
     const first = renderApp('/budgets', { language: 'detect' })
-    expect(screen.getByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
     expect(localStorage.length).toBe(0)
 
     await first.user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'Tiếng Việt')
     first.unmount()
 
     renderApp('/budgets', { language: 'detect' })
-    expect(screen.getByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
   })
 
-  it('follows the browser language when the viewer has not chosen one', () => {
+  it('follows the browser language when the viewer has not chosen one', async () => {
     vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['vi-VN', 'en-US'])
 
     renderApp('/budgets', { language: 'detect' })
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
     expect(localStorage.length).toBe(0)
   })
 })

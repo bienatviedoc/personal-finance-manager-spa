@@ -19,6 +19,11 @@ jobs:
       - name: Install
         run: npm ci
 
+      # The client's types are generated from the OpenAPI document committed on the API's main
+      # branch. A difference means the API changed and the SPA has not caught up, or the other way round.
+      - name: API client matches the API
+        run: npm run api:sync && git diff --exit-code -- src/shared/api
+
       - name: Lint
         run: npm run lint
 

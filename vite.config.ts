@@ -10,6 +10,11 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    // The API runs on :8080 (docker compose up in the API repository). Proxying keeps the browser on
+    // one origin, so the session cookie is first-party and SameSite=Strict holds.
+    proxy: { '/api': 'http://localhost:8080' },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
