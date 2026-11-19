@@ -3,6 +3,7 @@ import type { RouteObject } from 'react-router'
 import { accountsRoutes } from '@/features/accounts'
 import { authRoutes, requireSignedInUser } from '@/features/auth'
 import { budgetsRoutes } from '@/features/budgets'
+import { categoriesRoutes } from '@/features/categories'
 import { dashboardRoutes } from '@/features/dashboard'
 import { importsRoutes } from '@/features/imports'
 import { recurringRoutes } from '@/features/recurring'
@@ -24,6 +25,7 @@ const shellScreens: RouteObject[] = [
   ...recurringRoutes,
   ...importsRoutes,
   ...settingsRoutes,
+  ...categoriesRoutes,
 ]
 
 /**
