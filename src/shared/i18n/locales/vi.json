@@ -18,6 +18,7 @@
     "transactions": "Giao dịch",
     "accounts": "Tài khoản",
     "accountDetail": "Tài khoản",
+    "institutions": "Tổ chức tài chính",
     "budgets": "Ngân sách",
     "reports": "Báo cáo",
     "recurring": "Định kỳ",
@@ -86,6 +87,51 @@
     "userMenu": {
       "signedInAs": "Đã đăng nhập: {{email}}",
       "signOut": "Đăng xuất"
+    }
+  },
+  "institutions": {
+    "backToAccounts": "Quay lại tài khoản",
+    "intro": "Các ngân hàng và ví điện tử bạn đang giữ tiền.",
+    "add": "Thêm tổ chức",
+    "empty": "Chưa có tổ chức nào. Hãy thêm các ngân hàng và ví điện tử bạn đang giữ tiền.",
+    "name": "Tên",
+    "color": "Màu",
+    "logo": "Biểu tượng",
+    "none": "Không có",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "edit": "Sửa",
+    "editNamed": "Sửa {{name}}",
+    "archive": "Lưu trữ",
+    "archiveNamed": "Lưu trữ {{name}}",
+    "archiveExplained": "Lưu trữ {{name}}? Tổ chức này sẽ không còn trong danh sách chọn, nhưng vẫn hiển thị ở các tài khoản đang dùng nó.",
+    "archiveConfirm": "Lưu trữ",
+    "colors": {
+      "red": "Đỏ",
+      "orange": "Cam",
+      "yellow": "Vàng",
+      "green": "Xanh lá",
+      "teal": "Xanh mòng két",
+      "blue": "Xanh dương",
+      "purple": "Tím",
+      "pink": "Hồng",
+      "current": "Màu hiện tại"
+    },
+    "logos": {
+      "bank": "Ngân hàng",
+      "building": "Tòa nhà",
+      "wallet": "Ví",
+      "card": "Thẻ",
+      "piggyBank": "Heo đất",
+      "coins": "Tiền xu",
+      "smartphone": "Điện thoại"
+    },
+    "errors": {
+      "nameRequired": "Nhập tên.",
+      "nameTooLong": "Dùng tối đa 100 ký tự.",
+      "color": "Chọn một trong các màu.",
+      "logo": "Chọn một trong các biểu tượng.",
+      "generic": "Đã xảy ra lỗi. Hãy thử lại."
     }
   },
   "settings": {

@@ -64,7 +64,8 @@ longer matches the API.
 
 Tests render the real app and routes. The API is mocked at the network with [MSW](https://mswjs.io)
 (`src/test/server.ts`), signed in as a test user unless a test says otherwise; `fakeAuthApi` stands in for the
-sign-in endpoints and follows the same rules as the real API. A request no handler expects fails the test.
+sign-in endpoints and `fakeInstitutionsApi` (`src/test/`) for the institution endpoints, each following the same rules as
+the real API. A request no handler expects fails the test.
 
 ## Layout
 
