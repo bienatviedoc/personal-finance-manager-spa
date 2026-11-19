@@ -66,25 +66,3 @@ export const categoryIcons: CategoryIcon[] = [
 export function iconFor(key: string): LucideIcon {
   return categoryIcons.find((icon) => icon.key === key)?.Icon ?? Tag
 }
-
-export type CategoryColor = { value: string; label: ParseKeys }
-
-/** The colours a category can have. Covers every colour in the default set. */
-export const categoryColors: CategoryColor[] = [
-  { value: '#ef4444', label: 'categories.colors.red' },
-  { value: '#f97316', label: 'categories.colors.orange' },
-  { value: '#eab308', label: 'categories.colors.amber' },
-  { value: '#84cc16', label: 'categories.colors.lime' },
-  { value: '#22c55e', label: 'categories.colors.green' },
-  { value: '#10b981', label: 'categories.colors.emerald' },
-  { value: '#14b8a6', label: 'categories.colors.teal' },
-  { value: '#0ea5e9', label: 'categories.colors.sky' },
-  { value: '#3b82f6', label: 'categories.colors.blue' },
-  { value: '#6366f1', label: 'categories.colors.indigo' },
-  { value: '#8b5cf6', label: 'categories.colors.violet' },
-  { value: '#a855f7', label: 'categories.colors.purple' },
-  { value: '#d946ef', label: 'categories.colors.fuchsia' },
-  { value: '#ec4899', label: 'categories.colors.pink' },
-  { value: '#f43f5e', label: 'categories.colors.rose' },
-  { value: '#64748b', label: 'categories.colors.slate' },
-]

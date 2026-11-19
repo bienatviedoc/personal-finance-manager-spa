@@ -37,12 +37,12 @@ describe('institutions', () => {
 
     const list = await screen.findByRole('list', { name: 'Institutions' })
     expect(within(list).getByRole('heading', { name: 'Techcombank' })).toBeInTheDocument()
-    expect(api.institutions).toEqual([expect.objectContaining({ name: 'Techcombank', color: '#dc2626', logoKey: 'bank' })])
+    expect(api.institutions).toEqual([expect.objectContaining({ name: 'Techcombank', color: '#ef4444', logoKey: 'bank' })])
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
   })
 
   it('can be edited, including taking the colour and logo away', async () => {
-    const api = fakeInstitutionsApi([{ name: 'MoMo', color: '#db2777', logoKey: 'wallet' }])
+    const api = fakeInstitutionsApi([{ name: 'MoMo', color: '#ec4899', logoKey: 'wallet' }])
     const { user } = renderApp('/accounts/institutions')
 
     await user.click(await screen.findByRole('button', { name: 'Edit MoMo' }))

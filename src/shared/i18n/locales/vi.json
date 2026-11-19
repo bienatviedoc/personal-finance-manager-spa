@@ -121,17 +121,6 @@
     "archiveNamed": "Lưu trữ {{name}}",
     "archiveExplained": "Lưu trữ {{name}}? Tổ chức này sẽ không còn trong danh sách chọn, nhưng vẫn hiển thị ở các tài khoản đang dùng nó.",
     "archiveConfirm": "Lưu trữ",
-    "colors": {
-      "red": "Đỏ",
-      "orange": "Cam",
-      "yellow": "Vàng",
-      "green": "Xanh lá",
-      "teal": "Xanh mòng két",
-      "blue": "Xanh dương",
-      "purple": "Tím",
-      "pink": "Hồng",
-      "current": "Màu hiện tại"
-    },
     "logos": {
       "bank": "Ngân hàng",
       "building": "Tòa nhà",
@@ -262,25 +251,25 @@
       "pieChart": "Biểu đồ tròn",
       "tag": "Nhãn",
       "more": "Khác"
-    },
-    "colors": {
-      "red": "Đỏ",
-      "orange": "Cam",
-      "amber": "Vàng hổ phách",
-      "lime": "Xanh chanh",
-      "green": "Xanh lá",
-      "emerald": "Xanh ngọc lục bảo",
-      "teal": "Xanh mòng két",
-      "sky": "Xanh da trời",
-      "blue": "Xanh dương",
-      "indigo": "Chàm",
-      "violet": "Tím violet",
-      "purple": "Tím",
-      "fuchsia": "Hồng tím",
-      "pink": "Hồng",
-      "rose": "Hồng đỏ",
-      "slate": "Xám đá",
-      "current": "Màu hiện tại"
     }
+  },
+  "colors": {
+    "red": "Đỏ",
+    "orange": "Cam",
+    "amber": "Vàng hổ phách",
+    "lime": "Xanh chanh",
+    "green": "Xanh lá",
+    "emerald": "Xanh ngọc lục bảo",
+    "teal": "Xanh mòng két",
+    "sky": "Xanh da trời",
+    "blue": "Xanh dương",
+    "indigo": "Chàm",
+    "violet": "Tím violet",
+    "purple": "Tím",
+    "fuchsia": "Hồng tím",
+    "pink": "Hồng",
+    "rose": "Hồng đỏ",
+    "slate": "Xám đá",
+    "current": "Màu hiện tại"
   }
 }

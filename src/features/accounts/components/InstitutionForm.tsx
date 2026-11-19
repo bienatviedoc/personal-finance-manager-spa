@@ -7,7 +7,8 @@ import { TextField } from '@/shared/components/TextField'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import type { Institution, InstitutionField, InstitutionFields, SaveOutcome } from '../api/institutions'
-import { colors, logos } from './institutionLook'
+import { paletteWith } from '@/shared/ui/palette'
+import { logos } from './institutionLook'
 
 const schema = z.object({
   name: z.string().trim().min(1, { error: 'institutions.errors.nameRequired' }).max(100, { error: 'institutions.errors.nameTooLong' }),
@@ -40,10 +41,7 @@ export function InstitutionForm({ institution, onSave, onDone }: Props) {
   })
   const { errors, isSubmitting } = form.formState
   // A colour set some other way than this form stays on offer, so editing does not lose it.
-  const colorOptions =
-    institution?.color && !colors.some((color) => color.value === institution.color)
-      ? [...colors, { value: institution.color, label: 'institutions.colors.current' as ParseKeys }]
-      : colors
+  const colorOptions = paletteWith(institution?.color)
 
   const onSubmit = form.handleSubmit(async (values) => {
     const outcome = await onSave({ name: values.name, color: values.color || null, logoKey: values.logoKey || null })

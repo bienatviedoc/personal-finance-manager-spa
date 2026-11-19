@@ -121,17 +121,6 @@
     "archiveNamed": "Archive {{name}}",
     "archiveExplained": "Archive {{name}}? It leaves pickers and lists, and stays on the accounts that already use it.",
     "archiveConfirm": "Archive",
-    "colors": {
-      "red": "Red",
-      "orange": "Orange",
-      "yellow": "Yellow",
-      "green": "Green",
-      "teal": "Teal",
-      "blue": "Blue",
-      "purple": "Purple",
-      "pink": "Pink",
-      "current": "Current colour"
-    },
     "logos": {
       "bank": "Bank",
       "building": "Building",
@@ -262,25 +251,25 @@
       "pieChart": "Pie chart",
       "tag": "Tag",
       "more": "More"
-    },
-    "colors": {
-      "red": "Red",
-      "orange": "Orange",
-      "amber": "Amber",
-      "lime": "Lime",
-      "green": "Green",
-      "emerald": "Emerald",
-      "teal": "Teal",
-      "sky": "Sky blue",
-      "blue": "Blue",
-      "indigo": "Indigo",
-      "violet": "Violet",
-      "purple": "Purple",
-      "fuchsia": "Fuchsia",
-      "pink": "Pink",
-      "rose": "Rose",
-      "slate": "Slate",
-      "current": "Current colour"
     }
+  },
+  "colors": {
+    "red": "Red",
+    "orange": "Orange",
+    "amber": "Amber",
+    "lime": "Lime",
+    "green": "Green",
+    "emerald": "Emerald",
+    "teal": "Teal",
+    "sky": "Sky blue",
+    "blue": "Blue",
+    "indigo": "Indigo",
+    "violet": "Violet",
+    "purple": "Purple",
+    "fuchsia": "Fuchsia",
+    "pink": "Pink",
+    "rose": "Rose",
+    "slate": "Slate",
+    "current": "Current colour"
   }
 }
