@@ -59,7 +59,7 @@ export default defineConfig([
             exclude: [
               'className', 'style', 'type', 'key', 'id', 'width', 'height',
               'to', 'href', 'path', 'role', 'variant', 'size', 'lang', 'htmlFor',
-              'rel', 'target', 'src', 'end', 'data-.*', 'autoComplete',
+              'rel', 'target', 'src', 'end', 'data-.*', 'autoComplete', 'inputMode',
             ],
           },
         },

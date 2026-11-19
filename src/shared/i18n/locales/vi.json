@@ -133,5 +133,20 @@
       "logo": "Chọn một trong các biểu tượng.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại."
     }
+  },
+  "settings": {
+    "sections": "Các mục cài đặt",
+    "profile": {
+      "title": "Hồ sơ",
+      "baseCurrency": "Tiền tệ cơ sở",
+      "baseCurrencyHint": "Tổng số, ngân sách và báo cáo được hiển thị bằng tiền tệ này.",
+      "timeZone": "Múi giờ",
+      "timeZoneHint": "Quyết định “hôm nay” là ngày nào, và tháng ngân sách bắt đầu, kết thúc khi nào.",
+      "language": "Ngôn ngữ",
+      "amountExample": "Số tiền sẽ hiển thị như sau:",
+      "save": "Lưu",
+      "saved": "Đã lưu cài đặt của bạn.",
+      "saveFailed": "Không thể lưu cài đặt. Vui lòng thử lại."
+    }
   }
 }
