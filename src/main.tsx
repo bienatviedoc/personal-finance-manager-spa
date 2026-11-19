@@ -6,7 +6,13 @@ import { AppProviders } from '@/app/AppProviders'
 import { createQueryClient } from '@/app/queryClient'
 import { createRoutes } from '@/app/routes'
 import { createI18n } from '@/shared/i18n'
+import { reportError, startErrorReporting } from '@/shared/observability/errorReporting'
 import './index.css'
+
+// Started first, so even an error while the app starts is reported.
+if (import.meta.env.VITE_SENTRY_DSN) {
+  startErrorReporting({ dsn: import.meta.env.VITE_SENTRY_DSN, environment: import.meta.env.MODE })
+}
 
 const i18n = createI18n()
 const queryClient = createQueryClient()
@@ -15,7 +21,8 @@ const router = createBrowserRouter(createRoutes({ queryClient }))
 const root = document.getElementById('root')
 if (!root) throw new Error('The #root element is missing from index.html.')
 
-createRoot(root).render(
+// Screens report their own failures (see RouteError); this catches anything outside them.
+createRoot(root, { onUncaughtError: (error) => reportError(error) }).render(
   <StrictMode>
     <AppProviders i18n={i18n} queryClient={queryClient}>
       <RouterProvider router={router} />

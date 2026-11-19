@@ -43,6 +43,20 @@ longer matches the API.
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
   returns them to where they were going.
 
+## Observability
+
+- **Every API request starts a trace.** The client sends a W3C `traceparent` header with a new trace id on
+  each request; the API's logs, spans and database calls for that request all carry it. Find them in the API's
+  local viewer (the Aspire Dashboard, http://localhost:18888, started by the API's `docker compose up`).
+- **Unhandled errors are reported** to the error tracker (Sentry) when `VITE_SENTRY_DSN` is set at build
+  time; without it nothing is sent. A screen that fails reports from its error boundary (`RouteError`), and
+  Sentry catches anything outside one.
+- **No financial content in reports.** A report carries the error and the address without its query string.
+  It leaves out the user, cookies, headers, bodies, console output and clicks. The one thing it adds is the API
+  calls that failed before the error: method, path, status and trace id, which find the API's side of it.
+  `src/shared/observability/errorReporting.ts` holds these rules, and `src/app/errorReporting.test.tsx` checks
+  them.
+
 ## Tests
 
 Tests render the real app and routes. The API is mocked at the network with [MSW](https://mswjs.io)
