@@ -59,7 +59,7 @@ export function fakeCategoriesApi({
     http.get(url('/api/v1/categories'), ({ request }) => {
       const includeArchived = new URL(request.url).searchParams.get('includeArchived') === 'true'
       const visible = state.categories.filter((category) => includeArchived || !category.isArchived)
-      return HttpResponse.json(visible.filter((category) => category.parentId === null).map((category) => view(category, visible)))
+      return HttpResponse.json({ items: visible.filter((category) => category.parentId === null).map((category) => view(category, visible)) })
     }),
     http.post(url('/api/v1/categories'), async ({ request }) => {
       const refused = refuseWithoutToken(request)

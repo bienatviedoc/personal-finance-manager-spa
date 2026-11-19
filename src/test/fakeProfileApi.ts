@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw'
 import type { components } from '@/shared/api/schema'
 import { apiUrl as url, hasAntiforgeryToken, problem, server, testUser } from './server'
 
-type ProfileResponse = components['schemas']['UserProfile']
+type ProfileResponse = components['schemas']['ProfileResponse']
 
 /**
  * A stand-in for GET and PATCH /me, signed in as `testUser` with the given settings, following the same

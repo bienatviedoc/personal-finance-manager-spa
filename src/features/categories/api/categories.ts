@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
 
-export type Category = components['schemas']['CategoryView']
+export type Category = components['schemas']['CategoryResponse']
 export type CategoryKind = components['schemas']['CategoryKind']
 export type CategoryFields = { name: string; kind: CategoryKind; icon: string; color: string }
 
@@ -19,7 +19,7 @@ export function useCategories({ includeArchived = false }: { includeArchived?: b
     queryFn: async () => {
       const { data, response } = await api.GET('/api/v1/categories', { params: { query: { includeArchived } } })
       if (!data) throw new Error(`Loading categories failed: ${response.status}`)
-      return data
+      return data.items
     },
   })
 }

@@ -6,7 +6,7 @@ import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
 import { chooseLanguage, type Language } from '@/shared/i18n'
 
-export type ProfileChange = components['schemas']['UpdateProfileCommand']
+export type ProfileChange = components['schemas']['UpdateProfileRequest']
 
 /** Changes the signed-in user's profile settings; any left out stay as they were. */
 export function useUpdateProfile() {

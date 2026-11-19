@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { apiUrl as url, hasAntiforgeryToken, problem, server, testPassword, testUser } from './server'
 
-type FakeUser = { id: string; email: string; password: string; verified: boolean }
+type FakeUser = { id: string; email: string; password: string; verified: boolean; locale?: 'en' | 'vi' | null }
 
 /**
  * A stand-in for the API's sign-in endpoints, keeping state across requests and following the same
@@ -13,7 +13,7 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     signedInAs: signedIn ? (users[0] ?? null) : (null as FakeUser | null),
     resentTo: [] as string[],
     registered: [] as string[],
-    /** The language each registration asked for, in order. */
+    /** The locale each registration asked for, in order. */
     registeredIn: [] as (string | undefined)[],
     verifications: [] as { userId: string; token: string }[],
     resetRequestedFor: [] as string[],
@@ -25,7 +25,7 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
 
   server.use(
     http.get(url('/api/v1/me'), () =>
-      state.signedInAs ? HttpResponse.json({ ...testUser, id: state.signedInAs.id, email: state.signedInAs.email }) : problem(401),
+      state.signedInAs ? HttpResponse.json({ ...testUser, id: state.signedInAs.id, email: state.signedInAs.email, locale: state.signedInAs.locale ?? null }) : problem(401),
     ),
     http.post(url('/api/v1/auth/login'), async ({ request }) => {
       const refused = refuseWithoutToken(request)
@@ -54,15 +54,15 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     http.post(url('/api/v1/auth/register'), async ({ request }) => {
       const refused = refuseWithoutToken(request)
       if (refused) return refused
-      const { email, password, language } = (await request.json()) as { email: string; password: string; language?: string }
-      if (language !== undefined && language !== 'en' && language !== 'vi') return problem(400, { errors: { language: ['Choose English (en) or Vietnamese (vi).'] } })
+      const { email, password, locale } = (await request.json()) as { email: string; password: string; locale?: string }
+      if (locale !== undefined && locale !== 'en' && locale !== 'vi') return problem(400, { errors: { locale: ['Choose one of: en, vi.'] } })
       if (password.length < 12) return problem(400, { errors: { password: ['Passwords must be at least 12 characters.'] } })
       // Stands for anything only the server can judge about an address.
       if (email.endsWith('.invalid')) return problem(400, { errors: { email: ['Enter a valid email address.'] } })
       state.registered.push(email)
-      state.registeredIn.push(language)
+      state.registeredIn.push(locale)
       if (!state.users.some((user) => user.email === email)) {
-        state.users.push({ id: crypto.randomUUID(), email, password, verified: false })
+        state.users.push({ id: crypto.randomUUID(), email, password, verified: false, locale: locale ?? null })
       }
       return new HttpResponse(null, { status: 202 })
     }),

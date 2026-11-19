@@ -288,7 +288,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
+                  "$ref": "#/components/schemas/ProfileResponse"
                 }
               }
             }
@@ -314,7 +314,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateProfileCommand"
+                "$ref": "#/components/schemas/UpdateProfileRequest"
               }
             }
           },
@@ -326,7 +326,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserProfile"
+                  "$ref": "#/components/schemas/ProfileResponse"
                 }
               }
             }
@@ -368,6 +368,26 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -377,6 +397,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InstitutionListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -617,10 +647,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CategoryView"
-                  }
+                  "$ref": "#/components/schemas/CategoryListResponse"
                 }
               }
             }
@@ -659,7 +686,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CategoryView"
+                  "$ref": "#/components/schemas/CategoryResponse"
                 }
               }
             }
@@ -724,7 +751,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CategoryView"
+                  "$ref": "#/components/schemas/CategoryResponse"
                 }
               }
             }
@@ -844,6 +871,20 @@
           "expense"
         ]
       },
+      "CategoryListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryResponse"
+            }
+          }
+        }
+      },
       "CategoryRequest": {
         "required": [
           "name",
@@ -874,7 +915,7 @@
           }
         }
       },
-      "CategoryView": {
+      "CategoryResponse": {
         "required": [
           "id",
           "parentId",
@@ -916,7 +957,7 @@
           "subcategories": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CategoryView"
+              "$ref": "#/components/schemas/CategoryResponse"
             }
           }
         }
@@ -977,7 +1018,8 @@
       },
       "InstitutionListResponse": {
         "required": [
-          "items"
+          "items",
+          "nextCursor"
         ],
         "type": "object",
         "properties": {
@@ -986,6 +1028,12 @@
             "items": {
               "$ref": "#/components/schemas/InstitutionResponse"
             }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1091,6 +1139,41 @@
           }
         }
       },
+      "ProfileResponse": {
+        "required": [
+          "id",
+          "email",
+          "baseCurrency",
+          "timeZone",
+          "locale"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "baseCurrency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "locale": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Locale"
+              }
+            ]
+          }
+        }
+      },
       "RegisterRequest": {
         "required": [
           "email",
@@ -1104,7 +1187,7 @@
           "password": {
             "type": "string"
           },
-          "language": {
+          "locale": {
             "type": [
               "null",
               "string"
@@ -1169,7 +1252,7 @@
           }
         }
       },
-      "UpdateProfileCommand": {
+      "UpdateProfileRequest": {
         "type": "object",
         "properties": {
           "baseCurrency": {
@@ -1188,41 +1271,6 @@
             "type": [
               "null",
               "string"
-            ]
-          }
-        }
-      },
-      "UserProfile": {
-        "required": [
-          "id",
-          "email",
-          "baseCurrency",
-          "timeZone",
-          "locale"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "email": {
-            "type": "string"
-          },
-          "baseCurrency": {
-            "$ref": "#/components/schemas/Currency"
-          },
-          "timeZone": {
-            "type": "string"
-          },
-          "locale": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/Locale"
-              }
             ]
           }
         }

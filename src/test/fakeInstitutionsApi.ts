@@ -9,8 +9,8 @@ const logoKeys = ['bank', 'building', 'wallet', 'card', 'piggy-bank', 'coins', '
 
 /**
  * A stand-in for the API's institution endpoints, keeping state across requests and following the
- * same rules as the real API (see the API's InstitutionTests): the list is by name and leaves out
- * archived institutions unless asked, deleting archives, and a bad field is refused by name.
+ * same rules as the real API (see the API's InstitutionTests): the list is by name, a page at a time, and
+ * leaves out archived institutions unless asked, deleting archives, and a bad field is refused by name.
  */
 export function fakeInstitutionsApi(institutions: Partial<Institution>[] = []) {
   const state = {
@@ -42,11 +42,20 @@ export function fakeInstitutionsApi(institutions: Partial<Institution>[] = []) {
 
   server.use(
     http.get(apiUrl('/api/v1/institutions'), ({ request }) => {
-      const includeArchived = new URL(request.url).searchParams.get('includeArchived') === 'true'
-      const items = state.institutions
+      const query = new URL(request.url).searchParams
+      const includeArchived = query.get('includeArchived') === 'true'
+      const limit = Number(query.get('limit') ?? 50)
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) return problem(400, { errors: { limit: ['Ask for 1 to 100 at a time.'] } })
+      const sorted = state.institutions
         .filter((institution) => includeArchived || !institution.isArchived)
-        .toSorted((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }))
-      return HttpResponse.json({ items })
+        .toSorted((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }) || a.id.localeCompare(b.id))
+      // The real cursor is opaque; this one is the id of the page's last institution.
+      const cursor = query.get('cursor')
+      const start = cursor === null ? 0 : sorted.findIndex((institution) => institution.id === cursor) + 1
+      if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
+      const items = sorted.slice(start, start + limit)
+      const nextCursor = start + limit < sorted.length ? items.at(-1)!.id : null
+      return HttpResponse.json({ items, nextCursor })
     }),
     http.get(apiUrl('/api/v1/institutions/:id'), ({ params }) => {
       const found = find(params.id)

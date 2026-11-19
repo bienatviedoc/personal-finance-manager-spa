@@ -3,7 +3,7 @@ import { setupServer } from 'msw/node'
 
 import type { components } from '@/shared/api/schema'
 
-type ProfileResponse = components['schemas']['UserProfile']
+type ProfileResponse = components['schemas']['ProfileResponse']
 
 /** The signed-in user, with the profile settings a new user starts with. */
 export const testUser: ProfileResponse = {

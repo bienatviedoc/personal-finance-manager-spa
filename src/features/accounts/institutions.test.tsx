@@ -15,6 +15,15 @@ describe('institutions', () => {
     expect(within(list).getAllByRole('listitem').map((item) => within(item).getByRole('heading').textContent)).toEqual(['MoMo', 'Vietcombank'])
   })
 
+  it('are all listed, however many pages the API answers in', async () => {
+    fakeInstitutionsApi(Array.from({ length: 51 }, (_, index) => ({ name: `Bank ${String(index + 1).padStart(2, '0')}` })))
+    renderApp('/accounts/institutions')
+
+    const list = await screen.findByRole('list', { name: 'Institutions' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(51)
+    expect(within(list).getByRole('heading', { name: 'Bank 51' })).toBeInTheDocument()
+  })
+
   it('can be added with a name, a colour and a logo', async () => {
     const api = fakeInstitutionsApi()
     const { user } = renderApp('/accounts/institutions')

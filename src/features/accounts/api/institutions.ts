@@ -12,13 +12,22 @@ export type SaveOutcome = { saved: true; institution: Institution } | { saved: f
 
 const institutionsKey = ['institutions']
 
-/** The user's institutions by name, without archived ones: what lists and pickers show. */
+/**
+ * The user's institutions by name, without archived ones: what lists and pickers show. A user has dozens,
+ * so every page is loaded.
+ */
 export const institutionsQuery = queryOptions({
   queryKey: [...institutionsKey, { includeArchived: false }],
   queryFn: async () => {
-    const { data, response } = await api.GET('/api/v1/institutions')
-    if (!data) throw new Error(`Could not load institutions: ${response.status}`)
-    return data.items
+    const institutions: Institution[] = []
+    let cursor: string | undefined
+    do {
+      const { data, response } = await api.GET('/api/v1/institutions', { params: { query: { cursor } } })
+      if (!data) throw new Error(`Could not load institutions: ${response.status}`)
+      institutions.push(...data.items)
+      cursor = data.nextCursor ?? undefined
+    } while (cursor)
+    return institutions
   },
 })
 
