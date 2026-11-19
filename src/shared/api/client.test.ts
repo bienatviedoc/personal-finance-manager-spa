@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { antiforgeryToken, apiUrl, server, testUser } from '@/test/server'
+import { traceIdOf } from '@/shared/observability/traceparent'
 import { api } from './client'
 
 // W3C Trace Context: version 00, a 32-hex trace id, a 16-hex parent span id, sampled.
@@ -29,7 +30,7 @@ describe('the API client', () => {
 
     expect(seen).toHaveLength(3)
     for (const header of seen) expect(header).toMatch(traceparent)
-    const traceIds = seen.map((header) => header?.split('-')[1])
+    const traceIds = seen.map(traceIdOf)
     expect(new Set(traceIds).size).toBe(3)
   })
 })

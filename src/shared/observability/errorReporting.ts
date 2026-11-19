@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react'
+import { traceIdOf } from './traceparent'
 
 /**
  * Unhandled errors go to the error tracker (Sentry), which is a third party. A report says what
@@ -50,7 +51,7 @@ export function reportError(error: unknown) {
  * path is sent without its query string.
  */
 export function recordFailedApiCall(request: Request, response: Response) {
-  const traceId = request.headers.get('traceparent')?.split('-')[1]
+  const traceId = traceIdOf(request.headers.get('traceparent'))
   Sentry.addBreadcrumb({
     category: apiCategory,
     level: 'error',
@@ -65,6 +66,8 @@ function scrub(event: Sentry.ErrorEvent): Sentry.ErrorEvent {
     event.request = { url: event.request.url ? withoutQuery(event.request.url) : undefined }
   }
   delete event.user
+  // Holds what was thrown when it is not an Error (a problem response, say), which may hold anything.
+  delete event.extra
   return event
 }
 

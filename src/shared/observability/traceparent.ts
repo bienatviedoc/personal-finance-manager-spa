@@ -6,6 +6,11 @@ export function newTraceparent(): string {
   return `00-${randomHex(16)}-${randomHex(8)}-01`
 }
 
+/** The trace id a `traceparent` header carries. */
+export function traceIdOf(traceparent: string | null | undefined): string | undefined {
+  return traceparent?.split('-')[1]
+}
+
 /** Random, never all zeros (which the spec reserves for "invalid"). */
 function randomHex(bytes: number): string {
   const values = crypto.getRandomValues(new Uint8Array(bytes))

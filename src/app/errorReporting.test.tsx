@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { startErrorReporting } from '@/shared/observability/errorReporting'
+import { traceIdOf } from '@/shared/observability/traceparent'
 import { renderApp } from '@/test/renderApp'
 import { apiUrl, problem, server, testUser } from '@/test/server'
 
@@ -58,6 +59,26 @@ describe('error reports', () => {
     }
   })
 
+  it('leave out what a screen threw when it is not an Error, since it may hold anything', async () => {
+    renderApp('/failing', {
+      extraScreens: [
+        {
+          path: 'failing',
+          loader: () => {
+            throw { payee: 'Corner Bakery', amount: 4815.16 }
+          },
+          Component: () => null,
+        },
+      ],
+    })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })).toBeInTheDocument()
+    await waitFor(() => expect(tracker.reports).toHaveLength(1))
+    for (const leaked of ['Corner', 'Bakery', '4815']) {
+      expect(JSON.stringify(tracker.reports[0])).not.toContain(leaked)
+    }
+  })
+
   it('name the trace of an API call that failed before the error, so the API side can be found', async () => {
     let sentTraceparent: string | null = null
     server.use(
@@ -71,7 +92,7 @@ describe('error reports', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })).toBeInTheDocument()
     await waitFor(() => expect(tracker.reports).toHaveLength(1))
-    const traceId = (sentTraceparent as string | null)?.split('-')[1]
+    const traceId = traceIdOf(sentTraceparent)
     expect(traceId).toBeTruthy()
     expect(tracker.reports[0]).toMatchObject({
       breadcrumbs: [expect.objectContaining({ category: 'api', data: { method: 'GET', path: '/api/v1/me', status: 500, trace_id: traceId } })],
