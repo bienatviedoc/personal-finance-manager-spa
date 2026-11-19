@@ -42,6 +42,8 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     signedInAs: signedIn ? (users[0] ?? null) : (null as FakeUser | null),
     resentTo: [] as string[],
     registered: [] as string[],
+    /** The language each registration asked for, in order. */
+    registeredIn: [] as (string | undefined)[],
     verifications: [] as { userId: string; token: string }[],
   }
 
@@ -79,11 +81,13 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     http.post(url('/api/v1/auth/register'), async ({ request }) => {
       const refused = refuseWithoutToken(request)
       if (refused) return refused
-      const { email, password } = (await request.json()) as { email: string; password: string }
+      const { email, password, language } = (await request.json()) as { email: string; password: string; language?: string }
+      if (language !== undefined && language !== 'en' && language !== 'vi') return problem(400, { errors: { language: ['Choose English (en) or Vietnamese (vi).'] } })
       if (password.length < 12) return problem(400, { errors: { password: ['Passwords must be at least 12 characters.'] } })
       // Stands for anything only the server can judge about an address.
       if (email.endsWith('.invalid')) return problem(400, { errors: { email: ['Enter a valid email address.'] } })
       state.registered.push(email)
+      state.registeredIn.push(language)
       if (!state.users.some((user) => user.email === email)) {
         state.users.push({ id: crypto.randomUUID(), email, password, verified: false })
       }
