@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { data } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import { renderApp } from '@/test/renderApp'
+import { failingScreen, renderApp } from '@/test/renderApp'
 
 describe('app navigation', () => {
   it.each([
@@ -34,13 +34,9 @@ describe('app navigation', () => {
 })
 
 describe('a screen that fails', () => {
-  function FailingScreen(): never {
-    throw new Error('render failed')
-  }
-
   it('shows an error inside the shell, and the rest of the app keeps working', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { user } = renderApp('/failing', { extraScreens: [{ path: 'failing', Component: FailingScreen }] })
+    const { user } = renderApp('/failing', { extraScreens: [failingScreen] })
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })).toBeInTheDocument()
     expect(screen.queryByText('render failed')).not.toBeInTheDocument()

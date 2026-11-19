@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { antiforgeryToken, apiUrl, server, testUser } from '@/test/server'
-import { traceIdOf } from '@/shared/observability/traceparent'
+import { traceIdOf, traceparentHeader } from '@/shared/observability/traceparent'
 import { api } from './client'
 
 // W3C Trace Context: version 00, a 32-hex trace id, a 16-hex parent span id, sampled.
@@ -10,17 +10,18 @@ const traceparent = /^00-(?!0{32})[0-9a-f]{32}-(?!0{16})[0-9a-f]{16}-01$/
 describe('the API client', () => {
   it('starts a new trace for every request, which the API and the database calls it makes join', async () => {
     const seen: (string | null)[] = []
+    const note = (request: Request) => seen.push(request.headers.get(traceparentHeader))
     server.use(
       http.get(apiUrl('/api/v1/auth/antiforgery'), ({ request }) => {
-        seen.push(request.headers.get('traceparent'))
+        note(request)
         return HttpResponse.json({ token: antiforgeryToken })
       }),
       http.get(apiUrl('/api/v1/me'), ({ request }) => {
-        seen.push(request.headers.get('traceparent'))
+        note(request)
         return HttpResponse.json(testUser)
       }),
       http.post(apiUrl('/api/v1/auth/logout'), ({ request }) => {
-        seen.push(request.headers.get('traceparent'))
+        note(request)
         return new HttpResponse(null, { status: 204 })
       }),
     )

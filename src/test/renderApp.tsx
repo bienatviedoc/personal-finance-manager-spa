@@ -13,6 +13,14 @@ type Options = {
   language?: Language | 'detect'
 }
 
+/** A screen at `/failing` that fails to render, for `extraScreens`. */
+export const failingScreen: RouteObject = {
+  path: 'failing',
+  Component: function FailingScreen(): never {
+    throw new Error('render failed')
+  },
+}
+
 /**
  * Renders the real app at a URL with an in-memory history, talking to the API mocked in
  * `server.ts`: signed in as `testUser` unless a test says otherwise.

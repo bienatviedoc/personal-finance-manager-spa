@@ -6,7 +6,7 @@ import { AppProviders } from '@/app/AppProviders'
 import { createQueryClient } from '@/app/queryClient'
 import { createRoutes } from '@/app/routes'
 import { createI18n } from '@/shared/i18n'
-import { reportError, startErrorReporting } from '@/shared/observability/errorReporting'
+import { startErrorReporting } from '@/shared/observability/errorReporting'
 import './index.css'
 
 // Started first, so even an error while the app starts is reported.
@@ -21,8 +21,9 @@ const router = createBrowserRouter(createRoutes({ queryClient }))
 const root = document.getElementById('root')
 if (!root) throw new Error('The #root element is missing from index.html.')
 
-// Screens report their own failures (see RouteError); this catches anything outside them.
-createRoot(root, { onUncaughtError: (error) => reportError(error) }).render(
+// Screens report their own failures (see RouteError). Anything outside them React raises as a
+// window error, which is logged to the console and which the error tracker listens for.
+createRoot(root).render(
   <StrictMode>
     <AppProviders i18n={i18n} queryClient={queryClient}>
       <RouterProvider router={router} />

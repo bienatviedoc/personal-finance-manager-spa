@@ -50,10 +50,13 @@ longer matches the API.
   local viewer (the Aspire Dashboard, http://localhost:18888, started by the API's `docker compose up`).
 - **Unhandled errors are reported** to the error tracker (Sentry) when `VITE_SENTRY_DSN` is set at build
   time; without it nothing is sent. A screen that fails reports from its error boundary (`RouteError`), and
-  Sentry catches anything outside one.
+  Sentry catches anything outside one, which the browser console shows either way.
 - **No financial content in reports.** A report carries the error and the address without its query string.
-  It leaves out the user, cookies, headers, bodies, console output and clicks. The one thing it adds is the API
-  calls that failed before the error: method, path, status and trace id, which find the API's side of it.
+  It leaves out the user, cookies, headers, bodies, console output and clicks, and anything thrown that is not
+  an `Error`. The one thing it adds is the API calls that failed before the error: method, path, status and
+  trace id, which find the API's side of it.
+- **An `Error`'s message is sent as it is,** so never put a payee, an amount or anything else the user
+  entered in one.
   `src/shared/observability/errorReporting.ts` holds these rules, and `src/app/errorReporting.test.tsx` checks
   them.
 
@@ -70,7 +73,8 @@ src/
   app/        the shell: routes, layout, providers, error and not-found pages
   features/   one folder per feature, with an index.ts and routes/; api/, components/ and
               hooks/ are added as a feature needs them
-  shared/     UI primitives (shared/ui), shared components, i18n, utilities
+  shared/     UI primitives (shared/ui), shared components, the API client (shared/api), i18n,
+              observability, utilities
   test/       test setup and helpers
 ```
 
