@@ -25,7 +25,8 @@
     "settings": "Settings",
     "signIn": "Sign in",
     "register": "Register",
-    "resetPassword": "Reset password",
+    "forgotPassword": "Forgot your password?",
+    "resetPassword": "Set a new password",
     "checkEmail": "Check your email",
     "verifyEmail": "Confirm your email address"
   },
@@ -70,6 +71,20 @@
       "confirmedBody": "Your email address is confirmed. You can sign in now.",
       "failedBody": "This link is invalid or has expired. Sign in to get a new one.",
       "toSignIn": "Sign in"
+    },
+    "forgotPassword": {
+      "body": "Enter the email address you sign in with, and we will send you a link to set a new password.",
+      "submit": "Send reset link",
+      "sent": "If {{email}} has a user, we sent a link to it. Open it to set a new password.",
+      "toSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "newPassword": "New password",
+      "submit": "Set new password",
+      "changedBody": "Your password is changed. Sign in with your new password.",
+      "toSignIn": "Sign in",
+      "linkInvalidBody": "This link is invalid, has been used or has expired. Ask for a new one.",
+      "askAgain": "Ask for a new link"
     },
     "notVerified": {
       "body": "Confirm your email address before signing in. We sent you a link when you registered.",

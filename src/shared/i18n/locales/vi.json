@@ -25,7 +25,8 @@
     "settings": "Cài đặt",
     "signIn": "Đăng nhập",
     "register": "Đăng ký",
-    "resetPassword": "Đặt lại mật khẩu",
+    "forgotPassword": "Quên mật khẩu?",
+    "resetPassword": "Đặt mật khẩu mới",
     "checkEmail": "Kiểm tra email",
     "verifyEmail": "Xác nhận địa chỉ email"
   },
@@ -70,6 +71,20 @@
       "confirmedBody": "Địa chỉ email của bạn đã được xác nhận. Bây giờ bạn có thể đăng nhập.",
       "failedBody": "Liên kết này không hợp lệ hoặc đã hết hạn. Hãy đăng nhập để nhận liên kết mới.",
       "toSignIn": "Đăng nhập"
+    },
+    "forgotPassword": {
+      "body": "Nhập địa chỉ email bạn dùng để đăng nhập, chúng tôi sẽ gửi cho bạn một liên kết để đặt mật khẩu mới.",
+      "submit": "Gửi liên kết đặt lại",
+      "sent": "Nếu {{email}} có người dùng, chúng tôi đã gửi một liên kết đến địa chỉ đó. Mở liên kết để đặt mật khẩu mới.",
+      "toSignIn": "Quay lại đăng nhập"
+    },
+    "resetPassword": {
+      "newPassword": "Mật khẩu mới",
+      "submit": "Đặt mật khẩu mới",
+      "changedBody": "Mật khẩu của bạn đã được thay đổi. Hãy đăng nhập bằng mật khẩu mới.",
+      "toSignIn": "Đăng nhập",
+      "linkInvalidBody": "Liên kết này không hợp lệ, đã được dùng hoặc đã hết hạn. Hãy yêu cầu liên kết mới.",
+      "askAgain": "Yêu cầu liên kết mới"
     },
     "notVerified": {
       "body": "Hãy xác nhận địa chỉ email trước khi đăng nhập. Chúng tôi đã gửi cho bạn một liên kết khi bạn đăng ký.",
