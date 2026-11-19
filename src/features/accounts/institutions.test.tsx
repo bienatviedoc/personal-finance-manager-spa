@@ -15,6 +15,15 @@ describe('institutions', () => {
     expect(within(list).getAllByRole('listitem').map((item) => within(item).getByRole('heading').textContent)).toEqual(['MoMo', 'Vietcombank'])
   })
 
+  it('are all listed, however many pages the API answers in', async () => {
+    fakeInstitutionsApi(Array.from({ length: 51 }, (_, index) => ({ name: `Bank ${String(index + 1).padStart(2, '0')}` })))
+    renderApp('/accounts/institutions')
+
+    const list = await screen.findByRole('list', { name: 'Institutions' })
+    expect(within(list).getAllByRole('listitem')).toHaveLength(51)
+    expect(within(list).getByRole('heading', { name: 'Bank 51' })).toBeInTheDocument()
+  })
+
   it('can be added with a name, a colour and a logo', async () => {
     const api = fakeInstitutionsApi()
     const { user } = renderApp('/accounts/institutions')
@@ -28,12 +37,12 @@ describe('institutions', () => {
 
     const list = await screen.findByRole('list', { name: 'Institutions' })
     expect(within(list).getByRole('heading', { name: 'Techcombank' })).toBeInTheDocument()
-    expect(api.institutions).toEqual([expect.objectContaining({ name: 'Techcombank', color: '#dc2626', logoKey: 'bank' })])
+    expect(api.institutions).toEqual([expect.objectContaining({ name: 'Techcombank', color: '#ef4444', logoKey: 'bank' })])
     expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
   })
 
   it('can be edited, including taking the colour and logo away', async () => {
-    const api = fakeInstitutionsApi([{ name: 'MoMo', color: '#db2777', logoKey: 'wallet' }])
+    const api = fakeInstitutionsApi([{ name: 'MoMo', color: '#ec4899', logoKey: 'wallet' }])
     const { user } = renderApp('/accounts/institutions')
 
     await user.click(await screen.findByRole('button', { name: 'Edit MoMo' }))

@@ -232,6 +232,9 @@ export interface components {
         };
         /** @enum {unknown} */
         CategoryKind: "income" | "expense";
+        CategoryListResponse: {
+            items: components["schemas"]["CategoryResponse"][];
+        };
         CategoryRequest: {
             name: string;
             kind: components["schemas"]["CategoryKind"];
@@ -240,7 +243,7 @@ export interface components {
             /** Format: uuid */
             parentId?: null | string;
         };
-        CategoryView: {
+        CategoryResponse: {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
@@ -250,7 +253,7 @@ export interface components {
             icon: string;
             color: string;
             isArchived: boolean;
-            subcategories: components["schemas"]["CategoryView"][];
+            subcategories: components["schemas"]["CategoryResponse"][];
         };
         /** @enum {unknown} */
         Currency: "VND" | "USD" | "EUR";
@@ -267,6 +270,7 @@ export interface components {
         };
         InstitutionListResponse: {
             items: components["schemas"]["InstitutionResponse"][];
+            nextCursor: null | string;
         };
         InstitutionRequest: {
             name: string;
@@ -291,10 +295,18 @@ export interface components {
             detail?: null | string;
             instance?: null | string;
         };
+        ProfileResponse: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            baseCurrency: components["schemas"]["Currency"];
+            timeZone: string;
+            locale: null | components["schemas"]["Locale"];
+        };
         RegisterRequest: {
             email: string;
             password: string;
-            language?: null | string;
+            locale?: null | string;
         };
         RequestPasswordResetRequest: {
             email: string;
@@ -312,18 +324,10 @@ export interface components {
             email: string;
             password: string;
         };
-        UpdateProfileCommand: {
+        UpdateProfileRequest: {
             baseCurrency?: null | string;
             timeZone?: null | string;
             locale?: null | string;
-        };
-        UserProfile: {
-            /** Format: uuid */
-            id: string;
-            email: string;
-            baseCurrency: components["schemas"]["Currency"];
-            timeZone: string;
-            locale: null | components["schemas"]["Locale"];
         };
         VerifyEmailRequest: {
             /** Format: uuid */
@@ -614,7 +618,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserProfile"];
+                    "application/json": components["schemas"]["ProfileResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -637,7 +641,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateProfileCommand"];
+                "application/json": components["schemas"]["UpdateProfileRequest"];
             };
         };
         responses: {
@@ -647,7 +651,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserProfile"];
+                    "application/json": components["schemas"]["ProfileResponse"];
                 };
             };
             /** @description Bad Request */
@@ -674,6 +678,8 @@ export interface operations {
         parameters: {
             query?: {
                 includeArchived?: boolean;
+                limit?: number | string;
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -688,6 +694,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstitutionListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
             /** @description Unauthorized */
@@ -894,7 +909,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CategoryView"][];
+                    "application/json": components["schemas"]["CategoryListResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -927,7 +942,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CategoryView"];
+                    "application/json": components["schemas"]["CategoryResponse"];
                 };
             };
             /** @description Bad Request */
@@ -978,7 +993,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CategoryView"];
+                    "application/json": components["schemas"]["CategoryResponse"];
                 };
             };
             /** @description Bad Request */

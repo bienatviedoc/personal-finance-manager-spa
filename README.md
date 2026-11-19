@@ -38,6 +38,13 @@ longer matches the API.
 - **Keeping in step.** `npm run api:sync` copies the document from the API clone next to this one (or the file
   `PFM_OPENAPI` points to) and regenerates the types; commit both. CI copies it from the API's `main` branch
   instead, so merge an API change first, then the SPA change that uses it.
+- **One shape per feature** in `features/<feature>/api/`: reads are `queryOptions` named after what they load
+  (`institutionsQuery`, `categoriesQuery`), used with `useQuery`; changes are hooks named after the API's use case
+  (`useCreateCategory`, `useEditCategory`, `useArchiveCategory`). A save answers `{ saved: true, <entity> }` with
+  what the API saved, or `{ saved: false, fields }` naming the fields a 400 refused (`refusedFields` in
+  `src/shared/api/`), for the form to show its own translated messages; anything else throws.
+- **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
+  such as institutions, loads every page.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -63,9 +70,17 @@ longer matches the API.
 ## Tests
 
 Tests render the real app and routes. The API is mocked at the network with [MSW](https://mswjs.io)
-(`src/test/server.ts`), signed in as a test user unless a test says otherwise; `fakeAuthApi` stands in for the
-sign-in endpoints and `fakeInstitutionsApi` (`src/test/`) for the institution endpoints, each following the same rules as
-the real API. A request no handler expects fails the test.
+(`src/test/server.ts`), signed in as a test user unless a test says otherwise. Each feature's endpoints have a fake
+in its own file under `src/test/`, keeping state across requests and following the same rules as the real API:
+
+| Fake | Stands in for |
+| --- | --- |
+| `fakeAuthApi` | Registering, verifying, signing in and out, password reset (`/api/v1/auth/...`) |
+| `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
+| `fakeInstitutionsApi` | `/api/v1/institutions` |
+| `fakeCategoriesApi` | `/api/v1/categories` |
+
+A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
 ## Layout
 

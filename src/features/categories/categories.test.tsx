@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
-import { fakeCategoriesApi } from '@/test/server'
+import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
 
 const expenseList = () => screen.getByRole('list', { name: 'Expense categories' })
 const incomeList = () => screen.getByRole('list', { name: 'Income categories' })

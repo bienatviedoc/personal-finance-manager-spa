@@ -1,12 +1,13 @@
+import { useQuery } from '@tanstack/react-query'
 import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import {
+  categoriesQuery,
   useArchiveCategory,
-  useCategories,
   useCreateCategory,
-  useUpdateCategory,
+  useEditCategory,
   type Category,
   type CategoryKind,
 } from '../api/categories'
@@ -36,9 +37,9 @@ export function CategoriesPage() {
   useDocumentTitle(t('categories.title'))
   const [showArchived, setShowArchived] = useState(false)
   const [editing, setEditing] = useState<Editing | null>(null)
-  const categories = useCategories({ includeArchived: showArchived })
+  const categories = useQuery(categoriesQuery({ includeArchived: showArchived }))
   const create = useCreateCategory()
-  const update = useUpdateCategory()
+  const edit = useEditCategory()
   const archive = useArchiveCategory()
 
   const collator = new Intl.Collator(i18n.resolvedLanguage)
@@ -88,7 +89,7 @@ export function CategoriesPage() {
             initial={{ name: category.name, kind: category.kind, icon: category.icon, color: category.color }}
             kindFixed={isSubcategory}
             kindHint={category.subcategories.length > 0 ? t('categories.kindHint') : undefined}
-            onSave={(values) => closeWhenSaved(update.mutateAsync({ ...values, id: category.id }))}
+            onSave={(values) => closeWhenSaved(edit.mutateAsync({ ...values, id: category.id }))}
             onCancel={close}
           />
         )
@@ -105,7 +106,7 @@ export function CategoriesPage() {
         {t('categories.showArchived')}
       </label>
 
-      {(create.isError || update.isError || archive.isError || categories.isError) && (
+      {(create.isError || edit.isError || archive.isError || categories.isError) && (
         <p role="alert" className="text-sm text-destructive">
           {t('categories.errors.generic')}
         </p>

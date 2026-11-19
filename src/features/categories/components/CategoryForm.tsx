@@ -8,7 +8,8 @@ import { TextField } from '@/shared/components/TextField'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import type { CategoryField, CategoryFields, CategoryKind, SaveOutcome } from '../api/categories'
-import { categoryColors, categoryIcons } from './appearance'
+import { paletteWith } from '@/shared/ui/palette'
+import { categoryIcons } from './appearance'
 
 const schema = z.object({
   name: z.string().trim().min(1, { error: 'categories.errors.nameRequired' }).max(100, { error: 'categories.errors.nameTooLong' }),
@@ -59,9 +60,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
     }
   })
 
-  const colors = categoryColors.some((color) => color.value === initial.color)
-    ? categoryColors
-    : [...categoryColors, { value: initial.color, label: 'categories.colors.current' as const }]
+  const colors = paletteWith(initial.color)
 
   return (
     <form aria-label={title} noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">

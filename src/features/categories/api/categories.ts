@@ -1,69 +1,69 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
+import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
 
-export type Category = components['schemas']['CategoryView']
+export type Category = components['schemas']['CategoryResponse']
 export type CategoryKind = components['schemas']['CategoryKind']
-export type CategoryFields = { name: string; kind: CategoryKind; icon: string; color: string }
+export type CategoryFields = components['schemas']['CategoryChangeRequest']
 
-/** A request field the API refused, by the name it gave it. */
+/** Fields the API can refuse, which the form shows its own translated message for. */
 export type CategoryField = 'name' | 'kind' | 'icon' | 'color' | 'parentId'
-export type SaveOutcome = { saved: true } | { saved: false; fields: CategoryField[] }
 
-const categoriesKey = ['categories'] as const
+export type SaveOutcome = { saved: true; category: Category } | { saved: false; fields: CategoryField[] }
+
+const categoriesKey = ['categories']
+const categoryFields: CategoryField[] = ['name', 'kind', 'icon', 'color', 'parentId']
 
 /** The user's category tree. Archived categories are left out unless asked for, as pickers need. */
-export function useCategories({ includeArchived = false }: { includeArchived?: boolean } = {}) {
-  return useQuery({
+export const categoriesQuery = ({ includeArchived = false }: { includeArchived?: boolean } = {}) =>
+  queryOptions({
     queryKey: [...categoriesKey, { includeArchived }],
     queryFn: async () => {
       const { data, response } = await api.GET('/api/v1/categories', { params: { query: { includeArchived } } })
-      if (!data) throw new Error(`Loading categories failed: ${response.status}`)
-      return data
+      if (!data) throw new Error(`Could not load categories: ${response.status}`)
+      return data.items
     },
   })
-}
-
-const knownFields: CategoryField[] = ['name', 'kind', 'icon', 'color', 'parentId']
-
-/** A 400 naming fields becomes an outcome the form shows; anything else is an error. */
-function outcomeOf(action: string, response: Response, error: unknown): SaveOutcome {
-  if (response.ok) return { saved: true }
-  const errors = (error as { errors?: Record<string, string[]> } | undefined)?.errors
-  if (response.status === 400 && errors) {
-    const fields = knownFields.filter((field) => field in errors)
-    if (fields.length > 0) return { saved: false, fields }
-  }
-  throw new Error(`${action} failed: ${response.status}`)
-}
-
-function useCategoryMutation<T>(save: (variables: T) => Promise<SaveOutcome>) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: save,
-    onSuccess: (outcome) => (outcome.saved ? queryClient.invalidateQueries({ queryKey: categoriesKey }) : undefined),
-  })
-}
 
 /** Adds a top-level category, or a subcategory when `parentId` is set. */
 export function useCreateCategory() {
-  return useCategoryMutation(async (body: CategoryFields & { parentId: string | null }) => {
-    const { response, error } = await api.POST('/api/v1/categories', { body })
-    return outcomeOf('Adding a category', response, error)
-  })
+  return useSaveCategory(async (body: CategoryFields & { parentId: string | null }) => api.POST('/api/v1/categories', { body }))
 }
 
-export function useUpdateCategory() {
-  return useCategoryMutation(async ({ id, ...body }: CategoryFields & { id: string }) => {
-    const { response, error } = await api.PUT('/api/v1/categories/{id}', { params: { path: { id } }, body })
-    return outcomeOf('Changing a category', response, error)
-  })
+/** Renames, recolours or re-icons a category, or changes its kind. */
+export function useEditCategory() {
+  return useSaveCategory(async ({ id, ...body }: CategoryFields & { id: string }) =>
+    api.PUT('/api/v1/categories/{id}', { params: { path: { id } }, body }),
+  )
 }
 
-/** Archives a category and its subcategories. */
+/** Archives a category and its subcategories: what deleting one does. They leave pickers. */
 export function useArchiveCategory() {
-  return useCategoryMutation(async (id: string) => {
-    const { response, error } = await api.DELETE('/api/v1/categories/{id}', { params: { path: { id } } })
-    return outcomeOf('Archiving a category', response, error)
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { response } = await api.DELETE('/api/v1/categories/{id}', { params: { path: { id } } })
+      if (!response.ok) throw new Error(`Archiving a category failed: ${response.status}`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: categoriesKey }),
+  })
+}
+
+type SaveResponse = { data?: Category; error?: unknown; response: Response }
+
+function useSaveCategory<Variables>(save: (variables: Variables) => Promise<SaveResponse>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (variables: Variables): Promise<SaveOutcome> => {
+      const { data, error, response } = await save(variables)
+      if (data) return { saved: true, category: data }
+      const fields = refusedFields(response, error, categoryFields)
+      if (fields) return { saved: false, fields }
+      throw new Error(`Saving a category failed: ${response.status}`)
+    },
+    onSuccess: (outcome) => {
+      if (outcome.saved) return queryClient.invalidateQueries({ queryKey: categoriesKey })
+    },
   })
 }
