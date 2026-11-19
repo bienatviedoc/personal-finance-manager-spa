@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
+import { reportError } from '@/shared/observability/errorReporting'
 import { Button } from '@/shared/ui/button'
 import { NotFoundPage } from './NotFoundPage'
 
@@ -23,8 +24,9 @@ function ScreenFailed({ error }: { error: unknown }) {
   useDocumentTitle(t('errors.screenTitle'))
 
   useEffect(() => {
-    // Error tracking hooks in here (see the observability ticket); details never reach the page.
+    // Reported to the error tracker; details never reach the page.
     console.error(error)
+    reportError(error)
   }, [error])
 
   return (

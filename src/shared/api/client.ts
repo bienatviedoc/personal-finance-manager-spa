@@ -1,4 +1,6 @@
 import createClient, { type Middleware } from 'openapi-fetch'
+import { recordFailedApiCall } from '@/shared/observability/errorReporting'
+import { newTraceparent, traceparentHeader } from '@/shared/observability/traceparent'
 import type { paths } from './schema'
 
 /**
@@ -29,7 +31,30 @@ const antiforgery: Middleware = {
   },
 }
 
-api.use(antiforgery)
+/** Every request starts a trace of its own, which the API and its database calls join. */
+const traceContext: Middleware = {
+  onRequest({ request }) {
+    request.headers.set(traceparentHeader, newTraceparent())
+    return request
+  },
+}
+
+/**
+ * A call the server failed, or that got no response at all, is remembered, so an error report
+ * that follows names its trace.
+ */
+const failedCalls: Middleware = {
+  onResponse({ request, response }) {
+    if (response.status >= 500) recordFailedApiCall(request, response)
+    return undefined
+  },
+  onError({ request }) {
+    recordFailedApiCall(request)
+    return undefined
+  },
+}
+
+api.use(traceContext, failedCalls, antiforgery)
 
 /** Call after signing in or out: the next request that changes something fetches a new token. */
 export function forgetAntiforgeryToken() {
@@ -38,7 +63,10 @@ export function forgetAntiforgeryToken() {
 
 async function fetchAntiforgeryToken(): Promise<string> {
   // Not through `api`, so this request does not pass through the middleware above.
-  const response = await fetch(`${window.location.origin}/api/v1/auth/antiforgery`, { credentials: 'same-origin' })
+  const response = await fetch(`${window.location.origin}/api/v1/auth/antiforgery`, {
+    credentials: 'same-origin',
+    headers: { [traceparentHeader]: newTraceparent() },
+  })
   if (!response.ok) {
     antiforgeryToken = undefined
     throw new Error(`Could not get an anti-forgery token: ${response.status}`)
