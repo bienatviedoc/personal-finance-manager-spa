@@ -83,6 +83,8 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     resentTo: [] as string[],
     registered: [] as string[],
     verifications: [] as { userId: string; token: string }[],
+    resetRequestedFor: [] as string[],
+    usedResetTokens: [] as string[],
   }
 
   const refuseWithoutToken = (request: Request) => (hasAntiforgeryToken(request) ? null : problem(400))
@@ -137,6 +139,27 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
       const found = state.users.find((user) => user.id === body.userId)
       if (!found || body.token !== 'valid-token') return problem(400)
       found.verified = true
+      return noContent()
+    }),
+    http.post(url('/api/v1/auth/forgot-password'), async ({ request }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const { email } = (await request.json()) as { email: string }
+      state.resetRequestedFor.push(email)
+      return new HttpResponse(null, { status: 202 })
+    }),
+    // Any token starting with 'valid-reset' works once; the password is checked before the link.
+    http.post(url('/api/v1/auth/reset-password'), async ({ request }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const body = (await request.json()) as { userId: string; token: string; password: string }
+      if (body.password.length < 12) return problem(400, { errors: { password: ['Passwords must be at least 12 characters.'] } })
+      const found = state.users.find((user) => user.id === body.userId)
+      if (!found || !body.token.startsWith('valid-reset') || state.usedResetTokens.includes(body.token)) {
+        return problem(400, { type: 'urn:pfm:problem:reset-link-invalid' })
+      }
+      state.usedResetTokens.push(body.token)
+      found.password = body.password
       return noContent()
     }),
   )

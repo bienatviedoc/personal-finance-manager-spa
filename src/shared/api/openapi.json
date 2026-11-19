@@ -157,6 +157,72 @@
         }
       }
     },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "operationId": "RequestPasswordReset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestPasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "operationId": "ResetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -727,6 +793,17 @@
           }
         }
       },
+      "RequestPasswordResetRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
       "ResendVerificationRequest": {
         "required": [
           "email"
@@ -734,6 +811,26 @@
         "type": "object",
         "properties": {
           "email": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "userId",
+          "token",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "password": {
             "type": "string"
           }
         }
