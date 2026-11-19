@@ -1,12 +1,15 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router'
 import { UserMenu } from '@/features/auth'
+import { useProfileLanguage, useSaveLanguage } from '@/features/settings'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { LanguageSwitch } from './LanguageSwitch'
 import { navigation } from './navigation'
 
 export function AppShell() {
   const { t } = useTranslation()
+  useProfileLanguage()
+  const saveLanguage = useSaveLanguage()
 
   return (
     <div className="flex min-h-svh bg-background text-foreground">
@@ -35,7 +38,7 @@ export function AppShell() {
         </nav>
         <div className="mt-auto space-y-4 px-2">
           <UserMenu />
-          <LanguageSwitch />
+          <LanguageSwitch onChoose={saveLanguage} />
         </div>
       </aside>
       <main className="flex-1 p-6">

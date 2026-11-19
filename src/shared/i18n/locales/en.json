@@ -87,5 +87,20 @@
       "signedInAs": "Signed in as {{email}}",
       "signOut": "Sign out"
     }
+  },
+  "settings": {
+    "sections": "Settings sections",
+    "profile": {
+      "title": "Profile",
+      "baseCurrency": "Base currency",
+      "baseCurrencyHint": "Totals, budgets and reports are shown in this currency.",
+      "timeZone": "Time zone",
+      "timeZoneHint": "Decides which day “today” is, and where a budget month starts and ends.",
+      "language": "Language",
+      "amountExample": "Amounts will look like this:",
+      "save": "Save",
+      "saved": "Your settings are saved.",
+      "saveFailed": "Your settings could not be saved. Try again."
+    }
   }
 }
