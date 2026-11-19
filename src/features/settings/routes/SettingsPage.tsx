@@ -21,6 +21,16 @@ export function SettingsPage() {
               {t('settings.profile.title')}
             </NavLink>
           </li>
+          <li>
+            <NavLink
+              to="categories"
+              className={({ isActive }) =>
+                cn('-mb-px block border-b-2 border-transparent px-3 py-2 text-sm', focusRing, isActive && 'border-primary font-medium')
+              }
+            >
+              {t('settings.categories')}
+            </NavLink>
+          </li>
         </ul>
       </nav>
       <Outlet />

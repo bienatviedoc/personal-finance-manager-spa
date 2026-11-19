@@ -21,6 +21,18 @@ describe('registering', () => {
     expect(api.resentTo).toEqual(['bao@example.com'])
   })
 
+  it('registers in the language the app is shown in, so the default categories come in it', async () => {
+    const api = fakeAuthApi()
+    const { user } = renderApp('/register', { language: 'vi' })
+
+    await user.type(await screen.findByLabelText('Email'), 'bao@example.com')
+    await user.type(screen.getByLabelText('Mật khẩu'), testPassword)
+    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+
+    await screen.findByRole('heading', { level: 1, name: 'Kiểm tra email' })
+    expect(api.registeredIn).toEqual(['vi'])
+  })
+
   it('points out a password that is too short before contacting the API', async () => {
     const api = fakeAuthApi()
     const { user } = renderApp('/register')
