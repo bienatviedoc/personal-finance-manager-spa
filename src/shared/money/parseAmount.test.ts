@@ -1,0 +1,63 @@
+import { describe, expect, it } from 'vitest'
+import { formatAmountForInput, parseAmount } from './parseAmount'
+
+describe('parseAmount', () => {
+  describe.each([
+    // locale, what the user types for one million two hundred thousand and a half
+    ['en', '1,200,000.5'],
+    ['vi', '1.200.000,5'],
+  ] as const)('in %s', (locale, typed) => {
+    it('reads the locale’s group and decimal separators into a decimal string', () => {
+      expect(parseAmount(typed, locale, 'USD')).toBe('1200000.5')
+      expect(parseAmount(typed, locale, 'EUR')).toBe('1200000.5')
+    })
+
+    it('reads an amount typed without group separators', () => {
+      expect(parseAmount(typed.replaceAll(locale === 'en' ? ',' : '.', ''), locale, 'USD')).toBe('1200000.5')
+    })
+
+    it('refuses decimals in VND, which has none', () => {
+      expect(parseAmount(typed, locale, 'VND')).toBeNull()
+      expect(parseAmount(typed.split(locale === 'en' ? '.' : ',')[0]!, locale, 'VND')).toBe('1200000')
+    })
+  })
+
+  it.each([
+    ['en', '125000', 'VND', '125000'],
+    ['vi', '125.000', 'VND', '125000'],
+    ['en', '125.000', 'VND', null],
+    ['en', '12.34', 'USD', '12.34'],
+    ['vi', '12,34', 'USD', '12.34'],
+    ['en', '12,34', 'USD', null],
+    ['en', '0.5', 'EUR', '0.5'],
+    ['vi', '0,50', 'EUR', '0.50'],
+    ['en', '12.345', 'USD', null],
+    ['vi', '1.5', 'EUR', null],
+    ['en', '  42  ', 'USD', '42'],
+    ['en', '007', 'USD', '7'],
+    ['en', '0', 'USD', '0'],
+    ['en', '', 'USD', null],
+    ['en', '-5', 'USD', null],
+    ['en', '1,2345', 'USD', null],
+    ['en', '1e5', 'USD', null],
+    ['en', '12.', 'USD', null],
+    ['en', '.5', 'USD', null],
+    ['en', '1234567890123456', 'USD', null],
+    ['en', '123456789012345', 'USD', '123456789012345'],
+  ] as const)('in %s reads "%s" (%s) as %s', (locale, typed, currency, expected) => {
+    expect(parseAmount(typed, locale, currency)).toBe(expected)
+  })
+})
+
+describe('formatAmountForInput', () => {
+  it.each([
+    ['1200000.5', 'en', '1,200,000.5'],
+    ['1200000.5', 'vi', '1.200.000,5'],
+    ['125000', 'vi', '125.000'],
+    ['0.50', 'en', '0.50'],
+    ['999999999999999.99', 'en', '999,999,999,999,999.99'],
+  ] as const)('writes %s in %s as %s, which reads back the same', (amount, locale, expected) => {
+    expect(formatAmountForInput(amount, locale)).toBe(expected)
+    expect(parseAmount(expected, locale, 'USD')).toBe(amount)
+  })
+})
