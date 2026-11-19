@@ -12,7 +12,7 @@ describe('the categories screen', () => {
     fakeCategoriesApi()
     renderApp('/settings/categories')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Categories' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Categories' })).toBeInTheDocument()
     const food = row(await screen.findByRole('list', { name: 'Expense categories' }), 'Food & drink')
     expect(within(within(food).getByRole('list')).getAllByRole('listitem').map((item) => item.getAttribute('aria-label'))).toEqual([
       'Eating out',
@@ -28,7 +28,7 @@ describe('the categories screen', () => {
 
     await user.click(await screen.findByRole('link', { name: 'Categories' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Categories' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Categories' })).toBeInTheDocument()
   })
 
   it('adds a category with a name, icon and colour', async () => {
@@ -156,7 +156,7 @@ describe('the categories screen', () => {
     fakeCategoriesApi()
     renderApp('/settings/categories', { language: 'vi' })
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Danh mục' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Danh mục' })).toBeInTheDocument()
     expect(await screen.findByRole('list', { name: 'Danh mục chi tiêu' })).toBeInTheDocument()
   })
 })

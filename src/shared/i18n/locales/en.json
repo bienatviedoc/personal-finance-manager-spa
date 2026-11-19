@@ -18,6 +18,7 @@
     "transactions": "Transactions",
     "accounts": "Accounts",
     "accountDetail": "Account",
+    "institutions": "Institutions",
     "budgets": "Budgets",
     "reports": "Reports",
     "recurring": "Recurring",
@@ -25,7 +26,8 @@
     "settings": "Settings",
     "signIn": "Sign in",
     "register": "Register",
-    "resetPassword": "Reset password",
+    "forgotPassword": "Forgot your password?",
+    "resetPassword": "Set a new password",
     "checkEmail": "Check your email",
     "verifyEmail": "Confirm your email address"
   },
@@ -71,6 +73,20 @@
       "failedBody": "This link is invalid or has expired. Sign in to get a new one.",
       "toSignIn": "Sign in"
     },
+    "forgotPassword": {
+      "body": "Enter the email address you sign in with, and we will send you a link to set a new password.",
+      "submit": "Send reset link",
+      "sent": "If {{email}} has a user, we sent a link to it. Open it to set a new password.",
+      "toSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "newPassword": "New password",
+      "submit": "Set new password",
+      "changedBody": "Your password is changed. Sign in with your new password.",
+      "toSignIn": "Sign in",
+      "linkInvalidBody": "This link is invalid, has been used or has expired. Ask for a new one.",
+      "askAgain": "Ask for a new link"
+    },
     "notVerified": {
       "body": "Confirm your email address before signing in. We sent you a link when you registered.",
       "resend": "Send the link again",
@@ -88,8 +104,65 @@
       "signOut": "Sign out"
     }
   },
+  "institutions": {
+    "backToAccounts": "Back to accounts",
+    "intro": "The banks and wallet providers you hold money with.",
+    "add": "Add institution",
+    "empty": "No institutions yet. Add the banks and wallet providers you hold money with.",
+    "name": "Name",
+    "color": "Colour",
+    "logo": "Logo",
+    "none": "None",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "editNamed": "Edit {{name}}",
+    "archive": "Archive",
+    "archiveNamed": "Archive {{name}}",
+    "archiveExplained": "Archive {{name}}? It leaves pickers and lists, and stays on the accounts that already use it.",
+    "archiveConfirm": "Archive",
+    "colors": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "teal": "Teal",
+      "blue": "Blue",
+      "purple": "Purple",
+      "pink": "Pink",
+      "current": "Current colour"
+    },
+    "logos": {
+      "bank": "Bank",
+      "building": "Building",
+      "wallet": "Wallet",
+      "card": "Card",
+      "piggyBank": "Piggy bank",
+      "coins": "Coins",
+      "smartphone": "Phone"
+    },
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Use at most 100 characters.",
+      "color": "Choose one of the colours.",
+      "logo": "Choose one of the logos.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "settings": {
     "sections": "Settings sections",
+    "profile": {
+      "title": "Profile",
+      "baseCurrency": "Base currency",
+      "baseCurrencyHint": "Totals, budgets and reports are shown in this currency.",
+      "timeZone": "Time zone",
+      "timeZoneHint": "Decides which day “today” is, and where a budget month starts and ends.",
+      "language": "Language",
+      "amountExample": "Amounts will look like this:",
+      "save": "Save",
+      "saved": "Your settings are saved.",
+      "saveFailed": "Your settings could not be saved. Try again."
+    },
     "categories": "Categories"
   },
   "categories": {

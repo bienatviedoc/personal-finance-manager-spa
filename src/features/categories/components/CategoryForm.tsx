@@ -65,7 +65,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
 
   return (
     <form aria-label={title} noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h3 className="text-lg font-semibold">{title}</h3>
       <TextField label={t('categories.name')} error={errors.name?.message && t(errors.name.message as ParseKeys)} {...form.register('name')} />
 
       {!kindFixed && (

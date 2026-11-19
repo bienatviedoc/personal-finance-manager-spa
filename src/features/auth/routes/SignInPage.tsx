@@ -76,7 +76,7 @@ export function SignInPage() {
           {t('auth.signIn.newHere')} <Link className="underline" to="/register">{t('auth.signIn.toRegister')}</Link>
         </p>
         <p>
-          <Link className="underline" to="/reset">{t('auth.signIn.forgotPassword')}</Link>
+          <Link className="underline" to="/forgot-password">{t('auth.signIn.forgotPassword')}</Link>
         </p>
       </div>
     </section>

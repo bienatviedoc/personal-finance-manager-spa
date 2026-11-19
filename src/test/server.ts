@@ -1,7 +1,18 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 
-export const testUser = { id: '01970000-0000-7000-8000-000000000001', email: 'ana@example.com' }
+import type { components } from '@/shared/api/schema'
+
+type UserProfile = components['schemas']['UserProfile']
+
+/** The signed-in user, with the profile settings a new user starts with. */
+export const testUser: UserProfile = {
+  id: '01970000-0000-7000-8000-000000000001',
+  email: 'ana@example.com',
+  baseCurrency: 'VND',
+  timeZone: 'Asia/Ho_Chi_Minh',
+  locale: null,
+}
 export const antiforgeryToken = 'test-antiforgery-token'
 
 const url = (path: string) => `${window.location.origin}${path}`
@@ -33,6 +44,35 @@ export const testPassword = 'correct horse battery staple'
 type FakeUser = { id: string; email: string; password: string; verified: boolean }
 
 /**
+ * A stand-in for GET and PATCH /me, signed in as `testUser` with the given settings, following the same
+ * rules as the real API (see the API's ProfileTests). Returns the profile as it stands, and every change sent.
+ */
+export function fakeProfileApi(settings: Partial<Omit<UserProfile, 'id' | 'email'>> = {}) {
+  const state = { profile: { ...testUser, ...settings }, changes: [] as Record<string, unknown>[] }
+  const supported = { baseCurrency: ['VND', 'USD', 'EUR'], locale: ['en', 'vi'] } as Record<string, string[]>
+
+  server.use(
+    http.get(url('/api/v1/me'), () => HttpResponse.json(state.profile)),
+    http.patch(url('/api/v1/me'), async ({ request }) => {
+      if (!hasAntiforgeryToken(request)) return problem(400)
+      const change = (await request.json()) as Record<string, string | null | undefined>
+      state.changes.push(change)
+      const errors = Object.fromEntries(
+        Object.entries(change)
+          .filter(([field, value]) => value != null && supported[field] && !supported[field].includes(value))
+          .map(([field]) => [field, ['Choose a supported value.']]),
+      )
+      if (Object.keys(errors).length > 0) return problem(400, { errors })
+      const defined = Object.fromEntries(Object.entries(change).filter(([, value]) => value != null))
+      state.profile = { ...state.profile, ...defined }
+      return HttpResponse.json(state.profile)
+    }),
+  )
+
+  return state
+}
+
+/**
  * A stand-in for the API's sign-in endpoints, keeping state across requests and following the same
  * rules as the real API (see the API's AuthTests). Returns what it recorded, for assertions.
  */
@@ -45,6 +85,8 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     /** The language each registration asked for, in order. */
     registeredIn: [] as (string | undefined)[],
     verifications: [] as { userId: string; token: string }[],
+    resetRequestedFor: [] as string[],
+    usedResetTokens: [] as string[],
   }
 
   const refuseWithoutToken = (request: Request) => (hasAntiforgeryToken(request) ? null : problem(400))
@@ -52,7 +94,7 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
 
   server.use(
     http.get(url('/api/v1/me'), () =>
-      state.signedInAs ? HttpResponse.json({ id: state.signedInAs.id, email: state.signedInAs.email }) : problem(401),
+      state.signedInAs ? HttpResponse.json({ ...testUser, id: state.signedInAs.id, email: state.signedInAs.email }) : problem(401),
     ),
     http.post(url('/api/v1/auth/login'), async ({ request }) => {
       const refused = refuseWithoutToken(request)
@@ -101,6 +143,27 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
       const found = state.users.find((user) => user.id === body.userId)
       if (!found || body.token !== 'valid-token') return problem(400)
       found.verified = true
+      return noContent()
+    }),
+    http.post(url('/api/v1/auth/forgot-password'), async ({ request }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const { email } = (await request.json()) as { email: string }
+      state.resetRequestedFor.push(email)
+      return new HttpResponse(null, { status: 202 })
+    }),
+    // Any token starting with 'valid-reset' works once; the password is checked before the link.
+    http.post(url('/api/v1/auth/reset-password'), async ({ request }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const body = (await request.json()) as { userId: string; token: string; password: string }
+      if (body.password.length < 12) return problem(400, { errors: { password: ['Passwords must be at least 12 characters.'] } })
+      const found = state.users.find((user) => user.id === body.userId)
+      if (!found || !body.token.startsWith('valid-reset') || state.usedResetTokens.includes(body.token)) {
+        return problem(400, { type: 'urn:pfm:problem:reset-link-invalid' })
+      }
+      state.usedResetTokens.push(body.token)
+      found.password = body.password
       return noContent()
     }),
   )

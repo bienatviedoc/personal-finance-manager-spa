@@ -1,25 +1,39 @@
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
-import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { focusRing } from '@/shared/lib/utils'
+import { NavLink, Outlet } from 'react-router'
+import { cn, focusRing } from '@/shared/lib/utils'
 
-/** The settings sections, each its own screen under /settings. */
+/** The settings screen: its sections, and the one open below them. */
 export function SettingsPage() {
   const { t } = useTranslation()
-  useDocumentTitle(t('screens.settings'))
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('screens.settings')}</h1>
       <nav aria-label={t('settings.sections')}>
-        <ul className="space-y-1">
+        <ul className="flex gap-2 border-b">
           <li>
-            <Link className={`underline ${focusRing}`} to="/settings/categories">
+            <NavLink
+              to="profile"
+              className={({ isActive }) =>
+                cn('-mb-px block border-b-2 border-transparent px-3 py-2 text-sm', focusRing, isActive && 'border-primary font-medium')
+              }
+            >
+              {t('settings.profile.title')}
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="categories"
+              className={({ isActive }) =>
+                cn('-mb-px block border-b-2 border-transparent px-3 py-2 text-sm', focusRing, isActive && 'border-primary font-medium')
+              }
+            >
               {t('settings.categories')}
-            </Link>
+            </NavLink>
           </li>
         </ul>
       </nav>
+      <Outlet />
     </section>
   )
 }

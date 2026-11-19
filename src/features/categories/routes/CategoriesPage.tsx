@@ -30,7 +30,7 @@ const opening = {
   edit: (category: Category): Editing => ({ mode: 'edit', category }),
 }
 
-/** Settings > Categories: the user's income and expense category trees, and every change to them. */
+/** Settings > Categories, a section of the settings screen: the user's income and expense category trees, and every change to them. */
 export function CategoriesPage() {
   const { t, i18n } = useTranslation()
   useDocumentTitle(t('categories.title'))
@@ -98,7 +98,7 @@ export function CategoriesPage() {
 
   return (
     <section className="max-w-3xl space-y-6">
-      <h1 className="text-2xl font-semibold">{t('categories.title')}</h1>
+      <h2 className="text-xl font-semibold">{t('categories.title')}</h2>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />
@@ -149,9 +149,9 @@ function KindSection({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-4">
-        <h2 id={headingId} className="text-lg font-semibold">
+        <h3 id={headingId} className="text-lg font-semibold">
           {t(`categories.sections.${kind}`)}
-        </h2>
+        </h3>
         <Button variant="outline" size="sm" onClick={onAdd}>
           {t(`categories.add.${kind}`)}
         </Button>
