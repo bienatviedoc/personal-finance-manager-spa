@@ -38,6 +38,13 @@ longer matches the API.
 - **Keeping in step.** `npm run api:sync` copies the document from the API clone next to this one (or the file
   `PFM_OPENAPI` points to) and regenerates the types; commit both. CI copies it from the API's `main` branch
   instead, so merge an API change first, then the SPA change that uses it.
+- **One shape per feature** in `features/<feature>/api/`: reads are `queryOptions` named after what they load
+  (`institutionsQuery`, `categoriesQuery`), used with `useQuery`; changes are hooks named after the API's use case
+  (`useCreateCategory`, `useEditCategory`, `useArchiveCategory`). A save answers `{ saved: true, <entity> }` with
+  what the API saved, or `{ saved: false, fields }` naming the fields a 400 refused (`refusedFields` in
+  `src/shared/api/`), for the form to show its own translated messages; anything else throws.
+- **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
+  such as institutions, loads every page.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which

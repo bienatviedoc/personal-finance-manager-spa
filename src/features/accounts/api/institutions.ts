@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
+import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
 
 export type Institution = components['schemas']['InstitutionResponse']
@@ -11,6 +12,7 @@ export type InstitutionField = 'name' | 'color' | 'logoKey'
 export type SaveOutcome = { saved: true; institution: Institution } | { saved: false; fields: InstitutionField[] }
 
 const institutionsKey = ['institutions']
+const institutionFields: InstitutionField[] = ['name', 'color', 'logoKey']
 
 /**
  * The user's institutions by name, without archived ones: what lists and pickers show. A user has dozens,
@@ -53,11 +55,7 @@ export function useArchiveInstitution() {
   })
 }
 
-type SaveResponse = {
-  data?: Institution
-  error?: { errors?: Record<string, string[]> } | unknown
-  response: Response
-}
+type SaveResponse = { data?: Institution; error?: unknown; response: Response }
 
 function useSaveInstitution(save: (fields: InstitutionFields) => Promise<SaveResponse>) {
   const queryClient = useQueryClient()
@@ -65,12 +63,8 @@ function useSaveInstitution(save: (fields: InstitutionFields) => Promise<SaveRes
     mutationFn: async (fields: InstitutionFields): Promise<SaveOutcome> => {
       const { data, error, response } = await save(fields)
       if (data) return { saved: true, institution: data }
-      const errors = response.status === 400 ? (error as { errors?: Record<string, string[]> } | undefined)?.errors : undefined
-      if (errors) {
-        // The API's messages are English; the form shows its own, translated, for each field.
-        const fields = Object.keys(errors).filter((field): field is InstitutionField => ['name', 'color', 'logoKey'].includes(field))
-        if (fields.length > 0) return { saved: false, fields }
-      }
+      const refused = refusedFields(response, error, institutionFields)
+      if (refused) return { saved: false, fields: refused }
       throw new Error(`Saving an institution failed: ${response.status}`)
     },
     onSuccess: (outcome) => {
