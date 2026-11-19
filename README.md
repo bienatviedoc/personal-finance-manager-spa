@@ -97,7 +97,34 @@ type-checked against `en.json`, so a mistyped key fails `npm run typecheck`.
   a `.ts` file is on you: keep translation keys, not text, in data (see `src/app/navigation.ts`).
 - Add every new key to both files. A test fails when the two have different keys or a translation is empty.
 - Until the viewer picks a language, the app follows their browser. A language they pick is remembered in
-  their browser. Once profiles exist, the user's saved locale will take over.
+  their browser. Once a signed-in user has a locale in their profile (Settings > Profile, or the sidebar's
+  switch, which saves to the profile), it takes over whenever they are signed in (`useProfileLanguage`).
+- The interface's language is also the locale amounts, numbers and dates are written in. Read it with
+  `useLocale()` from `src/shared/i18n/useLocale.ts`; never hard-code `'en'` or `'vi'` in formatting.
+
+## Money, numbers and dates
+
+Money is never a float (spec section 3, rule 1). The API sends an amount as a decimal string (`"125000.00"`)
+next to a currency code; the SPA keeps it a string from the response to the screen and back.
+
+- **Show an amount with `<Money amount currency />`** from `@/shared/money`. It writes the amount in the
+  interface's locale through `formatMoney(amount, currency, locale)`, which hands the string to
+  `Intl.NumberFormat` as it is, so no digit is lost. Each currency shows its own decimals: VND none, USD and EUR
+  two. These are the only ways an amount reaches the screen; never format one by hand.
+- **Take an amount with `<AmountInput value onChange currency />`.** The user types in their locale's
+  separators (`1.200.000,5` in Vietnamese, `1,200,000.5` in English, grouping optional); the value it holds is
+  a decimal string (`"1200000.5"`), `''` when empty, or `null` when the text is not an amount (misplaced
+  separators, a minus sign, or more decimals than the currency has), which the form should report as an error.
+  Use it through React Hook Form's `Controller`. `parseAmount` and `formatAmountForInput` are the pure functions
+  underneath.
+- **Never turn an amount into a `number`**, not even to compare or add. Totals, balances and conversions come
+  from the API. `DecimalString` marks a string that holds an amount.
+- **Currencies** are the API's (`Currency` from the generated schema). `currencies` lists them for pickers, and
+  typecheck fails when the API adds one the list lacks.
+- **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
+  `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
+  (from `useUserSettings()` in `@/features/settings`), not the browser's.
+- The user's base currency and time zone come from `useUserSettings()`.
 
 ## Accessibility
 
