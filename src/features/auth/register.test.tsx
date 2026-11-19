@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
-import { fakeAuthApi, testPassword } from '@/test/server'
+import { fakeAuthApi } from '@/test/fakeAuthApi'
+import { testPassword } from '@/test/server'
 
 describe('registering', () => {
   it('asks the new user to check their email, and can send the link again', async () => {

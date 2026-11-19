@@ -2,7 +2,8 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
 import { http } from 'msw'
-import { apiUrl, fakeProfileApi, problem, server } from '@/test/server'
+import { fakeProfileApi } from '@/test/fakeProfileApi'
+import { apiUrl, problem, server } from '@/test/server'
 
 describe('profile settings', () => {
   it('open from the settings screen', async () => {

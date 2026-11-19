@@ -63,9 +63,17 @@ longer matches the API.
 ## Tests
 
 Tests render the real app and routes. The API is mocked at the network with [MSW](https://mswjs.io)
-(`src/test/server.ts`), signed in as a test user unless a test says otherwise; `fakeAuthApi` stands in for the
-sign-in endpoints and `fakeInstitutionsApi` (`src/test/`) for the institution endpoints, each following the same rules as
-the real API. A request no handler expects fails the test.
+(`src/test/server.ts`), signed in as a test user unless a test says otherwise. Each feature's endpoints have a fake
+in its own file under `src/test/`, keeping state across requests and following the same rules as the real API:
+
+| Fake | Stands in for |
+| --- | --- |
+| `fakeAuthApi` | Registering, verifying, signing in and out, password reset (`/api/v1/auth/...`) |
+| `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
+| `fakeInstitutionsApi` | `/api/v1/institutions` |
+| `fakeCategoriesApi` | `/api/v1/categories` |
+
+A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
 ## Layout
 

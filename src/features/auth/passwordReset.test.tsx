@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
-import { fakeAuthApi, testPassword, testUser } from '@/test/server'
+import { fakeAuthApi } from '@/test/fakeAuthApi'
+import { testPassword, testUser } from '@/test/server'
 
 const newPassword = 'a brand new passphrase'
 
