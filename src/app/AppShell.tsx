@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router'
+import { UserMenu } from '@/features/auth'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { LanguageSwitch } from './LanguageSwitch'
 import { navigation } from './navigation'
@@ -32,7 +33,8 @@ export function AppShell() {
             ))}
           </ul>
         </nav>
-        <div className="mt-auto px-2">
+        <div className="mt-auto space-y-4 px-2">
+          <UserMenu />
           <LanguageSwitch />
         </div>
       </aside>

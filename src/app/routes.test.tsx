@@ -16,7 +16,7 @@ describe('app navigation', () => {
   ])('the sidebar link "%s" opens the %s screen', async (link, heading) => {
     const { user } = renderApp('/transactions')
 
-    const nav = screen.getByRole('navigation', { name: 'Main' })
+    const nav = await screen.findByRole('navigation', { name: 'Main' })
     await user.click(within(nav).getByRole('link', { name: link }))
 
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
@@ -27,7 +27,7 @@ describe('app navigation', () => {
     const { user } = renderApp('/transactions')
     await waitFor(() => expect(document.title).toBe('Transactions · Personal Finance Manager'))
 
-    await user.click(screen.getByRole('link', { name: 'Budgets' }))
+    await user.click(await screen.findByRole('link', { name: 'Budgets' }))
 
     await waitFor(() => expect(document.title).toBe('Budgets · Personal Finance Manager'))
   })
@@ -45,7 +45,7 @@ describe('a screen that fails', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })).toBeInTheDocument()
     expect(screen.queryByText('render failed')).not.toBeInTheDocument()
 
-    const nav = screen.getByRole('navigation', { name: 'Main' })
+    const nav = await screen.findByRole('navigation', { name: 'Main' })
     await user.click(within(nav).getByRole('link', { name: 'Budgets' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
   })
@@ -73,7 +73,7 @@ describe('unknown addresses', () => {
     const { user } = renderApp('/no-such-page')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    expect(await screen.findByRole('navigation', { name: 'Main' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: 'Go to the dashboard' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()

@@ -1,6 +1,7 @@
+import type { QueryClient } from '@tanstack/react-query'
 import type { RouteObject } from 'react-router'
 import { accountsRoutes } from '@/features/accounts'
-import { authRoutes } from '@/features/auth'
+import { authRoutes, requireSignedInUser } from '@/features/auth'
 import { budgetsRoutes } from '@/features/budgets'
 import { dashboardRoutes } from '@/features/dashboard'
 import { importsRoutes } from '@/features/imports'
@@ -29,11 +30,12 @@ const shellScreens: RouteObject[] = [
  * The app's route tree. `extraScreens` are added inside the shell next to the real screens;
  * tests use it to mount a screen that fails.
  */
-export function createRoutes(extraScreens: RouteObject[] = []): RouteObject[] {
+export function createRoutes({ queryClient, extraScreens = [] }: { queryClient: QueryClient; extraScreens?: RouteObject[] }): RouteObject[] {
   return [
     {
       path: '/',
       Component: AppShell,
+      loader: requireSignedInUser(queryClient),
       // Catches a failure in the shell itself; screens have their own boundaries below.
       ErrorBoundary: RouteError,
       children: [...shellScreens, ...extraScreens, { path: '*', Component: NotFoundPage }].map(withErrorBoundary),

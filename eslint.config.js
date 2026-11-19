@@ -11,7 +11,7 @@ import noCrossFeatureInternals from './eslint-rules/no-cross-feature-internals.j
 const local = { rules: { 'no-cross-feature-internals': noCrossFeatureInternals } }
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage']),
+  globalIgnores(['dist', 'coverage', 'src/shared/api/schema.d.ts']),
 
   {
     files: ['**/*.{js,ts,tsx}'],
@@ -46,6 +46,15 @@ export default defineConfig([
         {
           mode: 'jsx-only',
           'should-validate-template': true,
+          // Calls whose string arguments are names or paths, never text. The plugin's defaults are
+          // repeated because this list replaces them.
+          callees: {
+            exclude: [
+              'i18n(ext)?', 't', 'require', 'addEventListener', 'removeEventListener', 'postMessage',
+              'getElementById', 'dispatch', 'commit', 'includes', 'indexOf', 'endsWith', 'startsWith',
+              '(.+\\.)?register', '(.+\\.)?setError', '(.+\\.)?navigate', '(.+\\.)?get',
+            ],
+          },
           'jsx-attributes': {
             exclude: [
               'className', 'style', 'type', 'key', 'id', 'width', 'height',

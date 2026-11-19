@@ -25,7 +25,9 @@
     "settings": "Settings",
     "signIn": "Sign in",
     "register": "Register",
-    "resetPassword": "Reset password"
+    "resetPassword": "Reset password",
+    "checkEmail": "Check your email",
+    "verifyEmail": "Confirm your email address"
   },
   "placeholder": {
     "notBuilt": "This screen is not built yet."
@@ -42,5 +44,48 @@
     "notFoundTitle": "Page not found",
     "notFoundBody": "There is no page at this address.",
     "toDashboard": "Go to the dashboard"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "signIn": {
+      "submit": "Sign in",
+      "newHere": "New here?",
+      "toRegister": "Register",
+      "forgotPassword": "Forgot your password?"
+    },
+    "register": {
+      "passwordHint": "At least 12 characters.",
+      "submit": "Register",
+      "alreadyRegistered": "Already registered?",
+      "toSignIn": "Sign in"
+    },
+    "checkEmail": {
+      "body": "We sent a link to {{email}}. Open it to confirm your email address.",
+      "resend": "Send the link again",
+      "resent": "We sent a new link to {{email}}."
+    },
+    "verify": {
+      "verifying": "Confirming your email address…",
+      "confirmedBody": "Your email address is confirmed. You can sign in now.",
+      "failedBody": "This link is invalid or has expired. Sign in to get a new one.",
+      "toSignIn": "Sign in"
+    },
+    "notVerified": {
+      "body": "Confirm your email address before signing in. We sent you a link when you registered.",
+      "resend": "Send the link again",
+      "resent": "We sent a new link to {{email}}."
+    },
+    "errors": {
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Enter your password.",
+      "passwordTooShort": "Use at least 12 characters.",
+      "wrongCredentials": "The email or password is incorrect.",
+      "generic": "Something went wrong. Try again."
+    },
+    "userMenu": {
+      "signedInAs": "Signed in as {{email}}",
+      "signOut": "Sign out"
+    }
   }
 }

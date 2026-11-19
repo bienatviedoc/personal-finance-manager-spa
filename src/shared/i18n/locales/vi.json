@@ -25,7 +25,9 @@
     "settings": "Cài đặt",
     "signIn": "Đăng nhập",
     "register": "Đăng ký",
-    "resetPassword": "Đặt lại mật khẩu"
+    "resetPassword": "Đặt lại mật khẩu",
+    "checkEmail": "Kiểm tra email",
+    "verifyEmail": "Xác nhận địa chỉ email"
   },
   "placeholder": {
     "notBuilt": "Màn hình này chưa được xây dựng."
@@ -42,5 +44,48 @@
     "notFoundTitle": "Không tìm thấy trang",
     "notFoundBody": "Không có trang nào ở địa chỉ này.",
     "toDashboard": "Về trang tổng quan"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Mật khẩu",
+    "signIn": {
+      "submit": "Đăng nhập",
+      "newHere": "Chưa đăng ký?",
+      "toRegister": "Đăng ký",
+      "forgotPassword": "Quên mật khẩu?"
+    },
+    "register": {
+      "passwordHint": "Ít nhất 12 ký tự.",
+      "submit": "Đăng ký",
+      "alreadyRegistered": "Đã đăng ký?",
+      "toSignIn": "Đăng nhập"
+    },
+    "checkEmail": {
+      "body": "Chúng tôi đã gửi một liên kết đến {{email}}. Hãy mở liên kết đó để xác nhận địa chỉ email.",
+      "resend": "Gửi lại liên kết",
+      "resent": "Chúng tôi đã gửi một liên kết mới đến {{email}}."
+    },
+    "verify": {
+      "verifying": "Đang xác nhận địa chỉ email…",
+      "confirmedBody": "Địa chỉ email của bạn đã được xác nhận. Bây giờ bạn có thể đăng nhập.",
+      "failedBody": "Liên kết này không hợp lệ hoặc đã hết hạn. Hãy đăng nhập để nhận liên kết mới.",
+      "toSignIn": "Đăng nhập"
+    },
+    "notVerified": {
+      "body": "Hãy xác nhận địa chỉ email trước khi đăng nhập. Chúng tôi đã gửi cho bạn một liên kết khi bạn đăng ký.",
+      "resend": "Gửi lại liên kết",
+      "resent": "Chúng tôi đã gửi một liên kết mới đến {{email}}."
+    },
+    "errors": {
+      "emailInvalid": "Hãy nhập địa chỉ email hợp lệ.",
+      "passwordRequired": "Hãy nhập mật khẩu.",
+      "passwordTooShort": "Hãy dùng ít nhất 12 ký tự.",
+      "wrongCredentials": "Email hoặc mật khẩu không đúng.",
+      "generic": "Đã xảy ra lỗi. Hãy thử lại."
+    },
+    "userMenu": {
+      "signedInAs": "Đã đăng nhập: {{email}}",
+      "signOut": "Đăng xuất"
+    }
   }
 }
