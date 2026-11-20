@@ -18,6 +18,7 @@
     "transactions": "Transactions",
     "accounts": "Accounts",
     "accountDetail": "Account",
+    "institutions": "Institutions",
     "budgets": "Budgets",
     "reports": "Reports",
     "recurring": "Recurring",
@@ -25,7 +26,8 @@
     "settings": "Settings",
     "signIn": "Sign in",
     "register": "Register",
-    "resetPassword": "Reset password",
+    "forgotPassword": "Forgot your password?",
+    "resetPassword": "Set a new password",
     "checkEmail": "Check your email",
     "verifyEmail": "Confirm your email address"
   },
@@ -71,6 +73,20 @@
       "failedBody": "This link is invalid or has expired. Sign in to get a new one.",
       "toSignIn": "Sign in"
     },
+    "forgotPassword": {
+      "body": "Enter the email address you sign in with, and we will send you a link to set a new password.",
+      "submit": "Send reset link",
+      "sent": "If {{email}} has a user, we sent a link to it. Open it to set a new password.",
+      "toSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "newPassword": "New password",
+      "submit": "Set new password",
+      "changedBody": "Your password is changed. Sign in with your new password.",
+      "toSignIn": "Sign in",
+      "linkInvalidBody": "This link is invalid, has been used or has expired. Ask for a new one.",
+      "askAgain": "Ask for a new link"
+    },
     "notVerified": {
       "body": "Confirm your email address before signing in. We sent you a link when you registered.",
       "resend": "Send the link again",
@@ -87,5 +103,178 @@
       "signedInAs": "Signed in as {{email}}",
       "signOut": "Sign out"
     }
+  },
+  "institutions": {
+    "backToAccounts": "Back to accounts",
+    "intro": "The banks and wallet providers you hold money with.",
+    "add": "Add institution",
+    "empty": "No institutions yet. Add the banks and wallet providers you hold money with.",
+    "name": "Name",
+    "color": "Colour",
+    "logo": "Logo",
+    "none": "None",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "editNamed": "Edit {{name}}",
+    "archive": "Archive",
+    "archiveNamed": "Archive {{name}}",
+    "archiveExplained": "Archive {{name}}? It leaves pickers and lists, and stays on the accounts that already use it.",
+    "archiveConfirm": "Archive",
+    "logos": {
+      "bank": "Bank",
+      "building": "Building",
+      "wallet": "Wallet",
+      "card": "Card",
+      "piggyBank": "Piggy bank",
+      "coins": "Coins",
+      "smartphone": "Phone"
+    },
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Use at most 100 characters.",
+      "color": "Choose one of the colours.",
+      "logo": "Choose one of the logos.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "settings": {
+    "sections": "Settings sections",
+    "profile": {
+      "title": "Profile",
+      "baseCurrency": "Base currency",
+      "baseCurrencyHint": "Totals, budgets and reports are shown in this currency.",
+      "timeZone": "Time zone",
+      "timeZoneHint": "Decides which day “today” is, and where a budget month starts and ends.",
+      "language": "Language",
+      "amountExample": "Amounts will look like this:",
+      "save": "Save",
+      "saved": "Your settings are saved.",
+      "saveFailed": "Your settings could not be saved. Try again.",
+      "errors": {
+        "baseCurrency": "This base currency cannot be chosen.",
+        "timeZone": "This time zone cannot be chosen.",
+        "locale": "This language cannot be chosen."
+      }
+    },
+    "categories": "Categories"
+  },
+  "categories": {
+    "title": "Categories",
+    "showArchived": "Show archived categories",
+    "sections": {
+      "expense": "Expense categories",
+      "income": "Income categories"
+    },
+    "add": {
+      "expense": "Add expense category",
+      "income": "Add income category"
+    },
+    "new": {
+      "expense": "New expense category",
+      "income": "New income category"
+    },
+    "newSubcategory": "New subcategory of {{name}}",
+    "editTitle": "Edit {{name}}",
+    "subcategoriesOf": "Subcategories of {{name}}",
+    "edit": "Edit",
+    "editAction": "Edit {{name}}",
+    "addSubcategory": "Add subcategory",
+    "addSubcategoryAction": "Add a subcategory to {{name}}",
+    "archive": "Archive",
+    "archiveAction": "Archive {{name}}",
+    "archived": "Archived",
+    "archiveConfirm": "Archive {{name}}? It disappears from pickers and stays on existing transactions.",
+    "archiveConfirmWithSubcategories": "Archive {{name}} and its subcategories? They disappear from pickers and stay on existing transactions.",
+    "name": "Name",
+    "kind": "Kind",
+    "kinds": {
+      "expense": "Expense",
+      "income": "Income"
+    },
+    "kindHint": "Its subcategories change kind with it.",
+    "icon": "Icon",
+    "color": "Colour",
+    "save": "Save",
+    "cancel": "Cancel",
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Use at most 100 characters.",
+      "kindLocked": "The kind cannot change once the category has transactions.",
+      "iconRequired": "Choose an icon.",
+      "colorRequired": "Choose a colour.",
+      "parentRefused": "A subcategory cannot be added here: the category above it is a subcategory itself, is archived or no longer exists.",
+      "generic": "Something went wrong. Try again."
+    },
+    "icons": {
+      "utensils": "Cutlery",
+      "shoppingCart": "Shopping cart",
+      "coffee": "Coffee",
+      "pizza": "Pizza",
+      "car": "Car",
+      "fuel": "Fuel pump",
+      "parking": "Parking",
+      "taxi": "Taxi",
+      "bus": "Bus",
+      "plane": "Plane",
+      "house": "House",
+      "key": "Key",
+      "lightning": "Lightning",
+      "waterDrop": "Water drop",
+      "wifi": "Wi-Fi",
+      "shoppingBag": "Shopping bag",
+      "shirt": "Shirt",
+      "phone": "Phone",
+      "sofa": "Sofa",
+      "heartbeat": "Heartbeat",
+      "stethoscope": "Stethoscope",
+      "pill": "Pill",
+      "shield": "Shield",
+      "dumbbell": "Dumbbell",
+      "clapperboard": "Clapperboard",
+      "ticket": "Ticket",
+      "repeat": "Repeat",
+      "music": "Music",
+      "gameController": "Game controller",
+      "graduationCap": "Graduation cap",
+      "school": "School",
+      "book": "Book",
+      "people": "People",
+      "baby": "Baby",
+      "helpingHand": "Helping hand",
+      "pawPrint": "Paw print",
+      "gift": "Gift",
+      "sparkles": "Sparkles",
+      "receipt": "Receipt",
+      "bank": "Bank",
+      "document": "Document",
+      "wallet": "Wallet",
+      "award": "Award",
+      "briefcase": "Briefcase",
+      "risingChart": "Rising chart",
+      "piggyBank": "Piggy bank",
+      "pieChart": "Pie chart",
+      "tag": "Tag",
+      "more": "More"
+    }
+  },
+  "colors": {
+    "red": "Red",
+    "orange": "Orange",
+    "amber": "Amber",
+    "lime": "Lime",
+    "green": "Green",
+    "emerald": "Emerald",
+    "teal": "Teal",
+    "sky": "Sky blue",
+    "blue": "Blue",
+    "indigo": "Indigo",
+    "violet": "Violet",
+    "purple": "Purple",
+    "fuchsia": "Fuchsia",
+    "pink": "Pink",
+    "rose": "Rose",
+    "slate": "Slate",
+    "current": "Current colour"
   }
 }

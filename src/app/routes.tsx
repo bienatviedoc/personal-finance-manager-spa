@@ -48,7 +48,11 @@ export function createRoutes({ queryClient, extraScreens = [] }: { queryClient: 
   ]
 }
 
-/** Gives a screen its own error boundary, so its failure stays inside its part of the page. */
+/**
+ * Gives a screen its own error boundary, so its failure stays inside its part of the page. Screens nested
+ * in it (the sections of Settings) get their own too.
+ */
 function withErrorBoundary(route: RouteObject): RouteObject {
-  return route.ErrorBoundary || route.errorElement ? route : { ...route, ErrorBoundary: RouteError }
+  const bounded = route.ErrorBoundary || route.errorElement ? route : { ...route, ErrorBoundary: RouteError }
+  return bounded.children ? ({ ...bounded, children: bounded.children.map(withErrorBoundary) } as RouteObject) : bounded
 }

@@ -1,7 +1,8 @@
 import { act, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
-import { fakeAuthApi, testUser } from '@/test/server'
+import { fakeAuthApi } from '@/test/fakeAuthApi'
+import { testUser } from '@/test/server'
 
 describe('signing out', () => {
   it('is offered in the shell, ends the session, and screens then ask to sign in again', async () => {

@@ -54,3 +54,8 @@ export async function chooseLanguage(instance: i18n, language: Language): Promis
     // Storage can be unavailable (private windows, blocked site data); the choice then lasts for this visit.
   }
 }
+
+/** Whether a string names a language the app has, such as a locale from the user's profile. */
+export function isLanguage(value: unknown): value is Language {
+  return supportedLanguages.includes(value as Language)
+}

@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
-import { data } from 'react-router'
+import { data, Outlet } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { failingScreen, renderApp } from '@/test/renderApp'
 
@@ -44,6 +44,21 @@ describe('a screen that fails', () => {
     const nav = await screen.findByRole('navigation', { name: 'Main' })
     await user.click(within(nav).getByRole('link', { name: 'Budgets' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+  })
+
+  it('shows the error in its own part of the screen when it is a section of a screen', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const ScreenWithSections = () => (
+      <>
+        <p>Sections of this screen</p>
+        <Outlet />
+      </>
+    )
+
+    renderApp('/sectioned/failing', { extraScreens: [{ path: 'sectioned', Component: ScreenWithSections, children: [failingScreen] }] })
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Something went wrong' })).toBeInTheDocument()
+    expect(screen.getByText('Sections of this screen')).toBeInTheDocument()
   })
 })
 

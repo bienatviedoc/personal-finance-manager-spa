@@ -1,7 +1,8 @@
 import { screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
-import { fakeAuthApi, server, signedOut, testPassword, testUser } from '@/test/server'
+import { fakeAuthApi } from '@/test/fakeAuthApi'
+import { server, signedOut, testPassword, testUser } from '@/test/server'
 
 describe('signed-out visitors', () => {
   it('are sent to sign in when they open a screen', async () => {

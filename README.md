@@ -38,6 +38,14 @@ longer matches the API.
 - **Keeping in step.** `npm run api:sync` copies the document from the API clone next to this one (or the file
   `PFM_OPENAPI` points to) and regenerates the types; commit both. CI copies it from the API's `main` branch
   instead, so merge an API change first, then the SPA change that uses it.
+- **One shape per feature** in `features/<feature>/api/`: reads are `queryOptions` named after what they load
+  (`institutionsQuery`, `categoriesQuery`), used with `useQuery`; changes are hooks named after the API's use case
+  (`useCreateCategory`, `useEditCategory`, `useArchiveCategory`). A save answers `{ saved: true, <entity> }` with
+  what the API saved (just `{ saved: true }` when it answers nothing, as registering does), or `{ saved: false, fields }` naming the fields a 400 refused (`refusedFields` in
+  `src/shared/api/`), for the form to show its own translated messages; anything else throws. A change that
+  can fail in a way no field explains (resetting a password with a used link) names its outcomes instead.
+- **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
+  such as institutions, loads every page.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -63,8 +71,17 @@ longer matches the API.
 ## Tests
 
 Tests render the real app and routes. The API is mocked at the network with [MSW](https://mswjs.io)
-(`src/test/server.ts`), signed in as a test user unless a test says otherwise; `fakeAuthApi` stands in for the
-sign-in endpoints and follows the same rules as the real API. A request no handler expects fails the test.
+(`src/test/server.ts`), signed in as a test user unless a test says otherwise. Each feature's endpoints have a fake
+in its own file under `src/test/`, keeping state across requests and following the same rules as the real API:
+
+| Fake | Stands in for |
+| --- | --- |
+| `fakeAuthApi` | Registering, verifying, signing in and out, password reset (`/api/v1/auth/...`) |
+| `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
+| `fakeInstitutionsApi` | `/api/v1/institutions` |
+| `fakeCategoriesApi` | `/api/v1/categories` |
+
+A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
 ## Layout
 
@@ -74,7 +91,7 @@ src/
   features/   one folder per feature, with an index.ts and routes/; api/, components/ and
               hooks/ are added as a feature needs them
   shared/     UI primitives (shared/ui), shared components, the API client (shared/api), i18n,
-              observability, utilities
+              money, dates, observability, utilities (shared/lib)
   test/       test setup and helpers
 ```
 
@@ -83,7 +100,7 @@ src/
   (`eslint-rules/no-cross-feature-internals.js`). Inside a feature, import freely.
 - **Screens** are added to the route tree in `src/app/routes.tsx` by listing the feature's routes, and to the
   sidebar in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
-  shell and the other screens working.
+  shell and the other screens working; so does each section nested in a screen (Settings > Profile).
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
 
@@ -97,7 +114,34 @@ type-checked against `en.json`, so a mistyped key fails `npm run typecheck`.
   a `.ts` file is on you: keep translation keys, not text, in data (see `src/app/navigation.ts`).
 - Add every new key to both files. A test fails when the two have different keys or a translation is empty.
 - Until the viewer picks a language, the app follows their browser. A language they pick is remembered in
-  their browser. Once profiles exist, the user's saved locale will take over.
+  their browser. Once a signed-in user has a locale in their profile (Settings > Profile, or the sidebar's
+  switch, which saves to the profile), it takes over whenever they are signed in (`useProfileLocale`).
+- The interface's language is also the locale amounts, numbers and dates are written in. Read it with
+  `useLocale()` from `src/shared/i18n/useLocale.ts`; never hard-code `'en'` or `'vi'` in formatting.
+
+## Money, numbers and dates
+
+Money is never a float (spec section 3, rule 1). The API sends an amount as a decimal string (`"125000.00"`)
+next to a currency code; the SPA keeps it a string from the response to the screen and back.
+
+- **Show an amount with `<Money amount currency />`** from `@/shared/money`. It writes the amount in the
+  interface's locale through `formatMoney(amount, currency, locale)`, which hands the string to
+  `Intl.NumberFormat` as it is, so no digit is lost. Each currency shows its own decimals: VND none, USD and EUR
+  two. These are the only ways an amount reaches the screen; never format one by hand.
+- **Take an amount with `<AmountInput value onChange currency />`.** The user types in their locale's
+  separators (`1.200.000,5` in Vietnamese, `1,200,000.5` in English, grouping optional); the value it holds is
+  a decimal string (`"1200000.5"`), `''` when empty, or `null` when the text is not an amount (misplaced
+  separators, a minus sign, or more decimals than the currency has), which the form should report as an error.
+  Use it through React Hook Form's `Controller`. `parseAmount` and `formatAmountForInput` are the pure functions
+  underneath.
+- **Never turn an amount into a `number`**, not even to compare or add. Totals, balances and conversions come
+  from the API. `DecimalString` marks a string that holds an amount.
+- **Currencies** are the API's (`Currency` from the generated schema). `currencies` lists them for pickers, and
+  typecheck fails when the API adds one the list lacks.
+- **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
+  `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
+  (from `useUserSettings()` in `@/features/settings`), not the browser's.
+- The user's base currency and time zone come from `useUserSettings()`.
 
 ## Accessibility
 
@@ -106,4 +150,4 @@ The target is WCAG 2.1 AA (spec section 8).
 - Lint runs `jsx-a11y-x`, the ESLint 10 compatible fork of `eslint-plugin-jsx-a11y`.
 - Every screen names itself in the browser tab with `useDocumentTitle`.
 - Controls styled by hand take the `focusRing` class from `src/shared/lib/utils.ts`, so keyboard focus is
-  always visible. shadcn primitives bring their own.
+  always visible; a label wrapping a visually hidden radio or checkbox takes `focusRingWithin` instead. shadcn primitives bring their own.
