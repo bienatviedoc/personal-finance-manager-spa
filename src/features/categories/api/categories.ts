@@ -5,6 +5,8 @@ import type { components } from '@/shared/api/schema'
 
 export type Category = components['schemas']['CategoryResponse']
 export type CategoryKind = components['schemas']['CategoryKind']
+/** Both kinds, in the order screens show them. */
+export const categoryKinds = ['expense', 'income'] as const satisfies readonly CategoryKind[]
 export type CategoryFields = components['schemas']['CategoryChangeRequest']
 
 /** Fields the API can refuse, which the form shows its own translated message for. */

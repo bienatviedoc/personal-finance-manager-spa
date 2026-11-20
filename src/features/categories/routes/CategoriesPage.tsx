@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocale } from '@/shared/i18n/useLocale'
+import { neutralColor } from '@/shared/lib/palette'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import {
   categoriesQuery,
+  categoryKinds,
   useArchiveCategory,
   useCreateCategory,
   useEditCategory,
@@ -20,11 +23,10 @@ type Editing =
   | { mode: 'newSubcategory'; parent: Category }
   | { mode: 'edit'; category: Category }
 
-const kinds: CategoryKind[] = ['expense', 'income']
-
 /** How a new top-level category looks until the user picks otherwise. */
-const newCategoryLooks = { icon: 'tag', color: '#64748b' }
+const newCategoryLooks = { icon: 'tag', color: neutralColor }
 
+// Built outside JSX, where lint would take the mode names for user-facing text.
 const opening = {
   new: (kind: CategoryKind): Editing => ({ mode: 'new', kind }),
   newSubcategory: (parent: Category): Editing => ({ mode: 'newSubcategory', parent }),
@@ -33,7 +35,8 @@ const opening = {
 
 /** Settings > Categories, a section of the settings screen: the user's income and expense category trees, and every change to them. */
 export function CategoriesPage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const locale = useLocale()
   useDocumentTitle(t('categories.title'))
   const [showArchived, setShowArchived] = useState(false)
   const [editing, setEditing] = useState<Editing | null>(null)
@@ -42,7 +45,7 @@ export function CategoriesPage() {
   const edit = useEditCategory()
   const archive = useArchiveCategory()
 
-  const collator = new Intl.Collator(i18n.resolvedLanguage)
+  const collator = new Intl.Collator(locale)
   const byName = (a: Category, b: Category) => collator.compare(a.name, b.name)
 
   const form = (() => {
@@ -115,7 +118,7 @@ export function CategoriesPage() {
       {form}
 
       {categories.data &&
-        kinds.map((kind) => (
+        categoryKinds.map((kind) => (
           <KindSection
             key={kind}
             kind={kind}

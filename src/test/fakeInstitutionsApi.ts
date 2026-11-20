@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { components } from '@/shared/api/schema'
-import { apiUrl, hasAntiforgeryToken, problem, server } from './server'
+import { apiUrl, problem, refuseWithoutToken, server } from './server'
 
 type Institution = components['schemas']['InstitutionResponse']
 type InstitutionRequest = components['schemas']['InstitutionRequest']
@@ -24,7 +24,6 @@ export function fakeInstitutionsApi(institutions: Partial<Institution>[] = []) {
     })) as Institution[],
   }
 
-  const refuseWithoutToken = (request: Request) => (hasAntiforgeryToken(request) ? null : problem(400))
   const find = (id: unknown) => state.institutions.find((institution) => institution.id === id)
 
   async function validated(request: Request) {

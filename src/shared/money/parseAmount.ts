@@ -24,26 +24,33 @@ const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  */
 export function parseAmount(text: string, locale: Language, currency: Currency): DecimalString | null {
   const { group, decimal } = separators(locale)
-  const g = escape(group)
-  const d = escape(decimal)
-  const match = new RegExp(`^(\\d{1,3}(?:${g}\\d{3})+|\\d+)(?:${d}(\\d+))?$`).exec(text.trim())
+  const grouped = `\\d{1,3}(?:${escape(group)}\\d{3})+`
+  const match = new RegExp(`^(${grouped}|\\d+)(?:${escape(decimal)}(\\d+))?$`).exec(text.trim())
   if (!match) return null
 
   const integer = match[1]!.replaceAll(group, '').replace(/^0+(?=\d)/, '')
   const fraction = match[2]
   if (integer.length > maxIntegerDigits) return null
-  if (fraction && fraction.length > currencyFormat(currency, locale).resolvedOptions().maximumFractionDigits!) return null
+  if (fraction && fraction.length > decimalsOf(currency)) return null
 
   return fraction ? `${integer}.${fraction}` : integer
 }
 
 /**
- * Writes a decimal string the way the locale writes numbers, with every decimal it has and no currency
- * symbol: what an amount input shows. `parseAmount` reads it back to the same decimal string.
+ * Writes a decimal string the way the locale writes numbers, with no currency symbol: what an amount input
+ * shows. The API sends more decimals than a currency has (`"125000.00"` for VND, `"12.5000"` for USD), so
+ * zeros beyond the currency's own are left out and `parseAmount` reads the text back to the same amount.
  */
-export function formatAmountForInput(amount: DecimalString, locale: Language): string {
-  const decimals = amount.split('.')[1]?.length ?? 0
+export function formatAmountForInput(amount: DecimalString, locale: Language, currency: Currency): string {
+  let fraction = amount.split('.')[1] ?? ''
+  while (fraction.length > decimalsOf(currency) && fraction.endsWith('0')) fraction = fraction.slice(0, -1)
+  const decimals = fraction.length
   return new Intl.NumberFormat(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(
     amount as Intl.StringNumericLiteral,
   )
+}
+
+/** How many decimals the currency has: none for VND, two for USD and EUR. */
+function decimalsOf(currency: Currency): number {
+  return currencyFormat(currency, 'en').resolvedOptions().maximumFractionDigits ?? 0
 }

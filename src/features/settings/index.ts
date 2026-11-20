@@ -15,4 +15,4 @@ export const settingsRoutes: RouteObject[] = [
   },
 ]
 
-export { useProfileLanguage, useSaveLanguage, useUpdateProfile, useUserSettings } from './api/profile'
+export { useProfileLocale, useSaveLocale, useUserSettings } from './api/profile'

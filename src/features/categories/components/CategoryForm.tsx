@@ -1,26 +1,24 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
-import { cn } from '@/shared/lib/utils'
+import { paletteWith } from '@/shared/lib/palette'
+import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
-import type { CategoryField, CategoryFields, CategoryKind, SaveOutcome } from '../api/categories'
-import { paletteWith } from '@/shared/ui/palette'
+import { categoryKinds, type CategoryField, type CategoryFields, type SaveOutcome } from '../api/categories'
 import { categoryIcons } from './appearance'
 
 const schema = z.object({
   name: z.string().trim().min(1, { error: 'categories.errors.nameRequired' }).max(100, { error: 'categories.errors.nameTooLong' }),
-  kind: z.enum(['income', 'expense']),
+  kind: z.enum(categoryKinds),
   icon: z.string().min(1),
   color: z.string().min(1),
 })
 
 type Values = z.infer<typeof schema>
-
-const kinds: CategoryKind[] = ['expense', 'income']
 
 /** The screen's own message for each field the API can refuse. */
 const serverErrors: Record<CategoryField, { field: keyof Values; message: ParseKeys }> = {
@@ -28,7 +26,8 @@ const serverErrors: Record<CategoryField, { field: keyof Values; message: ParseK
   kind: { field: 'kind', message: 'categories.errors.kindLocked' },
   icon: { field: 'icon', message: 'categories.errors.iconRequired' },
   color: { field: 'color', message: 'categories.errors.colorRequired' },
-  parentId: { field: 'name', message: 'categories.errors.tooDeep' },
+  // Too deep, archived or gone: all only reachable when the tree on screen is out of date.
+  parentId: { field: 'name', message: 'categories.errors.parentRefused' },
 }
 
 type Props = {
@@ -48,6 +47,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
   const { t } = useTranslation()
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: initial })
   const { errors } = form.formState
+  const kindHintId = useId()
 
   useEffect(() => form.setFocus('name'), [form])
 
@@ -68,10 +68,10 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
       <TextField label={t('categories.name')} error={errors.name?.message && t(errors.name.message as ParseKeys)} {...form.register('name')} />
 
       {!kindFixed && (
-        <fieldset className="space-y-1.5" aria-describedby={kindHint ? 'category-kind-hint' : undefined}>
+        <fieldset className="space-y-1.5" aria-describedby={kindHint ? kindHintId : undefined}>
           <legend className="text-sm font-medium">{t('categories.kind')}</legend>
           <div className="flex gap-4">
-            {kinds.map((kind) => (
+            {categoryKinds.map((kind) => (
               <label key={kind} className="flex items-center gap-2 text-sm">
                 <input type="radio" value={kind} {...form.register('kind')} />
                 {t(`categories.kinds.${kind}`)}
@@ -79,7 +79,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
             ))}
           </div>
           {kindHint && (
-            <p id="category-kind-hint" className="text-sm text-muted-foreground">
+            <p id={kindHintId} className="text-sm text-muted-foreground">
               {kindHint}
             </p>
           )}
@@ -128,5 +128,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
 }
 
 /** A choice shown as a small square: outlined when chosen, with a visible ring when focused by keyboard. */
-const swatch =
-  'relative flex size-9 cursor-pointer items-center justify-center rounded-md border border-transparent hover:bg-muted has-checked:border-foreground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary'
+const swatch = cn(
+  'relative flex size-9 cursor-pointer items-center justify-center rounded-md border border-transparent hover:bg-muted has-checked:border-foreground',
+  focusRingWithin,
+)

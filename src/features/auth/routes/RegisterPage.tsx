@@ -31,7 +31,7 @@ export function RegisterPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     const outcome = await register.mutateAsync(values)
-    if (outcome.registered) {
+    if (outcome.saved) {
       await navigate(`/check-email?email=${encodeURIComponent(values.email)}`)
       return
     }

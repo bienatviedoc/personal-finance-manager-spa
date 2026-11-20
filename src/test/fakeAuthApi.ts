@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { apiUrl as url, hasAntiforgeryToken, problem, server, testPassword, testUser } from './server'
+import { apiUrl as url, problem, refuseWithoutToken, server, testPassword, testUser } from './server'
 
 type FakeUser = { id: string; email: string; password: string; verified: boolean; locale?: 'en' | 'vi' | null }
 
@@ -20,7 +20,6 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     usedResetTokens: [] as string[],
   }
 
-  const refuseWithoutToken = (request: Request) => (hasAntiforgeryToken(request) ? null : problem(400))
   const noContent = () => new HttpResponse(null, { status: 204 })
 
   server.use(

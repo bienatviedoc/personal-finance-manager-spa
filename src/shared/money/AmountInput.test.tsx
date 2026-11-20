@@ -33,6 +33,20 @@ function renderAmountInput({ locale, currency = 'USD', initial = '' }: { locale:
 
 describe('amount input', () => {
   it.each([
+    ['vi', 'VND', '125000.00', '125.000', '"125000"'],
+    ['en', 'USD', '12.5000', '12.50', '"12.50"'],
+  ] as const)('in %s shows a %s amount the API sent as %s, and reads it back when the user touches it', async (locale, currency, initial, shown, held) => {
+    const { user, input, value } = renderAmountInput({ locale, currency, initial })
+
+    expect(input).toHaveValue(shown)
+    await user.type(input, '0{Backspace}')
+    await user.tab()
+
+    expect(value()).toBe(held)
+    expect(input).toHaveValue(shown)
+  })
+
+  it.each([
     ['vi', '1.200.000,5', '1.200.000,5'],
     ['en', '1200000.5', '1,200,000.5'],
   ] as const)('in %s holds what the user types as a decimal string, and rewrites it in the locale’s format on blur', async (locale, typed, shown) => {

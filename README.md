@@ -42,7 +42,8 @@ longer matches the API.
   (`institutionsQuery`, `categoriesQuery`), used with `useQuery`; changes are hooks named after the API's use case
   (`useCreateCategory`, `useEditCategory`, `useArchiveCategory`). A save answers `{ saved: true, <entity> }` with
   what the API saved, or `{ saved: false, fields }` naming the fields a 400 refused (`refusedFields` in
-  `src/shared/api/`), for the form to show its own translated messages; anything else throws.
+  `src/shared/api/`), for the form to show its own translated messages; anything else throws. A change that
+  can fail in a way no field explains (resetting a password with a used link) names its outcomes instead.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
   such as institutions, loads every page.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
@@ -90,7 +91,7 @@ src/
   features/   one folder per feature, with an index.ts and routes/; api/, components/ and
               hooks/ are added as a feature needs them
   shared/     UI primitives (shared/ui), shared components, the API client (shared/api), i18n,
-              observability, utilities
+              money, dates, observability, utilities (shared/lib)
   test/       test setup and helpers
 ```
 
@@ -99,7 +100,7 @@ src/
   (`eslint-rules/no-cross-feature-internals.js`). Inside a feature, import freely.
 - **Screens** are added to the route tree in `src/app/routes.tsx` by listing the feature's routes, and to the
   sidebar in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
-  shell and the other screens working.
+  shell and the other screens working; so does each section nested in a screen (Settings > Profile).
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
 
@@ -114,7 +115,7 @@ type-checked against `en.json`, so a mistyped key fails `npm run typecheck`.
 - Add every new key to both files. A test fails when the two have different keys or a translation is empty.
 - Until the viewer picks a language, the app follows their browser. A language they pick is remembered in
   their browser. Once a signed-in user has a locale in their profile (Settings > Profile, or the sidebar's
-  switch, which saves to the profile), it takes over whenever they are signed in (`useProfileLanguage`).
+  switch, which saves to the profile), it takes over whenever they are signed in (`useProfileLocale`).
 - The interface's language is also the locale amounts, numbers and dates are written in. Read it with
   `useLocale()` from `src/shared/i18n/useLocale.ts`; never hard-code `'en'` or `'vi'` in formatting.
 

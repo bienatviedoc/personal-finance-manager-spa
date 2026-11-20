@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
-import { useResetPassword } from '../api/passwordReset'
+import { useResetPassword, type ResetPasswordOutcome } from '../api/passwordReset'
 
 const schema = z.object({
   password: z.string().min(12, { error: 'auth.errors.passwordTooShort' }),
@@ -25,7 +25,7 @@ export function ResetPasswordPage() {
   const token = search.get('token') ?? ''
   const reset = useResetPassword()
   // A link missing its user id or token cannot work: say so before the user types a password.
-  const [outcome, setOutcome] = useState<'password-changed' | 'link-invalid' | undefined>(userId && token ? undefined : 'link-invalid')
+  const [outcome, setOutcome] = useState<Exclude<ResetPasswordOutcome, 'password-refused'> | undefined>(userId && token ? undefined : 'link-invalid')
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { password: '' } })
   const { errors } = form.formState
 

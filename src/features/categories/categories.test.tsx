@@ -101,6 +101,19 @@ describe('the categories screen', () => {
     expect(within(incomeList()).queryByRole('listitem', { name: 'Investments' })).not.toBeInTheDocument()
   })
 
+  it('says a subcategory cannot be added when its parent was archived elsewhere since the tree loaded', async () => {
+    const api = fakeCategoriesApi()
+    const { user } = renderApp('/settings/categories')
+
+    await user.click(await screen.findByRole('button', { name: /Add a subcategory.*Transport/ }))
+    api.categories.find((category) => category.id === 'c-transport')!.isArchived = true
+    const form = screen.getByRole('form')
+    await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Parking')
+    await user.click(within(form).getByRole('button', { name: 'Save' }))
+
+    expect(await within(form).findByText(/A subcategory cannot be added here/)).toBeInTheDocument()
+  })
+
   it('explains that a category’s kind cannot change once it has transactions', async () => {
     fakeCategoriesApi({ withTransactions: ['c-salary'] })
     const { user } = renderApp('/settings/categories')

@@ -150,7 +150,12 @@
       "amountExample": "Amounts will look like this:",
       "save": "Save",
       "saved": "Your settings are saved.",
-      "saveFailed": "Your settings could not be saved. Try again."
+      "saveFailed": "Your settings could not be saved. Try again.",
+      "errors": {
+        "baseCurrency": "This base currency cannot be chosen.",
+        "timeZone": "This time zone cannot be chosen.",
+        "locale": "This language cannot be chosen."
+      }
     },
     "categories": "Categories"
   },
@@ -198,7 +203,7 @@
       "kindLocked": "The kind cannot change once the category has transactions.",
       "iconRequired": "Choose an icon.",
       "colorRequired": "Choose a colour.",
-      "tooDeep": "Categories can be at most two levels deep.",
+      "parentRefused": "A subcategory cannot be added here: the category above it is a subcategory itself, is archived or no longer exists.",
       "generic": "Something went wrong. Try again."
     },
     "icons": {

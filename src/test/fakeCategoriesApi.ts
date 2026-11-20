@@ -1,17 +1,11 @@
 import { http, HttpResponse } from 'msw'
-import { apiUrl as url, hasAntiforgeryToken, problem, server } from './server'
+import type { components } from '@/shared/api/schema'
+import { apiUrl as url, problem, refuseWithoutToken, server } from './server'
 
-type CategoryKind = 'income' | 'expense'
+type CategoryResponse = components['schemas']['CategoryResponse']
 
-export type FakeCategory = {
-  id: string
-  parentId: string | null
-  name: string
-  kind: CategoryKind
-  icon: string
-  color: string
-  isArchived: boolean
-}
+/** A category as the fake keeps it: flat, its subcategories found by `parentId`. */
+export type FakeCategory = Omit<CategoryResponse, 'subcategories'>
 
 /** A small default set, like the one the API creates at registration. */
 export const defaultTestCategories: FakeCategory[] = [
@@ -38,12 +32,10 @@ export function fakeCategoriesApi({
     requests: [] as { method: string; body: unknown }[],
   }
 
-  const refuseWithoutToken = (request: Request) => (hasAntiforgeryToken(request) ? null : problem(400))
   const invalid = (field: string, message: string) => problem(400, { errors: { [field]: [message] } })
   const find = (id: unknown) => state.categories.find((category) => category.id === id)
   const subcategoriesOf = (id: string) => state.categories.filter((category) => category.parentId === id)
-  type CategoryJson = FakeCategory & { subcategories: CategoryJson[] }
-  const view = (category: FakeCategory, all: FakeCategory[]): CategoryJson => ({
+  const view = (category: FakeCategory, all: FakeCategory[]): CategoryResponse => ({
     ...category,
     subcategories: category.parentId === null ? all.filter((sub) => sub.parentId === category.id).map((sub) => view(sub, all)) : [],
   })

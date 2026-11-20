@@ -150,7 +150,12 @@
       "amountExample": "Số tiền sẽ hiển thị như sau:",
       "save": "Lưu",
       "saved": "Đã lưu cài đặt của bạn.",
-      "saveFailed": "Không thể lưu cài đặt. Vui lòng thử lại."
+      "saveFailed": "Không thể lưu cài đặt. Vui lòng thử lại.",
+      "errors": {
+        "baseCurrency": "Không thể chọn tiền tệ cơ sở này.",
+        "timeZone": "Không thể chọn múi giờ này.",
+        "locale": "Không thể chọn ngôn ngữ này."
+      }
     },
     "categories": "Danh mục"
   },
@@ -198,7 +203,7 @@
       "kindLocked": "Không thể đổi loại khi danh mục đã có giao dịch.",
       "iconRequired": "Chọn biểu tượng.",
       "colorRequired": "Chọn màu.",
-      "tooDeep": "Danh mục chỉ có tối đa hai cấp.",
+      "parentRefused": "Không thể thêm danh mục con ở đây: danh mục cha là danh mục con, đã được lưu trữ hoặc không còn tồn tại.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại."
     },
     "icons": {

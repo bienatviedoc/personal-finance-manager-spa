@@ -4,10 +4,10 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
-import { cn } from '@/shared/lib/utils'
+import { paletteWith } from '@/shared/lib/palette'
+import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import type { Institution, InstitutionField, InstitutionFields, SaveOutcome } from '../api/institutions'
-import { paletteWith } from '@/shared/ui/palette'
 import { logos } from './institutionLook'
 
 const schema = z.object({
@@ -109,8 +109,8 @@ function Choice({ label, hideLabel, children, ...radio }: ChoiceProps) {
     <label
       title={hideLabel ? label : undefined}
       className={cn(
-        'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1 text-sm',
-        'has-checked:border-primary has-checked:bg-muted has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary',
+        'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1 text-sm has-checked:border-primary has-checked:bg-muted',
+        focusRingWithin,
       )}
     >
       <input type="radio" className="sr-only" {...radio} />

@@ -57,7 +57,18 @@ describe('formatAmountForInput', () => {
     ['0.50', 'en', '0.50'],
     ['999999999999999.99', 'en', '999,999,999,999,999.99'],
   ] as const)('writes %s in %s as %s, which reads back the same', (amount, locale, expected) => {
-    expect(formatAmountForInput(amount, locale)).toBe(expected)
+    expect(formatAmountForInput(amount, locale, 'USD')).toBe(expected)
     expect(parseAmount(expected, locale, 'USD')).toBe(amount)
+  })
+
+  it.each([
+    ['125000.00', 'vi', 'VND', '125.000', '125000'],
+    ['125000.0000', 'en', 'VND', '125,000', '125000'],
+    ['12.5000', 'en', 'USD', '12.50', '12.50'],
+    ['12.5000', 'vi', 'EUR', '12,50', '12.50'],
+    ['1200000.0000', 'en', 'USD', '1,200,000.00', '1200000.00'],
+  ] as const)('writes %s in %s for %s as %s, leaving out zeros the currency does not have', (amount, locale, currency, expected, readBack) => {
+    expect(formatAmountForInput(amount, locale, currency)).toBe(expected)
+    expect(parseAmount(expected, locale, currency)).toBe(readBack)
   })
 })

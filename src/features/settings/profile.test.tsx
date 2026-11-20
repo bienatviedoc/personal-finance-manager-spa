@@ -78,6 +78,38 @@ describe('profile settings', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
   })
 
+  it('keep a language picked in the sidebar when the profile is saved afterwards', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user } = renderApp('/settings/profile')
+
+    const sidebar = (await screen.findByRole('navigation', { name: 'Main' })).parentElement!
+    await user.selectOptions(within(sidebar).getByRole('combobox', { name: 'Language' }), 'vi')
+    await waitFor(() => expect(api.profile.locale).toBe('vi'))
+
+    const form = await screen.findByRole('form', { name: 'Hồ sơ' })
+    await waitFor(() => expect(within(form).getByRole('combobox', { name: 'Ngôn ngữ' })).toHaveValue('vi'))
+    expect(screen.getByTestId('amount-example')).toHaveTextContent('1.234.568 ₫')
+    await user.selectOptions(within(form).getByRole('combobox', { name: 'Tiền tệ cơ sở' }), 'USD')
+    await user.click(within(form).getByRole('button', { name: 'Lưu' }))
+
+    await waitFor(() => expect(api.profile.baseCurrency).toBe('USD'))
+    expect(api.profile.locale).toBe('vi')
+    expect(screen.getByRole('heading', { level: 1, name: 'Cài đặt' })).toBeInTheDocument()
+  })
+
+  it('name the setting the API refused, under its field', async () => {
+    fakeProfileApi({ locale: 'en' })
+    const { user } = renderApp('/settings/profile')
+    server.use(http.patch(apiUrl('/api/v1/me'), () => problem(400, { errors: { baseCurrency: ['The base currency is locked.'] } })))
+
+    const currency = await screen.findByRole('combobox', { name: 'Base currency' })
+    await user.selectOptions(currency, 'USD')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(currency).toHaveAccessibleDescription(expect.stringContaining('This base currency cannot be chosen.')))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('say so when the settings could not be saved, and keep what the user chose', async () => {
     fakeProfileApi({ locale: 'en' })
     const { user } = renderApp('/settings/profile')

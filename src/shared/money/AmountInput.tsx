@@ -1,4 +1,5 @@
 import { useState, type ComponentProps } from 'react'
+import type { Language } from '@/shared/i18n'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { Input } from '@/shared/ui/input'
 import type { Currency, DecimalString } from './currencies'
@@ -25,15 +26,16 @@ type Props = Omit<ComponentProps<typeof Input>, 'value' | 'defaultValue' | 'onCh
  */
 export function AmountInput({ value, onChange, currency, onBlur, ...input }: Props) {
   const locale = useLocale()
-  const [text, setText] = useState(() => textFor(value, locale))
-  const [shown, setShown] = useState({ value, locale })
+  const [text, setText] = useState(() => textFor(value, locale, currency))
+  // The value and locale the text was last written or read for.
+  const [synced, setSynced] = useState({ value, locale })
 
   // A value set from outside (a form reset, a different record) or a change of locale rewrites the text.
-  if (shown.value !== value || shown.locale !== locale) {
-    setShown({ value, locale })
+  if (synced.value !== value || synced.locale !== locale) {
+    setSynced({ value, locale })
     // Text that is not an amount is left for the user to fix; text they are typing already reads as the value.
-    const keepsText = value === null || (shown.locale === locale && read(text, locale, currency) === value)
-    if (!keepsText) setText(textFor(value, locale))
+    const keepsText = value === null || (synced.locale === locale && read(text, locale, currency) === value)
+    if (!keepsText) setText(textFor(value, locale, currency))
   }
 
   return (
@@ -47,21 +49,21 @@ export function AmountInput({ value, onChange, currency, onBlur, ...input }: Pro
         const next = event.target.value
         const parsed = read(next, locale, currency)
         setText(next)
-        setShown({ value: parsed, locale })
+        setSynced({ value: parsed, locale })
         onChange(parsed)
       }}
       onBlur={(event) => {
-        if (value) setText(textFor(value, locale))
+        if (value) setText(textFor(value, locale, currency))
         onBlur?.(event)
       }}
     />
   )
 }
 
-function read(text: string, locale: Parameters<typeof parseAmount>[1], currency: Currency): AmountValue {
+function read(text: string, locale: Language, currency: Currency): AmountValue {
   return text.trim() === '' ? '' : parseAmount(text, locale, currency)
 }
 
-function textFor(value: AmountValue, locale: Parameters<typeof formatAmountForInput>[1]): string {
-  return value ? formatAmountForInput(value, locale) : ''
+function textFor(value: AmountValue, locale: Language, currency: Currency): string {
+  return value ? formatAmountForInput(value, locale, currency) : ''
 }

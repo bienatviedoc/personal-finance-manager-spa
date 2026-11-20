@@ -6,6 +6,9 @@ export type PaletteColor = { value: string; label: ParseKeys }
  * The colours offered wherever a user picks one for something they name: institutions and categories. Each is a
  * lower-case #rrggbb, the form the API's Color keeps, and every colour of the default categories is among them.
  */
+/** A colour that says nothing in particular: how something looks until the user picks a colour. */
+export const neutralColor = '#64748b'
+
 export const palette: PaletteColor[] = [
   { value: '#ef4444', label: 'colors.red' },
   { value: '#f97316', label: 'colors.orange' },
@@ -22,7 +25,7 @@ export const palette: PaletteColor[] = [
   { value: '#d946ef', label: 'colors.fuchsia' },
   { value: '#ec4899', label: 'colors.pink' },
   { value: '#f43f5e', label: 'colors.rose' },
-  { value: '#64748b', label: 'colors.slate' },
+  { value: neutralColor, label: 'colors.slate' },
 ]
 
 /** The palette, plus the colour already chosen when it is not one of them (set elsewhere, or by an older version). */
