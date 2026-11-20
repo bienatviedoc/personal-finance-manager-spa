@@ -1,10 +1,18 @@
 import { screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { setScreenWidth } from '@/test/mediaQueries'
+import { fakeAccountsApi } from '@/test/fakeAccountsApi'
+import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { renderApp } from '@/test/renderApp'
 import { testUser } from '@/test/server'
 
 describe('navigation on a phone', () => {
+  // The Accounts screen loads these.
+  beforeEach(() => {
+    fakeAccountsApi()
+    fakeInstitutionsApi()
+  })
+
   it('is a bottom tab bar of the main screens, with the rest under More', async () => {
     setScreenWidth(360)
     const { user, router } = renderApp('/budgets')

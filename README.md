@@ -44,6 +44,10 @@ longer matches the API.
   what the API saved (just `{ saved: true }` when it answers nothing, as registering does), or `{ saved: false, fields }` naming the fields a 400 refused (`refusedFields` in
   `src/shared/api/`), for the form to show its own translated messages; anything else throws. A change that
   can fail in a way no field explains (resetting a password with a used link) names its outcomes instead.
+- **An edit names the version it was made from.** Where the API guards a record with a row version (accounts),
+  the edit hook takes the record and sends its `rowVersion` as `If-Match` (`useEditAccount(account)`). A 412
+  means it changed somewhere else: the outcome is `{ saved: false, stale: true }`, the list is loaded again, and
+  the screen shows the latest version for the user to check and save again. Never retry over it.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
   such as institutions, loads every page.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
@@ -79,6 +83,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeAuthApi` | Registering, verifying, signing in and out, password reset (`/api/v1/auth/...`) |
 | `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
+| `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
@@ -138,7 +143,10 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   Use it through React Hook Form's `Controller`. `parseAmount` and `formatAmountForInput` are the pure functions
   underneath.
 - **Never turn an amount into a `number`**, not even to compare or add. Totals, balances and conversions come
-  from the API. `DecimalString` marks a string that holds an amount.
+  from the API (the accounts list carries each institution's total in each currency). `isZeroAmount` reads
+  whether an amount is zero from its digits. `DecimalString` marks a string that holds an amount.
+- **Amount owed.** A credit card or loan is asked for the amount owed, as a positive number, instead of an
+  opening balance, and the API shows it as a negative balance (`holdsAmountOwed` in `features/accounts`).
 - **Currencies** are the API's (`Currency` from the generated schema). `currencies` lists them for pickers, and
   typecheck fails when the API adds one the list lacks.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from

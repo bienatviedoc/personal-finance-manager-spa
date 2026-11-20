@@ -1,9 +1,17 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { data, Outlet } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fakeAccountsApi } from '@/test/fakeAccountsApi'
+import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { failingScreen, renderApp } from '@/test/renderApp'
 
 describe('app navigation', () => {
+  // The Accounts screen loads these.
+  beforeEach(() => {
+    fakeAccountsApi()
+    fakeInstitutionsApi()
+  })
+
   it.each([
     ['Dashboard', 'Dashboard'],
     ['Transactions', 'Transactions'],
