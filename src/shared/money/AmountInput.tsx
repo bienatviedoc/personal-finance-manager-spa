@@ -16,6 +16,8 @@ type Props = Omit<ComponentProps<typeof Input>, 'value' | 'defaultValue' | 'onCh
   onChange: (value: AmountValue) => void
   /** Decides how many decimals the amount may have (none for VND). */
   currency: Currency
+  /** Lets the amount be below zero, for a balance that can be: an overdrawn account's opening balance. */
+  allowNegative?: boolean
 }
 
 /**
@@ -24,7 +26,7 @@ type Props = Omit<ComponentProps<typeof Input>, 'value' | 'defaultValue' | 'onCh
  * valid amount is rewritten in the locale's format. Works as a controlled input with React Hook Form's
  * `Controller`; label it with a `<Label htmlFor>` or wrap it like `TextField`.
  */
-export function AmountInput({ value, onChange, currency, onBlur, ...input }: Props) {
+export function AmountInput({ value, onChange, currency, allowNegative = false, onBlur, ...input }: Props) {
   const locale = useLocale()
   const [text, setText] = useState(() => textFor(value, locale, currency))
   // The value and locale the text was last written or read for.
@@ -34,7 +36,7 @@ export function AmountInput({ value, onChange, currency, onBlur, ...input }: Pro
   if (synced.value !== value || synced.locale !== locale) {
     setSynced({ value, locale })
     // Text that is not an amount is left for the user to fix; text they are typing already reads as the value.
-    const keepsText = value === null || (synced.locale === locale && read(text, locale, currency) === value)
+    const keepsText = value === null || (synced.locale === locale && read(text, locale, currency, allowNegative) === value)
     if (!keepsText) setText(textFor(value, locale, currency))
   }
 
@@ -47,7 +49,7 @@ export function AmountInput({ value, onChange, currency, onBlur, ...input }: Pro
       value={text}
       onChange={(event) => {
         const next = event.target.value
-        const parsed = read(next, locale, currency)
+        const parsed = read(next, locale, currency, allowNegative)
         setText(next)
         setSynced({ value: parsed, locale })
         onChange(parsed)
@@ -60,8 +62,8 @@ export function AmountInput({ value, onChange, currency, onBlur, ...input }: Pro
   )
 }
 
-function read(text: string, locale: Language, currency: Currency): AmountValue {
-  return text.trim() === '' ? '' : parseAmount(text, locale, currency)
+function read(text: string, locale: Language, currency: Currency, allowNegative: boolean): AmountValue {
+  return text.trim() === '' ? '' : parseAmount(text, locale, currency, { allowNegative })
 }
 
 function textFor(value: AmountValue, locale: Language, currency: Currency): string {

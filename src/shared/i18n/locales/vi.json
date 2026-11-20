@@ -160,6 +160,7 @@
     "institution": "Tổ chức tài chính",
     "currency": "Loại tiền",
     "openingBalance": "Số dư ban đầu",
+    "openingBalanceHint": "Tài khoản đang bị thấu chi thì nhập số âm: thêm dấu trừ ở đầu.",
     "amountOwed": "Số tiền đang nợ",
     "amountOwedHint": "Nhập số tiền bạn đang nợ dưới dạng số dương. Tài khoản sẽ hiển thị số dư âm.",
     "openingDate": "Ngày bắt đầu",

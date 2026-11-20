@@ -49,6 +49,27 @@ describe('parseAmount', () => {
   })
 })
 
+describe('parseAmount, where an amount may be negative', () => {
+  it.each([
+    ['en', '-250,000', 'VND', '-250000'],
+    ['vi', '-1.200,5', 'USD', '-1200.5'],
+    // The minus sign some keyboards and Intl write.
+    ['en', '\u2212 12.5', 'USD', '-12.5'],
+    ['en', '42', 'USD', '42'],
+    ['en', '-0', 'USD', '0'],
+    ['en', '--5', 'USD', null],
+    ['en', '5-', 'USD', null],
+    ['en', '-', 'USD', null],
+    ['en', '-12.345', 'USD', null],
+  ] as const)('in %s reads "%s" (%s) as %s', (locale, typed, currency, expected) => {
+    expect(parseAmount(typed, locale, currency, { allowNegative: true })).toBe(expected)
+  })
+
+  it.each(['en', 'vi'] as const)('reads back in %s what the input shows for a negative amount', (locale) => {
+    expect(parseAmount(formatAmountForInput('-1250000.50', locale, 'USD'), locale, 'USD', { allowNegative: true })).toBe('-1250000.50')
+  })
+})
+
 describe('formatAmountForInput', () => {
   it.each([
     ['125000.50', 'vi', 'VND', '125.000,5'],

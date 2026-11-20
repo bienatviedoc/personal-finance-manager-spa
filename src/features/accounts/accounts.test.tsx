@@ -184,6 +184,29 @@ describe('accounts', () => {
     expect(accountsApi.accounts[0]).toEqual(expect.objectContaining({ amountOwed: '50000.00', openingBalance: '-50000.00' }))
   })
 
+  it('take a negative opening balance for an overdrawn account, but never a negative amount owed', async () => {
+    const { accountsApi } = fakeApis()
+    const { user } = renderApp('/accounts')
+
+    await user.click(await screen.findByRole('button', { name: 'Add account' }))
+    await user.type(screen.getByLabelText('Name'), 'Overdrawn')
+    await user.type(screen.getByLabelText('Opening balance'), '-250,000')
+    // A credit card or loan says what is owed as a positive number: the minus has no place there.
+    await user.selectOptions(screen.getByLabelText('Type'), 'Credit card')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Enter an amount, such as 1,250,000.')).toBeInTheDocument()
+    expect(accountsApi.accounts).toEqual([])
+
+    await user.selectOptions(screen.getByLabelText('Type'), 'Current')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(listedUnder('No institution')).toEqual([['Overdrawn', '-₫250,000']]))
+    expect(accountsApi.accounts[0]).toEqual(expect.objectContaining({ type: 'current', openingBalance: '-250000.00', amountOwed: null }))
+
+    await user.click(screen.getByRole('button', { name: 'Edit Overdrawn' }))
+    expect(screen.getByLabelText('Opening balance')).toHaveValue('-250,000')
+  })
+
   it('are not saved over a change made somewhere else: the latest version is shown instead', async () => {
     const { accountsApi } = fakeApis([{ name: 'Everyday', openingBalance: '1000.00' }])
     const { user } = renderApp('/accounts')

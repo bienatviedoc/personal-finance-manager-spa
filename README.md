@@ -194,7 +194,9 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   a decimal string (`"1200000.5"`), `''` when empty, or `null` when the text is not an amount (misplaced
   separators, a minus sign, or more decimals than the currency has), which the form should report as an error.
   Use it through React Hook Form's `Controller`. `parseAmount` and `formatAmountForInput` are the pure functions
-  underneath.
+  underneath. Only the opening balance of an account that holds no amount owed takes a minus sign
+  (`allowNegative`), because a current account can open overdrawn; amounts owed and transaction amounts are
+  always positive.
 - **Never turn an amount into a `number`**, not even to compare or add. Totals, balances and conversions come
   from the API (the accounts list carries each institution's total in each currency, and `baseCurrencyTotal`: the
   totals of each institution and of everything, converted into the base currency). `isZeroAmount` reads

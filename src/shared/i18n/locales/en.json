@@ -160,6 +160,7 @@
     "institution": "Institution",
     "currency": "Currency",
     "openingBalance": "Opening balance",
+    "openingBalanceHint": "Below zero for an overdrawn account: start it with a minus sign.",
     "amountOwed": "Amount owed",
     "amountOwedHint": "Enter what you owe as a positive number. The account shows it as a negative balance.",
     "openingDate": "Opening date",
