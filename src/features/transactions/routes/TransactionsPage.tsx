@@ -115,21 +115,27 @@ export function TransactionsPage() {
 
 type FormProps = { accounts: Account[]; categories: Category[]; onClose: () => void }
 
-/** Records one transaction after another: the drawer stays open, ready for the next entry (spec section 12). */
+/** Records one transaction after another: the drawer stays open, ready for the next transaction (spec section 12). */
 function AddTransaction({ accounts, categories, onClose }: FormProps) {
   const create = useCreateTransaction()
-  // One key per transaction the user means to record: saving again after a failure sends the same one, so
-  // the API cannot record it twice. A new one once it is saved.
-  const idempotencyKey = useRef(crypto.randomUUID())
+  // One key per request the user means to make: saving the same values again after a failure sends the same
+  // one, so the API cannot record the transaction twice. Changed values are a new request, and so is the
+  // next transaction: each takes a new key.
+  const attempt = useRef<{ key: string; sent?: string }>({ key: crypto.randomUUID() })
 
   return (
     <>
       <TransactionForm
         accounts={accounts}
         categories={categories}
-        onSave={(draft: TransactionDraft) => create.mutateAsync({ ...draft, idempotencyKey: idempotencyKey.current })}
+        onSave={(draft: TransactionDraft) => {
+          const sending = JSON.stringify(draft.fields)
+          if (attempt.current.sent !== undefined && attempt.current.sent !== sending) attempt.current.key = crypto.randomUUID()
+          attempt.current.sent = sending
+          return create.mutateAsync({ ...draft, idempotencyKey: attempt.current.key })
+        }}
         onSaved={() => {
-          idempotencyKey.current = crypto.randomUUID()
+          attempt.current = { key: crypto.randomUUID() }
         }}
         onCancel={onClose}
       />

@@ -270,6 +270,27 @@ describe('transactions', () => {
     expect(next).not.toBe(failed)
   })
 
+  it('are a new request when saved again after a failure with something changed: the corrected one is recorded', async () => {
+    const { transactionsApi } = fakeApis()
+    const { user } = renderApp('/transactions')
+    await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
+    const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
+    await user.type(drawer.getByLabelText('Amount (VND)'), '5')
+    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    transactionsApi.failNext()
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(transactionsApi.idempotencyKeys).toHaveLength(1))
+    await waitFor(() => expect(drawer.getByRole('button', { name: 'Save' })).toBeEnabled())
+
+    await user.type(drawer.getByLabelText('Amount (VND)'), '0')
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(transactionsApi.transactions.map((transaction) => transaction.amount)).toEqual(['50.00']))
+    const [failed, corrected] = transactionsApi.idempotencyKeys
+    expect(corrected).toMatch(/^[0-9a-f-]{36}$/)
+    expect(corrected).not.toBe(failed)
+  })
+
   it('keep the drawer open for the next entry, with the type, account and date of the last', async () => {
     const { transactionsApi } = fakeApis()
     const { user } = renderApp('/transactions')

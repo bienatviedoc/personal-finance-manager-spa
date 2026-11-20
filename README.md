@@ -59,9 +59,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.
-- **A new transaction carries an `Idempotency-Key`**, made up once for each transaction the user means to
-  record (`AddTransaction`). Saving again after a failure sends the same key, so the API cannot record it
-  twice; the next entry gets a new one.
+- **A new transaction carries an `Idempotency-Key`**, made up once for each request the user means to make
+  (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
+  the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
+  used key that comes with a different body), and so is the next transaction.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking

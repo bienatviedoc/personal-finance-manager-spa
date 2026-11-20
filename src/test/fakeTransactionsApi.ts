@@ -27,7 +27,7 @@ type Options = {
  * recorded first, a page at a time; the currency is the account's; the amount is above zero with no more
  * decimals than the currency has; the date is not in the future; income takes an income category and an
  * expense an expense category; archived accounts and categories take no new transactions; a POST sent
- * again with the same `Idempotency-Key` records nothing; an edit must name the row version in `If-Match`
+ * again with the same `Idempotency-Key` records nothing, and one with that key and a different body is a 422; an edit must name the row version in `If-Match`
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
  * account a transaction is on follows it.
  */
@@ -72,7 +72,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   }
   let held: Promise<void> | undefined
   let failing = false
-  const byKey = new Map<string, Transaction>()
+  /** What each `Idempotency-Key` recorded, and the body it came with. */
+  const byKey = new Map<string, { recorded: Transaction; body: string }>()
   /** When each transaction was recorded: later is higher. Seeded ones in the order given. */
   const order = new Map(state.transactions.map((transaction, index) => [transaction.id, index - state.transactions.length]))
 
@@ -159,13 +160,18 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       const stopped = await refusedOrFailed(request)
       if (stopped) return stopped
       const again = key === null ? undefined : byKey.get(key)
-      if (again) return HttpResponse.json(again, { status: 201, headers: { ETag: `"${again.rowVersion}"` } })
+      if (again) {
+        const sameBody = JSON.stringify(await request.clone().json()) === again.body
+        if (!sameBody) return problem(422, { type: 'urn:pfm:problem:idempotency-key-reused' })
+        return HttpResponse.json(again.recorded, { status: 201, headers: { ETag: `"${again.recorded.rowVersion}"` } })
+      }
+      const body = JSON.stringify(await request.clone().json())
       const result = await validated(request)
       if (result.refused) return result.refused
       const created: Transaction = { id: `01970000-0000-7000-8000-4${String(recorded++).padStart(11, '0')}`, rowVersion: '1', ...result.fields }
       state.transactions.push(created)
       order.set(created.id, recorded)
-      if (key !== null) byKey.set(key, created)
+      if (key !== null) byKey.set(key, { recorded: created, body })
       move(created, 1)
       return HttpResponse.json(created, { status: 201, headers: { ETag: `"${created.rowVersion}"` } })
     }),
