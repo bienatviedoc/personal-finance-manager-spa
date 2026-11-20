@@ -69,7 +69,7 @@ export function fakeCategoriesApi({
       const wrong = checkFields(body)
       if (wrong) return wrong
       const parent = body.parentId ? find(body.parentId) : undefined
-      if (body.parentId && !parent) return problem(404)
+      if (body.parentId && !parent) return invalid('parentId', 'Choose one of your categories.')
       if (parent?.parentId) return invalid('parentId', 'Categories can be at most two levels deep.')
       if (parent?.isArchived) return invalid('parentId', 'An archived category takes no new subcategories.')
       if (parent && parent.kind !== body.kind) return invalid('kind', "A subcategory has its parent's kind.")
