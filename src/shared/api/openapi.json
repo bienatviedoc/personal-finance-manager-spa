@@ -1578,7 +1578,7 @@
         "tags": [
           "Transactions"
         ],
-        "description": "Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing.",
+        "description": "Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422.",
         "operationId": "CreateTransaction",
         "parameters": [
           {
@@ -1622,6 +1622,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
             "content": {
               "application/problem+json": {
                 "schema": {
