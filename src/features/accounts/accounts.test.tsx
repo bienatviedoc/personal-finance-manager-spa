@@ -1,8 +1,10 @@
 import { screen, waitFor, within } from '@testing-library/react'
+import { http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { renderApp } from '@/test/renderApp'
+import { apiUrl, problem, server } from '@/test/server'
 
 const vietcombank = '01970000-0000-7000-8000-100000000000'
 const momo = '01970000-0000-7000-8000-100000000001'
@@ -46,7 +48,7 @@ describe('accounts', () => {
       { name: 'Everyday', institutionId: vietcombank, openingBalance: '1000000.00' },
       { name: 'Visa', type: 'creditCard', institutionId: vietcombank, openingBalance: '-200000.00', amountOwed: '200000.00' },
       { name: 'Dollars', type: 'savings', institutionId: vietcombank, currency: 'USD', openingBalance: '50.25' },
-      { name: 'Wallet', type: 'eWallet', institutionId: momo, openingBalance: '70000.00' },
+      { name: 'Top-ups', type: 'eWallet', institutionId: momo, openingBalance: '70000.00' },
       { name: 'Pocket', type: 'cash', openingBalance: '5000.00' },
       { name: 'Closed', institutionId: momo, openingBalance: '999.00', isArchived: true },
     ])
@@ -64,7 +66,7 @@ describe('accounts', () => {
       ['Visa', '-₫200,000'],
     ])
     expect(totalsOf('Vietcombank')).toEqual(['Total ₫800,000', 'Total $50.25'])
-    expect(listedUnder('MoMo')).toEqual([['Wallet', '₫70,000']])
+    expect(listedUnder('MoMo')).toEqual([['Top-ups', '₫70,000']])
     expect(totalsOf('MoMo')).toEqual(['Total ₫70,000'])
     expect(listedUnder('No institution')).toEqual([['Pocket', '₫5,000']])
     expect(within(screen.getByRole('region', { name: 'Vietcombank' })).getByText('Credit card')).toBeInTheDocument()
@@ -184,6 +186,29 @@ describe('accounts', () => {
     expect(accountsApi.accounts[0]).toEqual(expect.objectContaining({ amountOwed: '50000.00', openingBalance: '-50000.00' }))
   })
 
+  it('take a negative opening balance for an overdrawn account, but never a negative amount owed', async () => {
+    const { accountsApi } = fakeApis()
+    const { user } = renderApp('/accounts')
+
+    await user.click(await screen.findByRole('button', { name: 'Add account' }))
+    await user.type(screen.getByLabelText('Name'), 'Overdrawn')
+    await user.type(screen.getByLabelText('Opening balance'), '-250,000')
+    // A credit card or loan says what is owed as a positive number: the minus has no place there.
+    await user.selectOptions(screen.getByLabelText('Type'), 'Credit card')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Enter an amount, such as 1,250,000.')).toBeInTheDocument()
+    expect(accountsApi.accounts).toEqual([])
+
+    await user.selectOptions(screen.getByLabelText('Type'), 'Current')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(listedUnder('No institution')).toEqual([['Overdrawn', '-₫250,000']]))
+    expect(accountsApi.accounts[0]).toEqual(expect.objectContaining({ type: 'current', openingBalance: '-250000.00', amountOwed: null }))
+
+    await user.click(screen.getByRole('button', { name: 'Edit Overdrawn' }))
+    expect(screen.getByLabelText('Opening balance')).toHaveValue('-250,000')
+  })
+
   it('are not saved over a change made somewhere else: the latest version is shown instead', async () => {
     const { accountsApi } = fakeApis([{ name: 'Everyday', openingBalance: '1000.00' }])
     const { user } = renderApp('/accounts')
@@ -286,6 +311,33 @@ describe('accounts', () => {
 
     expect(await screen.findByText('No accounts yet. Add the accounts your money sits in.')).toBeInTheDocument()
     expect(accountsApi.accounts[0]?.isArchived).toBe(true)
+  })
+
+  it('say in a toast when saving or archiving fails, and do it when the user tries again', async () => {
+    const { accountsApi } = fakeApis()
+    const { user } = renderApp('/accounts')
+    await user.click(await screen.findByRole('button', { name: 'Add account' }))
+    await user.type(screen.getByLabelText('Name'), 'Everyday')
+    await user.type(screen.getByLabelText('Opening balance'), '1,000')
+    server.use(http.post(apiUrl('/api/v1/accounts'), () => problem(500), { once: true }))
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('The account was not saved.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('Everyday')
+    expect(accountsApi.accounts).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => expect(listedUnder('No institution')).toEqual([['Everyday', '₫1,000']]))
+    expect(screen.queryByText('The account was not saved.')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Archive Everyday' }))
+    server.use(http.delete(apiUrl('/api/v1/accounts/:id'), () => problem(500), { once: true }))
+    await user.click(within(screen.getByRole('group', { name: 'Archive Everyday' })).getByRole('button', { name: 'Archive' }))
+    expect(await screen.findByText('The account was not archived.')).toBeInTheDocument()
+    expect(accountsApi.accounts[0]!.isArchived).toBe(false)
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => expect(accountsApi.accounts[0]!.isArchived).toBe(true))
   })
 
   it('stay as they are when the user cancels archiving', async () => {

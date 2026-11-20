@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button'
 import { institutionsQuery, useArchiveInstitution, useCreateInstitution, useEditInstitution, type Institution } from '../api/institutions'
 import { InstitutionForm } from '../components/InstitutionForm'
 import { InstitutionLogo } from '../components/InstitutionLogo'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 /** The banks and wallet providers the user holds money with: add, edit and archive them. */
 export function InstitutionsPage() {
@@ -31,9 +32,9 @@ export function InstitutionsPage() {
       ) : (
         <Button onClick={() => setAdding(true)}>{t('institutions.add')}</Button>
       )}
-      {create.isError && <ErrorMessage />}
+      {create.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
 
-      {institutions.isError && <ErrorMessage />}
+      {institutions.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
       {institutions.data?.length === 0 && !adding && <p className="text-muted-foreground">{t('institutions.empty')}</p>}
       {institutions.data && institutions.data.length > 0 && (
         <ul aria-label={t('screens.institutions')} className="divide-y rounded-lg border">
@@ -60,7 +61,7 @@ function InstitutionRow({ institution }: { institution: Institution }) {
       <li className="p-3">
         <h2 className="sr-only">{institution.name}</h2>
         <InstitutionForm institution={institution} onSave={edit.mutateAsync} onDone={toView} />
-        {edit.isError && <ErrorMessage />}
+        {edit.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
       </li>
     )
   }
@@ -97,18 +98,9 @@ function InstitutionRow({ institution }: { institution: Institution }) {
               {t('institutions.cancel')}
             </Button>
           </div>
-          {archive.isError && <ErrorMessage />}
+          {archive.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
         </div>
       )}
     </li>
-  )
-}
-
-function ErrorMessage() {
-  const { t } = useTranslation()
-  return (
-    <p role="alert" className="text-sm text-destructive">
-      {t('institutions.errors.generic')}
-    </p>
   )
 }

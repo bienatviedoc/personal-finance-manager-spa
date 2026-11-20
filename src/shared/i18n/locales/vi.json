@@ -2,6 +2,12 @@
   "app": {
     "name": "Quản lý Tài chính Cá nhân"
   },
+  "toast": {
+    "label": "Thông báo",
+    "viewport": "Thông báo ({hotkey})",
+    "retry": "Thử lại",
+    "dismiss": "Đóng"
+  },
   "nav": {
     "label": "Điều hướng chính",
     "dashboard": "Tổng quan",
@@ -160,6 +166,7 @@
     "institution": "Tổ chức tài chính",
     "currency": "Loại tiền",
     "openingBalance": "Số dư ban đầu",
+    "openingBalanceHint": "Tài khoản đang bị thấu chi thì nhập số âm: thêm dấu trừ ở đầu.",
     "amountOwed": "Số tiền đang nợ",
     "amountOwedHint": "Nhập số tiền bạn đang nợ dưới dạng số dương. Tài khoản sẽ hiển thị số dư âm.",
     "openingDate": "Ngày bắt đầu",
@@ -196,7 +203,9 @@
       "creditLimit": "Nhập hạn mức tín dụng, ví dụ {{example}}, hoặc để trống.",
       "day": "Chọn một ngày trong tháng, từ 1 đến 31.",
       "stale": "Tài khoản này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
-      "generic": "Đã xảy ra lỗi. Hãy thử lại."
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "notSaved": "Chưa lưu được tài khoản.",
+      "notArchived": "Chưa lưu trữ được tài khoản."
     }
   },
   "transactions": {
@@ -246,7 +255,9 @@
       "payeeTooLong": "Dùng tối đa 200 ký tự.",
       "noteTooLong": "Dùng tối đa 1000 ký tự.",
       "stale": "Giao dịch này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
-      "generic": "Đã xảy ra lỗi. Hãy thử lại."
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "notSaved": "Chưa lưu được giao dịch.",
+      "notDeleted": "Chưa xóa được giao dịch."
     }
   },
   "institutions": {

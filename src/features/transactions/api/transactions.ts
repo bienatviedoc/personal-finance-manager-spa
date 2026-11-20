@@ -1,15 +1,15 @@
 import { infiniteQueryOptions, useMutation, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { refreshAccountBalances } from '@/features/accounts'
 import { api } from '@/shared/api/client'
-import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
+import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome } from '@/shared/api/versionedSave'
 import type { Currency } from '@/shared/money'
 
 export type Transaction = components['schemas']['TransactionResponse']
 export type TransactionType = components['schemas']['TransactionType']
 /** What recording or editing one sends. The API takes the type as text, to name it when refusing it; the SPA only ever sends one it knows. */
 export type TransactionFields = Omit<components['schemas']['TransactionRequest'], 'type'> & { type: TransactionType }
-type TransactionPage = components['schemas']['TransactionListResponse']
+type TransactionPage = Omit<components['schemas']['TransactionListResponse'], 'items'> & { items: ListedTransaction[] }
 
 /** Both types, in the order the toggle shows them. A type the API adds and this list lacks fails typecheck. */
 export const transactionTypes = ['expense', 'income'] as const satisfies readonly TransactionType[]
@@ -18,13 +18,10 @@ type MissingType = Exclude<TransactionType, (typeof transactionTypes)[number]>
 export const everyTransactionTypeListed: MissingType extends never ? true : MissingType = true
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type TransactionField = 'type' | 'accountId' | 'amount' | 'date' | 'categoryId' | 'payee' | 'note'
+const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note'] as const
+export type TransactionField = (typeof transactionFields)[number]
 
-export type SaveOutcome =
-  | { saved: true; transaction: Transaction }
-  | { saved: false; fields: TransactionField[] }
-  /** The transaction changed since the row version the edit was made from: nothing was saved, and the list is loaded again. */
-  | { saved: false; stale: true }
+export type SaveOutcome = VersionedSaveOutcome<'transaction', Transaction, TransactionField>
 
 /**
  * What a form hands over to be saved: the fields, and the currency of the account they name, which the
@@ -33,11 +30,17 @@ export type SaveOutcome =
 export type TransactionDraft = { fields: TransactionFields; currency: Currency }
 
 const transactionsKey = ['transactions']
-const transactionFields: TransactionField[] = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note']
 
-/** The id of a transaction shown before the API has answered: it has no row version yet and cannot be edited or deleted. */
-const pendingPrefix = 'pending:'
-export const isPending = (transaction: Transaction) => transaction.id.startsWith(pendingPrefix)
+/**
+ * A transaction shown before the API has answered: the API has given it no id or row version yet, so there is
+ * nothing to edit or delete. It is known by the idempotency key it was sent with.
+ */
+export type PendingTransaction = Omit<Transaction, 'id' | 'rowVersion'> & { pendingKey: string }
+/** What the list shows: the API's transactions, and any still on their way to it. */
+export type ListedTransaction = Transaction | PendingTransaction
+export const isPending = (transaction: ListedTransaction): transaction is PendingTransaction => 'pendingKey' in transaction
+/** What tells one listed transaction from another: its id, or its key while it has none. */
+export const listKey = (transaction: ListedTransaction) => (isPending(transaction) ? transaction.pendingKey : transaction.id)
 
 /**
  * The user's transactions, newest date first and, within a date, last recorded first. A user has
@@ -48,7 +51,7 @@ export const transactionsQuery = infiniteQueryOptions({
   queryFn: async ({ pageParam }) => {
     const { data, response } = await api.GET('/api/v1/transactions', { params: { query: { cursor: pageParam } } })
     if (!data) throw new Error(`Could not load transactions: ${response.status}`)
-    return data
+    return data satisfies TransactionPage as TransactionPage
   },
   initialPageParam: undefined as string | undefined,
   getNextPageParam: (last) => last.nextCursor ?? undefined,
@@ -62,7 +65,7 @@ export function useCreateTransaction() {
   return useSaveTransaction(
     async ({ fields, idempotencyKey }: TransactionDraft & { idempotencyKey: string }) =>
       api.POST('/api/v1/transactions', { params: { header: { 'Idempotency-Key': idempotencyKey } }, body: fields }),
-    ({ idempotencyKey }) => ({ id: `${pendingPrefix}${idempotencyKey}`, rowVersion: '' }),
+    ({ idempotencyKey }) => ({ pendingKey: idempotencyKey }),
   )
 }
 
@@ -73,7 +76,7 @@ export function useCreateTransaction() {
 export function useEditTransaction({ id, rowVersion }: Pick<Transaction, 'id' | 'rowVersion'>) {
   return useSaveTransaction(
     async ({ fields }: TransactionDraft) =>
-      api.PUT('/api/v1/transactions/{id}', { params: { path: { id }, header: { 'If-Match': `"${rowVersion}"` } }, body: fields }),
+      api.PUT('/api/v1/transactions/{id}', { params: { path: { id }, header: { 'If-Match': ifMatch(rowVersion) } }, body: fields }),
     () => ({ id, rowVersion }),
   )
 }
@@ -100,26 +103,20 @@ type Lists = InfiniteData<TransactionPage, string | undefined>
  */
 function useSaveTransaction<Draft extends TransactionDraft>(
   save: (draft: Draft) => Promise<SaveResponse>,
-  identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion'>,
+  /** What the transaction is known by while it is shown ahead of the API's answer. */
+  identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion'> | Pick<PendingTransaction, 'pendingKey'>,
 ) {
   const queryClient = useQueryClient()
   const lists = { queryKey: transactionsQuery.queryKey }
 
   return useMutation({
-    mutationFn: async (draft: Draft): Promise<SaveOutcome> => {
-      const { data, error, response } = await save(draft)
-      if (data) return { saved: true, transaction: data }
-      if (response.status === 412) return { saved: false, stale: true }
-      const refused = refusedFields(response, error, transactionFields)
-      if (refused) return { saved: false, fields: refused }
-      throw new Error(`Saving a transaction failed: ${response.status}`)
-    },
+    mutationFn: async (draft: Draft): Promise<SaveOutcome> => versionedSaveOutcome('transaction', await save(draft), transactionFields),
     onMutate: async (draft) => {
       // A list still loading would otherwise overwrite the optimistic one when it lands.
       await queryClient.cancelQueries(lists)
       const before = queryClient.getQueryData<Lists>(lists.queryKey)
       const { fields, currency } = draft
-      const shown: Transaction = {
+      const shown: ListedTransaction = {
         ...identify(draft),
         ...fields,
         currency,
@@ -151,9 +148,9 @@ function refresh(queryClient: QueryClient) {
 }
 
 /** Newest date first; within a date, the last recorded first: ids are in the order of recording, and a pending one is the latest. */
-function comesBefore(a: Transaction, b: Transaction) {
+function comesBefore(a: ListedTransaction, b: ListedTransaction) {
   if (a.date !== b.date) return a.date > b.date
-  if (isPending(a) !== isPending(b)) return isPending(a)
+  if (isPending(a) || isPending(b)) return isPending(a)
   return a.id > b.id
 }
 
@@ -161,8 +158,8 @@ function comesBefore(a: Transaction, b: Transaction) {
  * The loaded pages with the transaction put where the list's order has it, in place of the one with its id if
  * there is one. A transaction that belongs after the pages loaded so far is left out, until those are loaded.
  */
-function withTransaction(data: Lists, transaction: Transaction): Lists {
-  const pages = data.pages.map((page) => ({ ...page, items: page.items.filter((item) => item.id !== transaction.id) }))
+function withTransaction(data: Lists, transaction: ListedTransaction): Lists {
+  const pages = data.pages.map((page) => ({ ...page, items: page.items.filter((item) => listKey(item) !== listKey(transaction)) }))
   for (const page of pages) {
     const index = page.items.findIndex((item) => comesBefore(transaction, item))
     const isLast = page === pages.at(-1)

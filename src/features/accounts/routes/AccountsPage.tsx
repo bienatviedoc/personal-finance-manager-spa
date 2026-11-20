@@ -2,9 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { FailureToast } from '@/shared/components/FailureToast'
+import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { currencies, formatMoney, isZeroAmount, Money } from '@/shared/money'
+import { formatMoney, inCurrencyOrder, isZeroAmount, Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
   accountsQuery,
@@ -45,6 +48,7 @@ export function AccountsPage() {
   const accounts = useQuery(accountsQuery({ includeArchived: showArchived }))
   const institutions = useQuery(allInstitutionsQuery)
   const create = useCreateAccount()
+  const addFormId = useId()
 
   const groups = accounts.data && institutions.data ? groupByInstitution(accounts.data, institutions.data, locale) : undefined
 
@@ -62,7 +66,7 @@ export function AccountsPage() {
 
       {adding && institutions.data ? (
         <section aria-label={t('accounts.new')}>
-          <AccountForm institutions={institutions.data} onSave={create.mutateAsync} onDone={() => setAdding(false)} />
+          <AccountForm id={addFormId} institutions={institutions.data} onSave={create.mutateAsync} onDone={() => setAdding(false)} />
         </section>
       ) : (
         <Button onClick={() => setAdding(true)}>{t('accounts.add')}</Button>
@@ -73,7 +77,8 @@ export function AccountsPage() {
         {t('accounts.showArchived')}
       </label>
 
-      {(create.isError || accounts.isError || institutions.isError) && <ErrorMessage />}
+      <FailureToast failed={create.isError} message={t('accounts.errors.notSaved')} retry={{ form: addFormId }} onDismiss={create.reset} />
+      {(accounts.isError || institutions.isError) && <ErrorMessage>{t('accounts.errors.generic')}</ErrorMessage>}
       {groups?.length === 0 && !adding && <p className="text-muted-foreground">{t('accounts.empty')}</p>}
       {accounts.data && groups && groups.length > 0 && <TotalOfAll total={accounts.data.baseCurrencyTotal} />}
       {groups?.map((group) => (
@@ -100,9 +105,7 @@ function groupByInstitution(
     return {
       institution,
       accounts: accounts.filter((account) => account.institutionId === id),
-      totals: totals
-        .filter((total) => total.institutionId === id)
-        .toSorted((a, b) => currencies.indexOf(a.currency) - currencies.indexOf(b.currency)),
+      totals: totals.filter((total) => total.institutionId === id).toSorted(inCurrencyOrder),
       inBaseCurrency: baseCurrencyTotal.institutions.find((total) => total.institutionId === id),
     }
   }
@@ -133,9 +136,7 @@ function NotConverted({ amounts, explained = false }: { amounts: NotConvertedAmo
   const locale = useLocale()
   if (amounts.length === 0) return null
   const list = new Intl.ListFormat(locale, { type: 'conjunction' }).format(
-    amounts
-      .toSorted((a, b) => currencies.indexOf(a.currency) - currencies.indexOf(b.currency))
-      .map((amount) => formatMoney(amount.balance, amount.currency, locale)),
+    amounts.toSorted(inCurrencyOrder).map((amount) => formatMoney(amount.balance, amount.currency, locale)),
   )
 
   return (
@@ -191,24 +192,21 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
   const locale = useLocale()
   const edit = useEditAccount(account)
   const archive = useArchiveAccount()
+  const editFormId = useId()
   const [mode, setMode] = useState<'view' | 'edit' | 'confirmArchive'>('view')
   const toView = () => setMode('view')
   const toEdit = () => setMode('edit')
   const toConfirmArchive = () => setMode('confirmArchive')
-  const stale = edit.data !== undefined && !edit.data.saved && 'stale' in edit.data
+  const stale = isStale(edit.data)
 
   if (mode === 'edit') {
     return (
       <li className="space-y-2 p-3">
         <h3 className="sr-only">{account.name}</h3>
-        {stale && (
-          <p role="alert" className="text-sm text-destructive">
-            {t('accounts.errors.stale')}
-          </p>
-        )}
+        {stale && <ErrorMessage>{t('accounts.errors.stale')}</ErrorMessage>}
         {/* A new row version is a new account to edit: the form starts again from what the API holds now. */}
-        <AccountForm key={account.rowVersion} account={account} institutions={institutions} onSave={edit.mutateAsync} onDone={toView} />
-        {edit.isError && <ErrorMessage />}
+        <AccountForm key={account.rowVersion} id={editFormId} account={account} institutions={institutions} onSave={edit.mutateAsync} onDone={toView} />
+        <FailureToast failed={edit.isError} message={t('accounts.errors.notSaved')} retry={{ form: editFormId }} onDismiss={edit.reset} />
       </li>
     )
   }
@@ -267,9 +265,14 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
               {t('accounts.cancel')}
             </Button>
           </div>
-          {archive.isError && <ErrorMessage />}
         </div>
       )}
+      <FailureToast
+        failed={archive.isError}
+        message={t('accounts.errors.notArchived')}
+        retry={() => archive.mutate(account.id)}
+        onDismiss={archive.reset}
+      />
     </li>
   )
 }
@@ -314,14 +317,5 @@ function CreditCardDetails({ account }: { account: Account }) {
         </div>
       )}
     </dl>
-  )
-}
-
-function ErrorMessage() {
-  const { t } = useTranslation()
-  return (
-    <p role="alert" className="text-sm text-destructive">
-      {t('accounts.errors.generic')}
-    </p>
   )
 }

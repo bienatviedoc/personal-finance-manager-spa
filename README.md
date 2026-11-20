@@ -49,19 +49,27 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the edit hook takes the record and sends its `rowVersion` as `If-Match` (`useEditAccount(account)`). A 412
   means it changed somewhere else: the outcome is `{ saved: false, stale: true }`, the list is loaded again, and
   the screen shows the latest version for the user to check and save again. Never retry over it.
+  `src/shared/api/versionedSave.ts` holds the shape for every such record: the outcome type, the mapping from
+  the API's answer (`versionedSaveOutcome`), the header (`ifMatch`) and `isStale` for the screen.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
   such as institutions, loads every page. One for something they have thousands of, transactions, is an
   infinite query (`transactionsQuery`) that loads the next page when the screen asks for more.
 - **Adding and editing a transaction is optimistic**, and nothing else is (spec section 12). The save hooks put
   the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
-  request fails, and load the list again once the API has answered. One not yet answered has an id
-  `isPending` recognises and offers nothing to edit or delete.
+  request fails, and load the list again once the API has answered. One not yet answered is a
+  `PendingTransaction`: it has no id or row version, so it offers nothing to edit or delete (`isPending`).
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.
-- **A new transaction carries an `Idempotency-Key`**, made up once for each transaction the user means to
-  record (`AddTransaction`). Saving again after a failure sends the same key, so the API cannot record it
-  twice; the next entry gets a new one.
+- **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
+  `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
+  the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change
+  again; fields the API refused stay under their inputs. The toast is the Radix primitive in
+  `src/shared/ui/toast.tsx`, and stays until the user answers it.
+- **A new transaction carries an `Idempotency-Key`**, made up once for each request the user means to make
+  (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
+  the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
+  used key that comes with a different body), and so is the next transaction.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
@@ -161,6 +169,8 @@ src/
 - **Screens** are added to the route tree in `src/app/routes.tsx` by listing the feature's routes, and to the
   navigation in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
   shell and the other screens working; so does each section nested in a screen (Settings > Profile).
+- **Shared components** (`src/shared/components`): `TextField` and `SelectField` for labelled inputs,
+  `ErrorMessage` for an alert that something went wrong, `FailureToast` for a change that failed.
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
 
@@ -192,8 +202,11 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   separators (`1.200.000,5` in Vietnamese, `1,200,000.5` in English, grouping optional); the value it holds is
   a decimal string (`"1200000.5"`), `''` when empty, or `null` when the text is not an amount (misplaced
   separators, a minus sign, or more decimals than the currency has), which the form should report as an error.
-  Use it through React Hook Form's `Controller`. `parseAmount` and `formatAmountForInput` are the pure functions
-  underneath.
+  In a form, use `<AmountField control name label currency />`, which labels it and ties its hint and error
+  to it. `parseAmount` and `formatAmountForInput` are the pure functions
+  underneath. Only the opening balance of an account that holds no amount owed takes a minus sign
+  (`allowNegative`), because a current account can open overdrawn; amounts owed and transaction amounts are
+  always positive.
 - **Never turn an amount into a `number`**, not even to compare or add. Totals, balances and conversions come
   from the API (the accounts list carries each institution's total in each currency, and `baseCurrencyTotal`: the
   totals of each institution and of everything, converted into the base currency). `isZeroAmount` reads

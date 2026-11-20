@@ -16,6 +16,7 @@ import {
 } from '../api/categories'
 import { CategoryBadge } from '../components/CategoryBadge'
 import { CategoryForm } from '../components/CategoryForm'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 /** What the form is open for, if anything. */
 type Editing =
@@ -109,11 +110,7 @@ export function CategoriesPage() {
         {t('categories.showArchived')}
       </label>
 
-      {(create.isError || edit.isError || archive.isError || categories.isError) && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('categories.errors.generic')}
-        </p>
-      )}
+      {(create.isError || edit.isError || archive.isError || categories.isError) && <ErrorMessage>{t('categories.errors.generic')}</ErrorMessage>}
 
       {form}
 

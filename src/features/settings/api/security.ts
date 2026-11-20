@@ -3,6 +3,7 @@ import { api, forgetAntiforgeryToken } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
 
+export type TwoFactor = components['schemas']['TwoFactorResponse']
 export type TwoFactorSetup = components['schemas']['TwoFactorSetupResponse']
 
 /** Whether the signed-in user signs in with two factors, and how many recovery codes they have left. */
@@ -30,13 +31,28 @@ export function useChangePassword() {
   })
 }
 
-/** Asks for the key to add to an authenticator app. Nothing changes for signing in until a code confirms it. */
+/**
+ * Setting up can fail in a way no field explains: two-factor sign-in is already on (turned on somewhere else
+ * since the screen loaded), so there is nothing to set up.
+ */
+export type SetUpTwoFactorOutcome = { ready: true; setup: TwoFactorSetup } | { ready: false; alreadyOn: true }
+
+/**
+ * Asks for the key to add to an authenticator app. Nothing changes for signing in until a code confirms it.
+ * When two-factor sign-in turns out to be on already, whether it is on is loaded again.
+ */
 export function useSetUpTwoFactor() {
+  const queryClient = useQueryClient()
+
   return useMutation({
-    mutationFn: async (): Promise<TwoFactorSetup> => {
+    mutationFn: async (): Promise<SetUpTwoFactorOutcome> => {
       const { data, response } = await api.POST('/api/v1/me/two-factor/setup')
-      if (!data) throw new Error(`Could not set up two-factor sign-in: ${response.status}`)
-      return data
+      if (data) return { ready: true, setup: data }
+      if (response.status === 409) return { ready: false, alreadyOn: true }
+      throw new Error(`Could not set up two-factor sign-in: ${response.status}`)
+    },
+    onSuccess: (outcome) => {
+      if (!outcome.ready) return queryClient.invalidateQueries({ queryKey: twoFactorQuery.queryKey })
     },
   })
 }
@@ -77,9 +93,16 @@ export function useTurnOffTwoFactor() {
   })
 }
 
-export type NewRecoveryCodesOutcome = { saved: true; recoveryCodes: string[] } | { saved: false; fields: 'password'[] }
+export type NewRecoveryCodesOutcome =
+  | { saved: true; recoveryCodes: string[] }
+  | { saved: false; fields: 'password'[] }
+  /** Two-factor sign-in is off (turned off somewhere else since the screen loaded): there are no codes to replace. */
+  | { saved: false; twoFactorOff: true }
 
-/** Replaces the user's recovery codes, given their password. The old ones stop working. */
+/**
+ * Replaces the user's recovery codes, given their password. The old ones stop working. Either way whether
+ * two-factor sign-in is on, and how many codes are left, is loaded again.
+ */
 export function useNewRecoveryCodes() {
   const queryClient = useQueryClient()
 
@@ -87,6 +110,7 @@ export function useNewRecoveryCodes() {
     mutationFn: async (password: string): Promise<NewRecoveryCodesOutcome> => {
       const { data, response, error } = await api.POST('/api/v1/me/two-factor/recovery-codes', { body: { password } })
       if (data) return { saved: true, recoveryCodes: data.recoveryCodes }
+      if (response.status === 409) return { saved: false, twoFactorOff: true }
       const fields = refusedFields(response, error, ['password'] as const)
       if (fields) return { saved: false, fields }
       throw new Error(`Could not make new recovery codes: ${response.status}`)

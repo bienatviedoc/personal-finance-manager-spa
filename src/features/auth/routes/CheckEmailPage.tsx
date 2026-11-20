@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import { useResendVerification } from '../api/signIn'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 /** After registering: the link is on its way. */
 export function CheckEmailPage() {
@@ -23,11 +24,7 @@ export function CheckEmailPage() {
           {t('auth.checkEmail.resend')}
         </Button>
       )}
-      {resend.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('auth.errors.generic')}
-        </p>
-      )}
+      {resend.isError && <ErrorMessage>{t('auth.errors.generic')}</ErrorMessage>}
     </section>
   )
 }

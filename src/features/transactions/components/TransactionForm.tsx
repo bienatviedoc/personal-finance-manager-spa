@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
-import { useEffect, useId, useMemo, useState } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import type { Account } from '@/features/accounts'
@@ -12,9 +12,8 @@ import { TextField } from '@/shared/components/TextField'
 import { todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRingWithin } from '@/shared/lib/utils'
-import { AmountInput, formatAmountForInput, isZeroAmount, parseAmount } from '@/shared/money'
+import { AmountField, formatAmountForInput, isZeroAmount, parseAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { Label } from '@/shared/ui/label'
 import { transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
 /**
@@ -64,6 +63,8 @@ const amountField = 'amount'
 const exampleAmount = '1250000'
 
 type Props = {
+  /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
+  id?: string
   /** The transaction being edited; none when recording one. */
   transaction?: Transaction
   /** Every account of the user's. Archived ones are offered only to the transaction already on them. */
@@ -72,7 +73,7 @@ type Props = {
   categories: Category[]
   onSave: (draft: TransactionDraft) => Promise<SaveOutcome>
   /**
-   * Called once the transaction is saved. A form that records stays as it is for the next entry, keeping the
+   * Called once the transaction is saved. A form that records stays as it is for the next transaction, keeping the
    * type, account and date; one that edits is done.
    */
   onSaved: () => void
@@ -83,12 +84,10 @@ type Props = {
  * Records or edits income or an expense. The type toggle at the top decides which categories are offered;
  * the chosen account decides the currency of the amount.
  */
-export function TransactionForm({ transaction, accounts, categories, onSave, onSaved, onCancel }: Props) {
+export function TransactionForm({ id, transaction, accounts, categories, onSave, onSaved, onCancel }: Props) {
   const { t } = useTranslation()
   const locale = useLocale()
   const { baseCurrency, timeZone } = useUserSettings()
-  const amountId = useId()
-  const amountErrorId = `${amountId}-error`
   const today = todayIn(timeZone)
   const schema = useMemo(() => schemaFor(today), [today])
   const [savedCount, setSavedCount] = useState(0)
@@ -120,7 +119,7 @@ export function TransactionForm({ transaction, accounts, categories, onSave, onS
     .filter(({ category }) => category.kind === type && (!category.isArchived || category.id === transaction?.categoryId))
     .map(({ category, label }) => ({ value: category.id, label }))
 
-  // Once the emptied form has rendered, the next entry starts at the amount.
+  // Once the emptied form has rendered, the next transaction starts at the amount.
   useEffect(() => {
     if (savedCount > 0) form.setFocus('amount')
   }, [savedCount, form])
@@ -172,7 +171,7 @@ export function TransactionForm({ transaction, accounts, categories, onSave, onS
   })
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-4">
+    <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
       <fieldset>
         <legend className="sr-only">{t('transactions.type')}</legend>
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
@@ -198,31 +197,13 @@ export function TransactionForm({ transaction, accounts, categories, onSave, onS
         {...form.register('accountId')}
       />
 
-      <div className="space-y-1.5">
-        <Label htmlFor={amountId}>{t('transactions.amountIn', { currency })}</Label>
-        <Controller
-          control={form.control}
-          name={amountField}
-          render={({ field }) => (
-            <AmountInput
-              id={amountId}
-              ref={field.ref}
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              currency={currency}
-              aria-invalid={errors.amount ? true : undefined}
-              aria-describedby={errors.amount ? amountErrorId : undefined}
-            />
-          )}
-        />
-        {errors.amount?.message && (
-          <p id={amountErrorId} className="text-sm text-destructive">
-            {t(errors.amount.message as ParseKeys, { example: formatAmountForInput(exampleAmount, locale, currency) })}
-          </p>
-        )}
-      </div>
+      <AmountField
+        control={form.control}
+        name={amountField}
+        label={t('transactions.amountIn', { currency })}
+        error={errors.amount?.message && t(errors.amount.message as ParseKeys, { example: formatAmountForInput(exampleAmount, locale, currency) })}
+        currency={currency}
+      />
 
       <TextField
         type="date"
@@ -258,7 +239,7 @@ export function TransactionForm({ transaction, accounts, categories, onSave, onS
           {savedCount > 0 ? t('transactions.done') : t('transactions.cancel')}
         </Button>
       </div>
-      {/* Says the entry was saved when the form has emptied itself for the next one. */}
+      {/* Says the transaction was saved when the form has emptied itself for the next one. */}
       <p role="status" className="text-sm text-muted-foreground">
         {savedCount > 0 && !isSubmitting && t('transactions.savedAddAnother', { count: savedCount })}
       </p>

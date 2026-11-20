@@ -12,6 +12,7 @@ import { type SignInOutcome, useSignIn } from '../api/signIn'
 import { NotVerifiedNotice } from '../components/NotVerifiedNotice'
 import { TwoFactorStep } from '../components/TwoFactorStep'
 import { returnToFrom } from './returnTo'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   email: z.email({ error: 'auth.errors.emailInvalid' }),
@@ -32,35 +33,35 @@ export function SignInPage() {
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } })
   const { errors } = form.formState
 
-  const onSubmit = form.handleSubmit(async (values) => {
-    const result = await signIn.mutateAsync(values)
+  /** Signs in with what was entered; once signed in, goes on to where the visitor was heading. */
+  const attempt = async (credentials: Parameters<typeof signIn.mutateAsync>[0]) => {
+    const result = await signIn.mutateAsync(credentials)
     if (result === 'signed-in') await navigate(returnToFrom(search), { replace: true })
-    else if (result === 'two-factor-required') setAwaitingCode(values)
-    else setOutcome({ result, email: values.email })
+    return result
+  }
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    const result = await attempt(values)
+    if (result === 'two-factor-required') setAwaitingCode(values)
+    else if (result !== 'signed-in') setOutcome({ result, email: values.email })
   })
 
   const tooManyAttempts = outcome?.result === 'too-many-attempts' || signIn.data === 'too-many-attempts'
+  // What either step can run into: the rate limit, or a request that failed.
+  const failures = (
+    <>
+      {tooManyAttempts && <ErrorMessage>{t('auth.errors.tooManyAttempts')}</ErrorMessage>}
+      {signIn.isError && <ErrorMessage>{t('auth.errors.generic')}</ErrorMessage>}
+    </>
+  )
 
   if (awaitingCode) {
     return (
       <section className="space-y-6">
         <h1 className="text-2xl font-semibold">{t('screens.signIn')}</h1>
-        {tooManyAttempts && (
-          <p role="alert" className="text-sm text-destructive">
-            {t('auth.errors.tooManyAttempts')}
-          </p>
-        )}
-        {signIn.isError && (
-          <p role="alert" className="text-sm text-destructive">
-            {t('auth.errors.generic')}
-          </p>
-        )}
+        {failures}
         <TwoFactorStep
-          onSubmit={async (code) => {
-            const result = await signIn.mutateAsync({ ...awaitingCode, ...code })
-            if (result === 'signed-in') await navigate(returnToFrom(search), { replace: true })
-            return result
-          }}
+          onSubmit={(code) => attempt({ ...awaitingCode, ...code })}
           onStartOver={() => {
             form.reset()
             signIn.reset()
@@ -77,21 +78,8 @@ export function SignInPage() {
       <h1 className="text-2xl font-semibold">{t('screens.signIn')}</h1>
 
       {outcome?.result === 'email-not-verified' && <NotVerifiedNotice email={outcome.email} />}
-      {outcome?.result === 'wrong-credentials' && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('auth.errors.wrongCredentials')} {t('auth.errors.lockWarning')}
-        </p>
-      )}
-      {tooManyAttempts && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('auth.errors.tooManyAttempts')}
-        </p>
-      )}
-      {signIn.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('auth.errors.generic')}
-        </p>
-      )}
+      {outcome?.result === 'wrong-credentials' && <ErrorMessage>{t('auth.errors.wrongCredentials')} {t('auth.errors.lockWarning')}</ErrorMessage>}
+      {failures}
 
       <form noValidate onSubmit={onSubmit} className="space-y-4">
         <TextField

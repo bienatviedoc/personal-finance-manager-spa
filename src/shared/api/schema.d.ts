@@ -360,7 +360,7 @@ export interface paths {
         /** @description The user's transactions, newest date first and, within a date, last recorded first. A deleted transaction is never listed. */
         get: operations["ListTransactions"];
         put?: never;
-        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing. */
+        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
         post: operations["CreateTransaction"];
         delete?: never;
         options?: never;
@@ -2022,6 +2022,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

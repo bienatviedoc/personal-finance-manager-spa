@@ -9,6 +9,7 @@ import { TextField } from '@/shared/components/TextField'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import { useRequestPasswordReset } from '../api/passwordReset'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   email: z.email({ error: 'auth.errors.emailInvalid' }),
@@ -42,11 +43,7 @@ export function ForgotPasswordPage() {
       ) : (
         <>
           <p>{t('auth.forgotPassword.body')}</p>
-          {requestReset.isError && (
-            <p role="alert" className="text-sm text-destructive">
-              {t('auth.errors.generic')}
-            </p>
-          )}
+          {requestReset.isError && <ErrorMessage>{t('auth.errors.generic')}</ErrorMessage>}
           <form noValidate onSubmit={onSubmit} className="space-y-4">
             <TextField
               label={t('auth.email')}

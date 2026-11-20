@@ -6,14 +6,17 @@ type ProfileResponse = components['schemas']['ProfileResponse']
 
 /**
  * A stand-in for GET and PATCH /me, signed in as `testUser` with the given settings, following the same
- * rules as the real API (see the API's ProfileTests). Returns the profile as it stands, and every change sent.
+ * rules as the real API (see the API's ProfileTests). Returns the profile as it stands, every change sent, and how often the profile was read.
  */
 export function fakeProfileApi(settings: Partial<Omit<ProfileResponse, 'id' | 'email'>> = {}) {
-  const state = { profile: { ...testUser, ...settings }, changes: [] as Record<string, unknown>[] }
+  const state = { profile: { ...testUser, ...settings }, changes: [] as Record<string, unknown>[], /** How many times GET /me was asked. */ reads: 0 }
   const supported = { baseCurrency: ['VND', 'USD', 'EUR'], locale: ['en', 'vi'] } as Record<string, string[]>
 
   server.use(
-    http.get(url('/api/v1/me'), () => HttpResponse.json(state.profile)),
+    http.get(url('/api/v1/me'), () => {
+      state.reads += 1
+      return HttpResponse.json(state.profile)
+    }),
     http.patch(url('/api/v1/me'), async ({ request }) => {
       const refused = refuseWithoutToken(request)
       if (refused) return refused

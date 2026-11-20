@@ -1,10 +1,13 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
+import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
@@ -14,10 +17,12 @@ import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { X } from 'lucide-react'
 import {
   isPending,
+  listKey,
   transactionsQuery,
   useCreateTransaction,
   useDeleteTransaction,
   useEditTransaction,
+  type ListedTransaction,
   type Transaction,
   type TransactionDraft,
 } from '../api/transactions'
@@ -40,7 +45,10 @@ export function TransactionsPage() {
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
 
   const items = transactions.data?.pages.flatMap((page) => page.items)
-  const editing = drawer && 'editing' in drawer ? items?.find((transaction) => transaction.id === drawer.editing) : undefined
+  const editing =
+    drawer && 'editing' in drawer
+      ? items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing)
+      : undefined
   const canRecord = accounts.data?.accounts.some((account) => !account.isArchived) ?? false
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
 
@@ -66,18 +74,18 @@ export function TransactionsPage() {
         </Button>
       )}
 
-      {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage />}
+      {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('transactions.errors.generic')}</ErrorMessage>}
       {!loaded && !transactions.isError && <ListSkeleton />}
       {loaded && items.length === 0 && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
       {loaded && items.length > 0 && (
         <ul aria-label={t('screens.transactions')} className="divide-y rounded-lg border">
           {items.map((transaction) => (
             <TransactionRow
-              key={transaction.id}
+              key={listKey(transaction)}
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
-              onEdit={() => setDrawer({ editing: transaction.id })}
+              onEdit={(id) => setDrawer({ editing: id })}
             />
           ))}
         </ul>
@@ -115,44 +123,51 @@ export function TransactionsPage() {
 
 type FormProps = { accounts: Account[]; categories: Category[]; onClose: () => void }
 
-/** Records one transaction after another: the drawer stays open, ready for the next entry (spec section 12). */
+/** Records one transaction after another: the drawer stays open, ready for the next transaction (spec section 12). */
 function AddTransaction({ accounts, categories, onClose }: FormProps) {
+  const { t } = useTranslation()
+  const formId = useId()
   const create = useCreateTransaction()
-  // One key per transaction the user means to record: saving again after a failure sends the same one, so
-  // the API cannot record it twice. A new one once it is saved.
-  const idempotencyKey = useRef(crypto.randomUUID())
+  // One key per request the user means to make: saving the same values again after a failure sends the same
+  // one, so the API cannot record the transaction twice. Changed values are a new request, and so is the
+  // next transaction: each takes a new key.
+  const attempt = useRef<{ key: string; sent?: string }>({ key: crypto.randomUUID() })
 
   return (
     <>
       <TransactionForm
+        id={formId}
         accounts={accounts}
         categories={categories}
-        onSave={(draft: TransactionDraft) => create.mutateAsync({ ...draft, idempotencyKey: idempotencyKey.current })}
+        onSave={(draft: TransactionDraft) => {
+          const sending = JSON.stringify(draft.fields)
+          if (attempt.current.sent !== undefined && attempt.current.sent !== sending) attempt.current.key = crypto.randomUUID()
+          attempt.current.sent = sending
+          return create.mutateAsync({ ...draft, idempotencyKey: attempt.current.key })
+        }}
         onSaved={() => {
-          idempotencyKey.current = crypto.randomUUID()
+          attempt.current = { key: crypto.randomUUID() }
         }}
         onCancel={onClose}
       />
-      {create.isError && <ErrorMessage />}
+      <FailureToast failed={create.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={create.reset} />
     </>
   )
 }
 
 function EditTransaction({ transaction, accounts, categories, onClose }: FormProps & { transaction: Transaction }) {
   const { t } = useTranslation()
+  const formId = useId()
   const edit = useEditTransaction(transaction)
-  const stale = edit.data !== undefined && !edit.data.saved && 'stale' in edit.data
+  const stale = isStale(edit.data)
 
   return (
     <>
-      {stale && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('transactions.errors.stale')}
-        </p>
-      )}
+      {stale && <ErrorMessage>{t('transactions.errors.stale')}</ErrorMessage>}
       {/* A new row version is a new transaction to edit: the form starts again from what the API holds now. */}
       <TransactionForm
         key={transaction.rowVersion}
+        id={formId}
         transaction={transaction}
         accounts={accounts}
         categories={categories}
@@ -160,19 +175,21 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
         onSaved={onClose}
         onCancel={onClose}
       />
-      {edit.isError && <ErrorMessage />}
+      <FailureToast failed={edit.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={edit.reset} />
     </>
   )
 }
 
-type RowProps = { transaction: Transaction; account?: Account; category?: Category; onEdit: () => void }
+type RowProps = { transaction: ListedTransaction; account?: Account; category?: Category; onEdit: (id: string) => void }
 
 function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const remove = useDeleteTransaction()
   const [confirming, setConfirming] = useState(false)
-  const pending = isPending(transaction)
+  // One the API has not answered yet has no id: there is nothing to edit or delete.
+  const id = isPending(transaction) ? undefined : transaction.id
+  const pending = id === undefined
   // A transaction is known by who was paid; without a payee, by what it was for.
   const title = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
 
@@ -191,9 +208,9 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
           {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
           <Money amount={transaction.type === 'expense' ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
         </span>
-        {!pending && !confirming && (
+        {id !== undefined && !confirming && (
           <>
-            <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={onEdit}>
+            <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={() => onEdit(id)}>
               {t('transactions.edit')}
             </Button>
             <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
@@ -202,20 +219,25 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
           </>
         )}
       </div>
-      {confirming && (
+      {id !== undefined && confirming && (
         <div role="group" aria-label={t('transactions.deleteNamed', { name: title })} className="space-y-2 rounded-md bg-muted p-3">
           <p className="text-sm">{t('transactions.deleteExplained', { name: title })}</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="destructive" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(transaction.id)}>
+            <Button variant="destructive" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(id)}>
               {t('transactions.deleteConfirm')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setConfirming(false)}>
               {t('transactions.cancel')}
             </Button>
           </div>
-          {remove.isError && <ErrorMessage />}
         </div>
       )}
+      <FailureToast
+        failed={remove.isError}
+        message={t('transactions.errors.notDeleted')}
+        retry={() => id !== undefined && remove.mutate(id)}
+        onDismiss={remove.reset}
+      />
     </li>
   )
 }
@@ -255,14 +277,5 @@ function ListSkeleton() {
         </li>
       ))}
     </ul>
-  )
-}
-
-function ErrorMessage() {
-  const { t } = useTranslation()
-  return (
-    <p role="alert" className="text-sm text-destructive">
-      {t('transactions.errors.generic')}
-    </p>
   )
 }

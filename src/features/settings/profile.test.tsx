@@ -31,6 +31,18 @@ describe('profile settings', () => {
     expect(api.profile).toMatchObject({ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en' })
   })
 
+  it('are not asked for again after a new base currency is saved: the answer to the save is the profile', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user, queryClient } = renderApp('/settings/profile')
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Base currency' }), 'EUR')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(api.reads).toBe(1)
+  })
+
   it('show how amounts will look in the chosen currency and language', async () => {
     fakeProfileApi({ locale: 'en' })
     const { user } = renderApp('/settings/profile')

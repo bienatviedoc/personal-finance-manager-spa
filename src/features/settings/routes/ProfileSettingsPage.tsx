@@ -11,6 +11,7 @@ import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { currencies, formatMoney } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { useUpdateProfile, useUserSettings, type ProfileField } from '../api/profile'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   baseCurrency: z.enum(currencies),
@@ -114,11 +115,7 @@ export function ProfileSettingsPage() {
         </span>
       </p>
 
-      {update.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('settings.profile.saveFailed')}
-        </p>
-      )}
+      {update.isError && <ErrorMessage>{t('settings.profile.saveFailed')}</ErrorMessage>}
       {saved && (
         <p role="status" className="text-sm">
           {t('settings.profile.saved')}

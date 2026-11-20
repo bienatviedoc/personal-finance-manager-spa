@@ -21,19 +21,26 @@ const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  * `parseAmount('1.200.000,5', 'vi', 'EUR')` is `"1200000.5"`. Returns null when the text is not an amount:
  * empty, negative, separators misplaced (groups of thousands must be whole), or more decimals than the
  * currency has (VND has none). Never goes through a JavaScript `number`.
+ *
+ * Only where a balance can be below zero (an overdrawn account's opening balance) does `allowNegative` let a
+ * minus sign lead the amount: `"-250000"`. Amounts owed and transaction amounts stay positive.
  */
-export function parseAmount(text: string, locale: Language, currency: Currency): DecimalString | null {
+export function parseAmount(text: string, locale: Language, currency: Currency, { allowNegative = false } = {}): DecimalString | null {
   const { group, decimal } = separators(locale)
   const grouped = `\\d{1,3}(?:${escape(group)}\\d{3})+`
-  const match = new RegExp(`^(${grouped}|\\d+)(?:${escape(decimal)}(\\d+))?$`).exec(text.trim())
+  // A hyphen, or the minus sign some keyboards and locales write.
+  const match = new RegExp(`^([-\u2212]\\s*)?(${grouped}|\\d+)(?:${escape(decimal)}(\\d+))?$`).exec(text.trim())
   if (!match) return null
+  if (match[1] && !allowNegative) return null
 
-  const integer = match[1]!.replaceAll(group, '').replace(/^0+(?=\d)/, '')
-  const fraction = match[2]
+  const integer = match[2]!.replaceAll(group, '').replace(/^0+(?=\d)/, '')
+  const fraction = match[3]
   if (integer.length > maxIntegerDigits) return null
   if (fraction && fraction.length > decimalsOf(currency, locale)) return null
 
-  return fraction ? `${integer}.${fraction}` : integer
+  const amount = fraction ? `${integer}.${fraction}` : integer
+  // Minus nothing is nothing.
+  return match[1] && /[1-9]/.test(amount) ? `-${amount}` : amount
 }
 
 /**
