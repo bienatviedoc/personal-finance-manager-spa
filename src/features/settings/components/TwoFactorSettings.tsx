@@ -160,8 +160,9 @@ function SetUp({ setup, onTurnedOn, onCancel }: { setup: TwoFactorSetup; onTurne
             <QRCodeSVG value={setup.authenticatorUri} size={176} title={t('settings.security.twoFactor.qrCode')} role="img" />
           </div>
           <p>
-            {t('settings.security.twoFactor.keyInstead')}{' '}
-            <code data-testid="authenticator-key" className="font-mono font-medium break-all">
+            {t('settings.security.twoFactor.keyInstead')}
+            {/* On its own line, so it wraps between groups and never inside one. */}
+            <code data-testid="authenticator-key" className="mt-1 block font-mono font-medium">
               {inGroupsOfFour(setup.key)}
             </code>
           </p>
