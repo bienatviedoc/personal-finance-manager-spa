@@ -183,7 +183,59 @@
         "locale": "This language cannot be chosen."
       }
     },
-    "categories": "Categories"
+    "categories": "Categories",
+    "security": {
+      "title": "Security",
+      "cancel": "Cancel",
+      "failed": "Something went wrong. Try again in a little while.",
+      "password": {
+        "title": "Password",
+        "current": "Current password",
+        "new": "New password",
+        "newHint": "At least 12 characters.",
+        "submit": "Change password",
+        "changed": "Your password is changed. You are signed out everywhere else.",
+        "errors": {
+          "currentRequired": "Enter your current password.",
+          "currentIncorrect": "That is not your current password.",
+          "newTooShort": "Use at least 12 characters."
+        }
+      },
+      "twoFactor": {
+        "title": "Two-factor sign-in",
+        "intro": "With two-factor sign-in, signing in takes your password and a code from an authenticator app on your phone.",
+        "loading": "Loading…",
+        "on": "Two-factor sign-in is on.",
+        "off": "Two-factor sign-in is off.",
+        "setUp": "Set up two-factor sign-in",
+        "scan": "Scan this QR code with your authenticator app.",
+        "qrCode": "QR code to scan with your authenticator app",
+        "keyInstead": "Cannot scan it? Enter this key in the app instead:",
+        "confirm": "Enter the code the app shows, to confirm it is set up.",
+        "code": "Code from your authenticator app",
+        "turnOn": "Turn on",
+        "recoveryCodes": "Recovery codes",
+        "recoveryCodesBody": "Save these codes somewhere safe. Each one signs you in once if you lose your authenticator app. They are shown only now.",
+        "copyCodes": "Copy codes",
+        "copied": "Copied.",
+        "codesSaved": "I have saved them",
+        "recoveryCodesLeft_one": "{{count}} recovery code left.",
+        "recoveryCodesLeft_other": "{{count}} recovery codes left.",
+        "newRecoveryCodes": "Get new recovery codes",
+        "newRecoveryCodesBody": "Your old recovery codes will stop working. Enter your password to get new ones.",
+        "newRecoveryCodesSubmit": "Get new codes",
+        "turnOff": "Turn off two-factor sign-in",
+        "turnOffBody": "Signing in will take only your password. Enter it to turn off two-factor sign-in.",
+        "turnOffSubmit": "Turn off",
+        "password": "Password",
+        "errors": {
+          "codeInvalid": "Enter the 6-digit code.",
+          "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app.",
+          "passwordRequired": "Enter your password.",
+          "passwordIncorrect": "That is not your password."
+        }
+      }
+    }
   },
   "categories": {
     "title": "Categories",
