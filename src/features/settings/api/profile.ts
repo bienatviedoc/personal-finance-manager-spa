@@ -11,11 +11,10 @@ export type Profile = components['schemas']['ProfileResponse']
 export type ProfileChange = components['schemas']['UpdateProfileRequest']
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type ProfileField = 'baseCurrency' | 'timeZone' | 'locale'
+const profileFields = ['baseCurrency', 'timeZone', 'locale'] as const
+export type ProfileField = (typeof profileFields)[number]
 
 export type SaveOutcome = { saved: true; profile: Profile } | { saved: false; fields: ProfileField[] }
-
-const profileFields: ProfileField[] = ['baseCurrency', 'timeZone', 'locale']
 
 /** Changes the signed-in user's profile settings; any left out stay as they were. */
 export function useUpdateProfile() {

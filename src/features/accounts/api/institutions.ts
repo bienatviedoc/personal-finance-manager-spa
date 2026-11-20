@@ -7,12 +7,12 @@ export type Institution = components['schemas']['InstitutionResponse']
 export type InstitutionFields = components['schemas']['InstitutionRequest']
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type InstitutionField = 'name' | 'color' | 'logoKey'
+const institutionFields = ['name', 'color', 'logoKey'] as const
+export type InstitutionField = (typeof institutionFields)[number]
 
 export type SaveOutcome = { saved: true; institution: Institution } | { saved: false; fields: InstitutionField[] }
 
 const institutionsKey = ['institutions']
-const institutionFields: InstitutionField[] = ['name', 'color', 'logoKey']
 
 async function loadInstitutions(includeArchived: boolean) {
   const institutions: Institution[] = []

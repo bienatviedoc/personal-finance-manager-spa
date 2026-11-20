@@ -38,35 +38,12 @@ export function hasCreditCardFields(type: AccountType): boolean {
 }
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type AccountField =
-  | 'name'
-  | 'type'
-  | 'institutionId'
-  | 'currency'
-  | 'openingBalance'
-  | 'amountOwed'
-  | 'openingDate'
-  | 'last4'
-  | 'creditLimit'
-  | 'statementDay'
-  | 'paymentDueDay'
+const accountFields = ['name', 'type', 'institutionId', 'currency', 'openingBalance', 'amountOwed', 'openingDate', 'last4', 'creditLimit', 'statementDay', 'paymentDueDay'] as const
+export type AccountField = (typeof accountFields)[number]
 
 export type SaveOutcome = VersionedSaveOutcome<'account', Account, AccountField>
 
 const accountsKey = ['accounts']
-const accountFields: AccountField[] = [
-  'name',
-  'type',
-  'institutionId',
-  'currency',
-  'openingBalance',
-  'amountOwed',
-  'openingDate',
-  'last4',
-  'creditLimit',
-  'statementDay',
-  'paymentDueDay',
-]
 
 /**
  * The user's accounts by name, each with its balance, the total of each institution in each currency, and the

@@ -56,8 +56,8 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   infinite query (`transactionsQuery`) that loads the next page when the screen asks for more.
 - **Adding and editing a transaction is optimistic**, and nothing else is (spec section 12). The save hooks put
   the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
-  request fails, and load the list again once the API has answered. One not yet answered has an id
-  `isPending` recognises and offers nothing to edit or delete.
+  request fails, and load the list again once the API has answered. One not yet answered is a
+  `PendingTransaction`: it has no id or row version, so it offers nothing to edit or delete (`isPending`).
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.

@@ -17,10 +17,12 @@ import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { X } from 'lucide-react'
 import {
   isPending,
+  listKey,
   transactionsQuery,
   useCreateTransaction,
   useDeleteTransaction,
   useEditTransaction,
+  type ListedTransaction,
   type Transaction,
   type TransactionDraft,
 } from '../api/transactions'
@@ -43,7 +45,10 @@ export function TransactionsPage() {
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
 
   const items = transactions.data?.pages.flatMap((page) => page.items)
-  const editing = drawer && 'editing' in drawer ? items?.find((transaction) => transaction.id === drawer.editing) : undefined
+  const editing =
+    drawer && 'editing' in drawer
+      ? items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing)
+      : undefined
   const canRecord = accounts.data?.accounts.some((account) => !account.isArchived) ?? false
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
 
@@ -76,11 +81,11 @@ export function TransactionsPage() {
         <ul aria-label={t('screens.transactions')} className="divide-y rounded-lg border">
           {items.map((transaction) => (
             <TransactionRow
-              key={transaction.id}
+              key={listKey(transaction)}
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
-              onEdit={() => setDrawer({ editing: transaction.id })}
+              onEdit={(id) => setDrawer({ editing: id })}
             />
           ))}
         </ul>
@@ -175,14 +180,16 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
   )
 }
 
-type RowProps = { transaction: Transaction; account?: Account; category?: Category; onEdit: () => void }
+type RowProps = { transaction: ListedTransaction; account?: Account; category?: Category; onEdit: (id: string) => void }
 
 function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const remove = useDeleteTransaction()
   const [confirming, setConfirming] = useState(false)
-  const pending = isPending(transaction)
+  // One the API has not answered yet has no id: there is nothing to edit or delete.
+  const id = isPending(transaction) ? undefined : transaction.id
+  const pending = id === undefined
   // A transaction is known by who was paid; without a payee, by what it was for.
   const title = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
 
@@ -201,9 +208,9 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
           {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
           <Money amount={transaction.type === 'expense' ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
         </span>
-        {!pending && !confirming && (
+        {id !== undefined && !confirming && (
           <>
-            <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={onEdit}>
+            <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={() => onEdit(id)}>
               {t('transactions.edit')}
             </Button>
             <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
@@ -212,11 +219,11 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
           </>
         )}
       </div>
-      {confirming && (
+      {id !== undefined && confirming && (
         <div role="group" aria-label={t('transactions.deleteNamed', { name: title })} className="space-y-2 rounded-md bg-muted p-3">
           <p className="text-sm">{t('transactions.deleteExplained', { name: title })}</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="destructive" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(transaction.id)}>
+            <Button variant="destructive" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(id)}>
               {t('transactions.deleteConfirm')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => setConfirming(false)}>
@@ -228,7 +235,7 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
       <FailureToast
         failed={remove.isError}
         message={t('transactions.errors.notDeleted')}
-        retry={() => remove.mutate(transaction.id)}
+        retry={() => id !== undefined && remove.mutate(id)}
         onDismiss={remove.reset}
       />
     </li>
