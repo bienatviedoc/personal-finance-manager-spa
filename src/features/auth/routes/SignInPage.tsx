@@ -10,6 +10,7 @@ import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import { type SignInOutcome, useSignIn } from '../api/signIn'
 import { NotVerifiedNotice } from '../components/NotVerifiedNotice'
+import { TwoFactorStep } from '../components/TwoFactorStep'
 import { returnToFrom } from './returnTo'
 
 const schema = z.object({
@@ -26,14 +27,50 @@ export function SignInPage() {
   const [search] = useSearchParams()
   const signIn = useSignIn()
   const [outcome, setOutcome] = useState<{ result: SignInOutcome; email: string }>()
+  // Kept in memory only while the code is asked for: the API takes the email, password and code together.
+  const [awaitingCode, setAwaitingCode] = useState<Values>()
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } })
   const { errors } = form.formState
 
   const onSubmit = form.handleSubmit(async (values) => {
     const result = await signIn.mutateAsync(values)
     if (result === 'signed-in') await navigate(returnToFrom(search), { replace: true })
+    else if (result === 'two-factor-required') setAwaitingCode(values)
     else setOutcome({ result, email: values.email })
   })
+
+  const tooManyAttempts = outcome?.result === 'too-many-attempts' || signIn.data === 'too-many-attempts'
+
+  if (awaitingCode) {
+    return (
+      <section className="space-y-6">
+        <h1 className="text-2xl font-semibold">{t('screens.signIn')}</h1>
+        {tooManyAttempts && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('auth.errors.tooManyAttempts')}
+          </p>
+        )}
+        {signIn.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('auth.errors.generic')}
+          </p>
+        )}
+        <TwoFactorStep
+          onSubmit={async (code) => {
+            const result = await signIn.mutateAsync({ ...awaitingCode, ...code })
+            if (result === 'signed-in') await navigate(returnToFrom(search), { replace: true })
+            return result
+          }}
+          onStartOver={() => {
+            form.reset()
+            signIn.reset()
+            setOutcome(undefined)
+            setAwaitingCode(undefined)
+          }}
+        />
+      </section>
+    )
+  }
 
   return (
     <section className="space-y-6">
@@ -42,7 +79,12 @@ export function SignInPage() {
       {outcome?.result === 'email-not-verified' && <NotVerifiedNotice email={outcome.email} />}
       {outcome?.result === 'wrong-credentials' && (
         <p role="alert" className="text-sm text-destructive">
-          {t('auth.errors.wrongCredentials')}
+          {t('auth.errors.wrongCredentials')} {t('auth.errors.lockWarning')}
+        </p>
+      )}
+      {tooManyAttempts && (
+        <p role="alert" className="text-sm text-destructive">
+          {t('auth.errors.tooManyAttempts')}
         </p>
       )}
       {signIn.isError && (

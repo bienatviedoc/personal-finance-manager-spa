@@ -100,12 +100,30 @@
       "resend": "Gửi lại liên kết",
       "resent": "Chúng tôi đã gửi một liên kết mới đến {{email}}."
     },
+    "twoFactor": {
+      "body": "Mở ứng dụng xác thực và nhập mã hiển thị cho Personal Finance Manager.",
+      "code": "Mã từ ứng dụng xác thực",
+      "recoveryCodeBody": "Nhập một trong các mã khôi phục bạn đã lưu khi bật đăng nhập hai lớp. Mỗi mã chỉ dùng được một lần.",
+      "recoveryCode": "Mã khôi phục",
+      "useRecoveryCode": "Dùng mã khôi phục",
+      "useAuthenticator": "Dùng ứng dụng xác thực",
+      "startOver": "Đăng nhập bằng người dùng khác",
+      "errors": {
+        "codeInvalid": "Nhập mã gồm 6 chữ số.",
+        "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực.",
+        "recoveryCodeRequired": "Nhập mã khôi phục.",
+        "recoveryCodeIncorrect": "Mã khôi phục không đúng hoặc đã được dùng.",
+        "paused": "Việc đăng nhập bị tạm dừng 15 phút sau quá nhiều lần thử sai. Hãy thử lại sau."
+      }
+    },
     "errors": {
       "emailInvalid": "Hãy nhập địa chỉ email hợp lệ.",
       "passwordRequired": "Hãy nhập mật khẩu.",
       "passwordTooShort": "Hãy dùng ít nhất 12 ký tự.",
       "wrongCredentials": "Email hoặc mật khẩu không đúng.",
-      "generic": "Đã xảy ra lỗi. Hãy thử lại."
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "lockWarning": "Sau 5 lần thử sai liên tiếp, việc đăng nhập bị tạm dừng 15 phút.",
+      "tooManyAttempts": "Quá nhiều lần thử. Hãy đợi một phút rồi thử lại."
     },
     "userMenu": {
       "signedInAs": "Đã đăng nhập: {{email}}",

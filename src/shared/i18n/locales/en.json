@@ -100,12 +100,30 @@
       "resend": "Send the link again",
       "resent": "We sent a new link to {{email}}."
     },
+    "twoFactor": {
+      "body": "Open your authenticator app and enter the code it shows for Personal Finance Manager.",
+      "code": "Code from your authenticator app",
+      "recoveryCodeBody": "Enter one of the recovery codes you saved when you turned on two-factor sign-in. Each works once.",
+      "recoveryCode": "Recovery code",
+      "useRecoveryCode": "Use a recovery code instead",
+      "useAuthenticator": "Use your authenticator app instead",
+      "startOver": "Sign in as someone else",
+      "errors": {
+        "codeInvalid": "Enter the 6-digit code.",
+        "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app.",
+        "recoveryCodeRequired": "Enter a recovery code.",
+        "recoveryCodeIncorrect": "That recovery code is not right, or has been used already.",
+        "paused": "Signing in is paused for 15 minutes after too many wrong attempts. Try again later."
+      }
+    },
     "errors": {
       "emailInvalid": "Enter a valid email address.",
       "passwordRequired": "Enter your password.",
       "passwordTooShort": "Use at least 12 characters.",
       "wrongCredentials": "The email or password is incorrect.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "lockWarning": "After 5 wrong attempts in a row, signing in is paused for 15 minutes.",
+      "tooManyAttempts": "Too many attempts. Wait a minute, then try again."
     },
     "userMenu": {
       "signedInAs": "Signed in as {{email}}",

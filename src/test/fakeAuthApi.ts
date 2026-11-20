@@ -1,7 +1,18 @@
 import { http, HttpResponse } from 'msw'
 import { apiUrl as url, problem, refuseWithoutToken, server, testPassword, testUser } from './server'
 
-type FakeUser = { id: string; email: string; password: string; verified: boolean; locale?: 'en' | 'vi' | null }
+type FakeUser = {
+  id: string
+  email: string
+  password: string
+  verified: boolean
+  locale?: 'en' | 'vi' | null
+  /** Set for a user who signs in with two factors: the code their authenticator shows, and their unused recovery codes. */
+  twoFactor?: { code: string; recoveryCodes: string[] }
+}
+
+/** How many wrong passwords or codes in a row lock sign-in for a user, as in the real API. */
+const attemptsBeforeLock = 5
 
 /**
  * A stand-in for the API's sign-in endpoints, keeping state across requests and following the same
@@ -18,6 +29,10 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     verifications: [] as { userId: string; token: string }[],
     resetRequestedFor: [] as string[],
     usedResetTokens: [] as string[],
+    /** Wrong passwords or codes in a row, by email. */
+    failedSignIns: {} as Record<string, number>,
+    /** Set to have the next sign-in attempts answered 429, as a client over the rate limit is. */
+    overRateLimit: false,
   }
 
   const noContent = () => new HttpResponse(null, { status: 204 })
@@ -29,10 +44,37 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
     http.post(url('/api/v1/auth/login'), async ({ request }) => {
       const refused = refuseWithoutToken(request)
       if (refused) return refused
-      const { email, password } = (await request.json()) as { email: string; password: string }
-      const found = state.users.find((user) => user.email === email && user.password === password)
+      if (state.overRateLimit) return problem(429)
+      const { email, password, twoFactorCode, recoveryCode } = (await request.json()) as {
+        email: string
+        password: string
+        twoFactorCode?: string | null
+        recoveryCode?: string | null
+      }
+      const failed = () => {
+        state.failedSignIns[email] = (state.failedSignIns[email] ?? 0) + 1
+      }
+      const found = state.users.find((user) => user.email === email)
       if (!found) return problem(401)
+      // A locked user is answered the way a wrong password is, even with the right one.
+      if ((state.failedSignIns[email] ?? 0) >= attemptsBeforeLock) return problem(401)
+      if (found.password !== password) {
+        failed()
+        return problem(401)
+      }
       if (!found.verified) return problem(403, { type: 'urn:pfm:problem:email-not-verified' })
+      if (found.twoFactor) {
+        if (!twoFactorCode && !recoveryCode) return problem(401, { type: 'urn:pfm:problem:two-factor-required' })
+        const codes = found.twoFactor.recoveryCodes
+        const right = twoFactorCode ? twoFactorCode === found.twoFactor.code : codes.includes(recoveryCode!)
+        if (!right) {
+          failed()
+          return problem(401, { type: 'urn:pfm:problem:two-factor-code-incorrect' })
+        }
+        // A recovery code works once.
+        if (!twoFactorCode) codes.splice(codes.indexOf(recoveryCode!), 1)
+      }
+      state.failedSignIns[email] = 0
       state.signedInAs = found
       return noContent()
     }),
