@@ -2598,63 +2598,6 @@
           }
         }
       },
-      "TurnOffTwoFactorRequest": {
-        "required": [
-          "password"
-        ],
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": "string"
-          }
-        }
-      },
-      "TurnOnTwoFactorRequest": {
-        "required": [
-          "code"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          }
-        }
-      },
-      "TwoFactorResponse": {
-        "required": [
-          "enabled",
-          "recoveryCodesLeft"
-        ],
-        "type": "object",
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "recoveryCodesLeft": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
-          }
-        }
-      },
-      "TwoFactorSetupResponse": {
-        "required": [
-          "key",
-          "authenticatorUri"
-        ],
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "authenticatorUri": {
-            "type": "string"
-          }
-        }
-      },
       "TransactionListResponse": {
         "required": [
           "items",
@@ -2779,6 +2722,63 @@
           "income",
           "expense"
         ]
+      },
+      "TurnOffTwoFactorRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "TurnOnTwoFactorRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "TwoFactorResponse": {
+        "required": [
+          "enabled",
+          "recoveryCodesLeft"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "recoveryCodesLeft": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "TwoFactorSetupResponse": {
+        "required": [
+          "key",
+          "authenticatorUri"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "authenticatorUri": {
+            "type": "string"
+          }
+        }
       },
       "UpdateProfileRequest": {
         "type": "object",

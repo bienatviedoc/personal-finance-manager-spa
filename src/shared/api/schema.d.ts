@@ -575,21 +575,6 @@ export interface components {
             twoFactorCode?: null | string;
             recoveryCode?: null | string;
         };
-        TurnOffTwoFactorRequest: {
-            password: string;
-        };
-        TurnOnTwoFactorRequest: {
-            code: string;
-        };
-        TwoFactorResponse: {
-            enabled: boolean;
-            /** Format: int32 */
-            recoveryCodesLeft: number | string;
-        };
-        TwoFactorSetupResponse: {
-            key: string;
-            authenticatorUri: string;
-        };
         TransactionListResponse: {
             items: components["schemas"]["TransactionResponse"][];
             nextCursor: null | string;
@@ -623,6 +608,21 @@ export interface components {
         };
         /** @enum {unknown} */
         TransactionType: "income" | "expense";
+        TurnOffTwoFactorRequest: {
+            password: string;
+        };
+        TurnOnTwoFactorRequest: {
+            code: string;
+        };
+        TwoFactorResponse: {
+            enabled: boolean;
+            /** Format: int32 */
+            recoveryCodesLeft: number | string;
+        };
+        TwoFactorSetupResponse: {
+            key: string;
+            authenticatorUri: string;
+        };
         UpdateProfileRequest: {
             baseCurrency?: null | string;
             timeZone?: null | string;
