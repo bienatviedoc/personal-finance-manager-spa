@@ -14,7 +14,6 @@ import {
   useSetUpTwoFactor,
   useTurnOffTwoFactor,
   useTurnOnTwoFactor,
-  type PasswordConfirmedOutcome,
   type TwoFactorSetup,
 } from '../api/security'
 
@@ -36,8 +35,9 @@ export function TwoFactorSettings() {
   const startNewRecoveryCodes = () => setDoing('new-recovery-codes')
   const startTurningOff = () => setDoing('turning-off')
   const startSetUp = async () => {
-    await setUp.mutateAsync().catch(() => undefined)
-    setDoing('setting-up')
+    const outcome = await setUp.mutateAsync().catch(() => undefined)
+    // Already on, turned on somewhere else: the section, loaded again, says so, and there is nothing to set up.
+    if (!outcome || outcome.ready) setDoing('setting-up')
   }
 
   return (
@@ -72,9 +72,9 @@ export function TwoFactorSettings() {
               {t('settings.security.failed')}
             </p>
           )}
-          {!twoFactor.data.enabled && doing === 'setting-up' && setUp.data && (
+          {!twoFactor.data.enabled && doing === 'setting-up' && setUp.data?.ready && (
             <SetUp
-              setup={setUp.data}
+              setup={setUp.data.setup}
               onTurnedOn={(codes) => {
                 setRecoveryCodes(codes)
                 setDoing(undefined)
@@ -105,7 +105,8 @@ export function TwoFactorSettings() {
               confirm={async (password) => {
                 const outcome = await newCodes.mutateAsync(password)
                 if (outcome.saved) setRecoveryCodes(outcome.recoveryCodes)
-                return outcome
+                // Off, turned off somewhere else: the section, loaded again, says so, and there is nothing to confirm.
+                return outcome.saved || !('fields' in outcome)
               }}
               onDone={() => setDoing(undefined)}
             />
@@ -117,7 +118,7 @@ export function TwoFactorSettings() {
               confirm={async (password) => {
                 const outcome = await turnOff.mutateAsync(password)
                 if (outcome.saved) setRecoveryCodes(undefined)
-                return outcome
+                return outcome.saved
               }}
               onDone={() => setDoing(undefined)}
             />
@@ -247,7 +248,8 @@ function ConfirmWithPassword({
 }: {
   explanation: string
   submitLabel: string
-  confirm: (password: string) => Promise<PasswordConfirmedOutcome>
+  /** Answers whether the password was accepted; false shows it as not the user's. */
+  confirm: (password: string) => Promise<boolean>
   onDone: () => void
 }) {
   const { t } = useTranslation()
@@ -257,9 +259,9 @@ function ConfirmWithPassword({
 
   const onSubmit = form.handleSubmit(async ({ password }) => {
     setFailed(false)
-    const outcome = await confirm(password).catch(() => undefined)
-    if (!outcome) setFailed(true)
-    else if (outcome.saved) onDone()
+    const accepted = await confirm(password).catch(() => undefined)
+    if (accepted === undefined) setFailed(true)
+    else if (accepted) onDone()
     else form.setError('password', { message: 'settings.security.twoFactor.errors.passwordIncorrect' }, { shouldFocus: true })
   })
 

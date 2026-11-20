@@ -202,4 +202,35 @@ describe('two-factor sign-in', () => {
     expect(codes.map((code) => code.textContent)).toEqual(api.recoveryCodes)
     expect(api.recoveryCodes).not.toEqual(old)
   })
+
+  it('shows that it is already on when it was turned on somewhere else before setting it up here', async () => {
+    const api = fakeSecurityApi()
+    const { user } = renderApp('/settings/security')
+    const section = await twoFactor()
+    const setUp = await section.findByRole('button', { name: 'Set up two-factor sign-in' })
+    api.twoFactorEnabled = true
+
+    await user.click(setUp)
+
+    expect(await section.findByText('Two-factor sign-in is on.')).toBeInTheDocument()
+    expect(section.queryByRole('alert')).not.toBeInTheDocument()
+    expect(section.getByRole('button', { name: 'Turn off two-factor sign-in' })).toBeInTheDocument()
+  })
+
+  it('shows that it is off when it was turned off somewhere else before getting new recovery codes here', async () => {
+    const api = fakeSecurityApi({ twoFactor: true })
+    const { user } = renderApp('/settings/security')
+    const section = await twoFactor()
+    await user.click(await section.findByRole('button', { name: 'Get new recovery codes' }))
+    api.twoFactorEnabled = false
+    api.recoveryCodes = []
+
+    await user.type(section.getByLabelText('Password'), testPassword)
+    await user.click(section.getByRole('button', { name: 'Get new codes' }))
+
+    expect(await section.findByText('Two-factor sign-in is off.')).toBeInTheDocument()
+    expect(section.queryByRole('alert')).not.toBeInTheDocument()
+    expect(section.queryByLabelText('Password')).not.toBeInTheDocument()
+    expect(section.getByRole('button', { name: 'Set up two-factor sign-in' })).toBeInTheDocument()
+  })
 })
