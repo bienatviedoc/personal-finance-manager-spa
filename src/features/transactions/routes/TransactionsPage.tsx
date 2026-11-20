@@ -28,8 +28,8 @@ import {
 } from '../api/transactions'
 import { TransactionForm } from '../components/TransactionForm'
 
-/** What the drawer is open for: recording a transaction, or editing the one with this id. */
-type Drawer = { adding: true } | { editing: string } | null
+/** What the drawer is open for: recording a transaction, or editing this one, as it was when the drawer opened. */
+type Drawer = { adding: true } | { editing: Transaction } | null
 
 /**
  * The user's income and expenses, newest first. Recording and editing happen in a side drawer (spec section
@@ -45,9 +45,12 @@ export function TransactionsPage() {
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
 
   const items = transactions.data?.pages.flatMap((page) => page.items)
+  // The transaction being edited is read from the list, to follow a newer version loaded while the drawer is
+  // open. An edit shown ahead of the API's answer can move it past the pages loaded so far (an earlier date):
+  // the drawer then keeps the one it was opened for, so the form and what its save answers are not lost.
   const editing =
     drawer && 'editing' in drawer
-      ? items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing)
+      ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
       : undefined
   const canRecord = accounts.data?.accounts.some((account) => !account.isArchived) ?? false
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
@@ -85,7 +88,7 @@ export function TransactionsPage() {
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
-              onEdit={(id) => setDrawer({ editing: id })}
+              onEdit={(editing) => setDrawer({ editing })}
             />
           ))}
         </ul>
@@ -180,7 +183,7 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
   )
 }
 
-type RowProps = { transaction: ListedTransaction; account?: Account; category?: Category; onEdit: (id: string) => void }
+type RowProps = { transaction: ListedTransaction; account?: Account; category?: Category; onEdit: (transaction: Transaction) => void }
 
 function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   const { t } = useTranslation()
@@ -188,8 +191,9 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   const remove = useDeleteTransaction()
   const [confirming, setConfirming] = useState(false)
   // One the API has not answered yet has no id: there is nothing to edit or delete.
-  const id = isPending(transaction) ? undefined : transaction.id
-  const pending = id === undefined
+  const saved = isPending(transaction) ? undefined : transaction
+  const id = saved?.id
+  const pending = saved === undefined
   // A transaction is known by who was paid; without a payee, by what it was for.
   const title = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
 
@@ -208,9 +212,9 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
           {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
           <Money amount={transaction.type === 'expense' ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
         </span>
-        {id !== undefined && !confirming && (
+        {saved && !confirming && (
           <>
-            <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={() => onEdit(id)}>
+            <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={() => onEdit(saved)}>
               {t('transactions.edit')}
             </Button>
             <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>

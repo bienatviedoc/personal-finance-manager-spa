@@ -399,6 +399,29 @@ describe('transactions', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
+  it('keep the edit open when it moves the transaction past the part of the list loaded so far, so a failure can be tried again', async () => {
+    // More than one page: the list has loaded only the newest.
+    const older = Array.from({ length: 50 }, () => ({ date: '2026-11-02' }))
+    const { transactionsApi } = fakeApis([{ payee: 'Co.opmart', date: '2026-11-05' }, ...older])
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Co.opmart' }))
+    const drawer = within(screen.getByRole('dialog', { name: 'Edit transaction' }))
+    await user.clear(drawer.getByLabelText('Date'))
+    await user.type(drawer.getByLabelText('Date'), '2026-01-01')
+    transactionsApi.failNext()
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+
+    expect(await drawer.findByText('The transaction was not saved.')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Edit transaction' })).toBeInTheDocument()
+    expect(drawer.getByLabelText('Date')).toHaveValue('2026-01-01')
+    expect(transactionsApi.transactions[0]!.date).toBe('2026-11-05')
+
+    await user.click(drawer.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(transactionsApi.transactions[0]!.date).toBe('2026-01-01')
+  })
+
   it('say in a toast when an edit or a delete fails, and do it when the user tries again', async () => {
     const { transactionsApi } = fakeApis([{ payee: 'Co.opmart', amount: '125000.00' }])
     const { user } = renderApp('/transactions')
