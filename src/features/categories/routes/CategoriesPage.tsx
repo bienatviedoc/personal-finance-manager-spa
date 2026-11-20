@@ -184,13 +184,14 @@ function CategoryRow({ category, onAddSubcategory, onEdit, onArchive, children }
 
   return (
     <li aria-label={category.name} className={isTopLevel ? 'p-3' : undefined}>
-      <div className="flex items-center gap-3">
+      {/* The actions wrap under a name they do not fit beside, so a phone never scrolls sideways. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <CategoryBadge icon={category.icon} color={category.color} />
-        <span className="flex-1">{category.name}</span>
+        <span className="min-w-24 flex-1 break-words">{category.name}</span>
         {category.isArchived ? (
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('categories.archived')}</span>
         ) : (
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
             <Button variant="ghost" size="sm" aria-label={t('categories.editAction', { name: category.name })} onClick={() => onEdit(category)}>
               {t('categories.edit')}
             </Button>

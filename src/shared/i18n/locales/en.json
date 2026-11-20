@@ -11,7 +11,9 @@
     "reports": "Reports",
     "recurring": "Recurring",
     "import": "Import",
-    "settings": "Settings"
+    "settings": "Settings",
+    "more": "More",
+    "close": "Close"
   },
   "screens": {
     "dashboard": "Dashboard",
@@ -38,6 +40,12 @@
     "label": "Language",
     "en": "English",
     "vi": "Tiếng Việt"
+  },
+  "theme": {
+    "label": "Theme",
+    "system": "Same as system",
+    "light": "Light",
+    "dark": "Dark"
   },
   "errors": {
     "screenTitle": "Something went wrong",

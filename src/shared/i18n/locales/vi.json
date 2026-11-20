@@ -11,7 +11,9 @@
     "reports": "Báo cáo",
     "recurring": "Định kỳ",
     "import": "Nhập sao kê",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "more": "Thêm",
+    "close": "Đóng"
   },
   "screens": {
     "dashboard": "Tổng quan",
@@ -38,6 +40,12 @@
     "label": "Ngôn ngữ",
     "en": "English",
     "vi": "Tiếng Việt"
+  },
+  "theme": {
+    "label": "Giao diện",
+    "system": "Theo hệ thống",
+    "light": "Sáng",
+    "dark": "Tối"
   },
   "errors": {
     "screenTitle": "Đã xảy ra lỗi",

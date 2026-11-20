@@ -1,15 +1,21 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterAll, afterEach, beforeAll } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest'
 import { forgetAntiforgeryToken } from '@/shared/api/client'
+import { installFakeMatchMedia } from './mediaQueries'
 import { server } from './server'
 
 beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' })
 })
 
+beforeEach(() => {
+  installFakeMatchMedia()
+})
+
 afterEach(() => {
   cleanup()
+  document.documentElement.classList.remove('dark')
   localStorage.clear()
   server.resetHandlers()
   forgetAntiforgeryToken()
