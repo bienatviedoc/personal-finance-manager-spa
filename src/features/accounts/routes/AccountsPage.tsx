@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { isStale } from '@/shared/api/versionedSave'
+import type { Language } from '@/shared/i18n'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { formatMoney, inCurrencyOrder, isZeroAmount, Money } from '@/shared/money'
@@ -97,7 +98,7 @@ export function AccountsPage() {
 function groupByInstitution(
   { accounts, totals, baseCurrencyTotal }: { accounts: Account[]; totals: InstitutionTotal[]; baseCurrencyTotal: BaseCurrencyTotal },
   institutions: Institution[],
-  locale: string,
+  locale: Language,
 ): Group[] {
   const collator = new Intl.Collator(locale)
   const groupFor = (institution: Institution | null): Group => {
@@ -195,7 +196,11 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
   const editFormId = useId()
   const [mode, setMode] = useState<'view' | 'edit' | 'confirmArchive'>('view')
   const toView = () => setMode('view')
-  const toEdit = () => setMode('edit')
+  // Editing starts from what is shown now: what the last attempt answered (that it was stale) is forgotten.
+  const toEdit = () => {
+    edit.reset()
+    setMode('edit')
+  }
   const toConfirmArchive = () => setMode('confirmArchive')
   const stale = isStale(edit.data)
 

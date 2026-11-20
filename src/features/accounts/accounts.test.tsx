@@ -231,6 +231,23 @@ describe('accounts', () => {
     await waitFor(() => expect(screen.queryByLabelText('Name')).not.toBeInTheDocument())
   })
 
+  it('no longer say an account was changed somewhere else once the user leaves that edit and starts another', async () => {
+    const { accountsApi } = fakeApis([{ name: 'Everyday', openingBalance: '1000.00' }])
+    const { user } = renderApp('/accounts')
+    const changedElsewhere = /^This account was changed somewhere else/
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Everyday' }))
+    Object.assign(accountsApi.accounts[0]!, { name: 'Renamed elsewhere', rowVersion: '2' })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText(changedElsewhere)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await user.click(await screen.findByRole('button', { name: 'Edit Renamed elsewhere' }))
+
+    expect(screen.getByLabelText('Name')).toHaveValue('Renamed elsewhere')
+    expect(screen.queryByText(changedElsewhere)).not.toBeInTheDocument()
+  })
+
   it('need a name and an amount, which are checked before contacting the API', async () => {
     const { accountsApi } = fakeApis()
     const { user } = renderApp('/accounts')
