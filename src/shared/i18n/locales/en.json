@@ -11,7 +11,9 @@
     "reports": "Reports",
     "recurring": "Recurring",
     "import": "Import",
-    "settings": "Settings"
+    "settings": "Settings",
+    "more": "More",
+    "close": "Close"
   },
   "screens": {
     "dashboard": "Dashboard",

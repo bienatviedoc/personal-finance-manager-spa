@@ -11,7 +11,9 @@
     "reports": "Báo cáo",
     "recurring": "Định kỳ",
     "import": "Nhập sao kê",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "more": "Thêm",
+    "close": "Đóng"
   },
   "screens": {
     "dashboard": "Tổng quan",
