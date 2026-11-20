@@ -15,32 +15,19 @@ import {
   useSetUpTwoFactor,
   useTurnOffTwoFactor,
   useTurnOnTwoFactor,
+  type TwoFactor,
   type TwoFactorSetup,
 } from '../api/security'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-
-/** What the user is in the middle of; nothing when the section just shows whether two-factor sign-in is on. */
-type Doing = 'setting-up' | 'turning-off' | 'new-recovery-codes'
 
 /** Two-factor sign-in with an authenticator app: turning it on and off, and the recovery codes. */
 export function TwoFactorSettings() {
   const { t } = useTranslation()
   const headingId = useId()
   const twoFactor = useQuery(twoFactorQuery)
-  const setUp = useSetUpTwoFactor()
-  const turnOff = useTurnOffTwoFactor()
-  const newCodes = useNewRecoveryCodes()
-  const [doing, setDoing] = useState<Doing>()
   // Recovery codes just made: the only time they can be shown, so they stay until the user says they are saved.
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>()
-
-  const startNewRecoveryCodes = () => setDoing('new-recovery-codes')
-  const startTurningOff = () => setDoing('turning-off')
-  const startSetUp = async () => {
-    const outcome = await setUp.mutateAsync().catch(() => undefined)
-    // Already on, turned on somewhere else: the section, loaded again, says so, and there is nothing to set up.
-    if (!outcome || outcome.ready) setDoing('setting-up')
-  }
+  const forgetRecoveryCodes = () => setRecoveryCodes(undefined)
 
   return (
     <section aria-labelledby={headingId} className="space-y-4">
@@ -58,70 +45,111 @@ export function TwoFactorSettings() {
             {t(twoFactor.data.enabled ? 'settings.security.twoFactor.on' : 'settings.security.twoFactor.off')}
           </p>
 
-          {recoveryCodes && <RecoveryCodes codes={recoveryCodes} onSaved={() => setRecoveryCodes(undefined)} />}
+          {recoveryCodes && <RecoveryCodes codes={recoveryCodes} onSaved={forgetRecoveryCodes} />}
 
-          {!twoFactor.data.enabled && doing !== 'setting-up' && (
-            <Button type="button" disabled={setUp.isPending} onClick={() => void startSetUp()}>
-              {t('settings.security.twoFactor.setUp')}
-            </Button>
-          )}
-          {!twoFactor.data.enabled && doing === 'setting-up' && setUp.isError && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
-          {!twoFactor.data.enabled && doing === 'setting-up' && setUp.data?.ready && (
-            <SetUp
-              setup={setUp.data.setup}
-              onTurnedOn={(codes) => {
-                setRecoveryCodes(codes)
-                setDoing(undefined)
-              }}
-              onCancel={() => setDoing(undefined)}
+          {twoFactor.data.enabled ? (
+            <WhenOn
+              // With new codes on show, how many are left goes without saying.
+              recoveryCodesLeft={recoveryCodes ? undefined : twoFactor.data.recoveryCodesLeft}
+              onNewRecoveryCodes={setRecoveryCodes}
+              onTurnedOff={forgetRecoveryCodes}
             />
-          )}
-
-          {twoFactor.data.enabled && !recoveryCodes && (
-            <p className="text-sm text-muted-foreground">
-              {t('settings.security.twoFactor.recoveryCodesLeft', { count: twoFactor.data.recoveryCodesLeft })}
-            </p>
-          )}
-          {twoFactor.data.enabled && !doing && (
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={startNewRecoveryCodes}>
-                {t('settings.security.twoFactor.newRecoveryCodes')}
-              </Button>
-              <Button type="button" variant="outline" onClick={startTurningOff}>
-                {t('settings.security.twoFactor.turnOff')}
-              </Button>
-            </div>
-          )}
-          {twoFactor.data.enabled && doing === 'new-recovery-codes' && (
-            <ConfirmWithPassword
-              explanation={t('settings.security.twoFactor.newRecoveryCodesBody')}
-              submitLabel={t('settings.security.twoFactor.newRecoveryCodesSubmit')}
-              confirm={async (password) => {
-                const outcome = await newCodes.mutateAsync(password)
-                if (outcome.saved) setRecoveryCodes(outcome.recoveryCodes)
-                // Off, turned off somewhere else: the section, loaded again, says so, and there is nothing to confirm.
-                return outcome.saved || !('fields' in outcome)
-              }}
-              onDone={() => setDoing(undefined)}
-            />
-          )}
-          {twoFactor.data.enabled && doing === 'turning-off' && (
-            <ConfirmWithPassword
-              explanation={t('settings.security.twoFactor.turnOffBody')}
-              submitLabel={t('settings.security.twoFactor.turnOffSubmit')}
-              confirm={async (password) => {
-                const outcome = await turnOff.mutateAsync(password)
-                if (outcome.saved) setRecoveryCodes(undefined)
-                return outcome.saved
-              }}
-              onDone={() => setDoing(undefined)}
-            />
+          ) : (
+            <WhenOff onTurnedOn={setRecoveryCodes} />
           )}
         </>
       )}
     </section>
   )
 }
+
+/** While two-factor sign-in is off: the button that starts setting it up, then the set-up itself. */
+function WhenOff({ onTurnedOn }: { onTurnedOn: (recoveryCodes: string[]) => void }) {
+  const { t } = useTranslation()
+  const setUp = useSetUpTwoFactor()
+  const [settingUp, setSettingUp] = useState(false)
+
+  const start = async () => {
+    const outcome = await setUp.mutateAsync().catch(() => undefined)
+    // Already on, turned on somewhere else: the section, loaded again, says so, and there is nothing to set up.
+    if (!outcome || outcome.ready) setSettingUp(true)
+  }
+
+  if (!settingUp) {
+    return (
+      <Button type="button" disabled={setUp.isPending} onClick={() => void start()}>
+        {t('settings.security.twoFactor.setUp')}
+      </Button>
+    )
+  }
+  if (setUp.isError) return <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>
+  if (!setUp.data?.ready) return null
+  return <SetUp setup={setUp.data.setup} onTurnedOn={onTurnedOn} onCancel={() => setSettingUp(false)} />
+}
+
+type WhenOnProps = {
+  /** How many recovery codes the user has left; left out while new ones are on show. */
+  recoveryCodesLeft?: TwoFactor['recoveryCodesLeft']
+  onNewRecoveryCodes: (recoveryCodes: string[]) => void
+  onTurnedOff: () => void
+}
+
+/** While two-factor sign-in is on: the recovery codes left, and getting new ones or turning it off for the password. */
+function WhenOn({ recoveryCodesLeft, onNewRecoveryCodes, onTurnedOff }: WhenOnProps) {
+  const { t } = useTranslation()
+  const turnOff = useTurnOffTwoFactor()
+  const newCodes = useNewRecoveryCodes()
+  const [confirming, setConfirming] = useState<Confirming>()
+  const done = () => setConfirming(undefined)
+
+  return (
+    <>
+      {recoveryCodesLeft !== undefined && (
+        <p className="text-sm text-muted-foreground">{t('settings.security.twoFactor.recoveryCodesLeft', { count: recoveryCodesLeft })}</p>
+      )}
+      {!confirming && (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => setConfirming(newRecoveryCodes)}>
+            {t('settings.security.twoFactor.newRecoveryCodes')}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setConfirming(turningOff)}>
+            {t('settings.security.twoFactor.turnOff')}
+          </Button>
+        </div>
+      )}
+      {confirming === newRecoveryCodes && (
+        <ConfirmWithPassword
+          explanation={t('settings.security.twoFactor.newRecoveryCodesBody')}
+          submitLabel={t('settings.security.twoFactor.newRecoveryCodesSubmit')}
+          confirm={async (password) => {
+            const outcome = await newCodes.mutateAsync(password)
+            if (outcome.saved) onNewRecoveryCodes(outcome.recoveryCodes)
+            // Off, turned off somewhere else: the section, loaded again, says so, and there is nothing to confirm.
+            return outcome.saved || !('fields' in outcome)
+          }}
+          onDone={done}
+        />
+      )}
+      {confirming === turningOff && (
+        <ConfirmWithPassword
+          explanation={t('settings.security.twoFactor.turnOffBody')}
+          submitLabel={t('settings.security.twoFactor.turnOffSubmit')}
+          confirm={async (password) => {
+            const outcome = await turnOff.mutateAsync(password)
+            if (outcome.saved) onTurnedOff()
+            return outcome.saved
+          }}
+          onDone={done}
+        />
+      )}
+    </>
+  )
+}
+
+/** Which change the user is confirming with their password. Named outside JSX, where lint would take them for text. */
+const newRecoveryCodes = 'new-recovery-codes'
+const turningOff = 'turning-off'
+type Confirming = typeof newRecoveryCodes | typeof turningOff
 
 const codeSchema = z.object({ code: authenticatorCode('settings.security.twoFactor.errors.codeInvalid') })
 

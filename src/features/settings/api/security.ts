@@ -3,6 +3,7 @@ import { api, forgetAntiforgeryToken } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
 
+export type TwoFactor = components['schemas']['TwoFactorResponse']
 export type TwoFactorSetup = components['schemas']['TwoFactorSetupResponse']
 
 /** Whether the signed-in user signs in with two factors, and how many recovery codes they have left. */
