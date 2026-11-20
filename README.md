@@ -49,7 +49,18 @@ longer matches the API.
   means it changed somewhere else: the outcome is `{ saved: false, stale: true }`, the list is loaded again, and
   the screen shows the latest version for the user to check and save again. Never retry over it.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
-  such as institutions, loads every page.
+  such as institutions, loads every page. One for something they have thousands of, transactions, is an
+  infinite query (`transactionsQuery`) that loads the next page when the screen asks for more.
+- **Adding and editing a transaction is optimistic**, and nothing else is (spec section 12). The save hooks put
+  the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
+  request fails, and load the list again once the API has answered. One not yet answered has an id
+  `isPending` recognises and offers nothing to edit or delete.
+- **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
+  through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
+  that feature to refresh it; it never touches the other's query keys.
+- **A new transaction carries an `Idempotency-Key`**, made up once for each transaction the user means to
+  record (`AddTransaction`). Saving again after a failure sends the same key, so the API cannot record it
+  twice; the next entry gets a new one.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -85,6 +96,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
+| `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
@@ -149,6 +161,9 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   opening balance, and the API shows it as a negative balance (`holdsAmountOwed` in `features/accounts`).
 - **Currencies** are the API's (`Currency` from the generated schema). `currencies` lists them for pickers, and
   typecheck fails when the API adds one the list lacks.
+- **A transaction's amount is positive and its type gives the sign.** The list shows an expense with a minus in
+  front of the same digits; that is the only thing the SPA does to an amount. Its currency is its account's, so
+  the amount input takes the decimals of the chosen account's currency.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
   (from `useUserSettings()` in `@/features/settings`), not the browser's.
