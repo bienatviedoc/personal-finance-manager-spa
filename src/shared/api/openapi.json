@@ -1010,6 +1010,307 @@
         }
       }
     },
+    "/api/v1/accounts": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "description": "The user's accounts by name, each with its balance, the total balance of each institution in each currency, and the totals of each institution and of everything in the user's base currency, at today's exchange rates. A balance with no rate to convert it is left out of those and listed as not converted. The totals cover the whole list, whichever page is asked for. Archived accounts, which pickers never offer, only with includeArchived=true.",
+        "operationId": "ListAccounts",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Accounts"
+        ],
+        "description": "Adds an account. A credit card or loan sends amountOwed, a positive number, and shows a negative balance; any other type sends openingBalance. Any account can be labelled with the last 4 digits of its number, never more of it. Only a credit card takes creditLimit, statementDay and paymentDueDay.",
+        "operationId": "CreateAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{id}": {
+      "get": {
+        "tags": [
+          "Accounts"
+        ],
+        "description": "One account, archived or not, with its balance. The ETag header carries its row version.",
+        "operationId": "GetAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Accounts"
+        ],
+        "description": "Changes an account; its balance follows a new opening balance at once, and a credit card's available credit a new credit limit. Every field is replaced: last4 or a credit card field left out is removed. Send the row version last read as If-Match: a stale one answers 412, none answers 428.",
+        "operationId": "EditAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Accounts"
+        ],
+        "description": "Archives the account, at any balance: it leaves lists and pickers and stays in history.",
+        "operationId": "ArchiveAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/categories": {
       "get": {
         "tags": [
@@ -1214,6 +1515,221 @@
   },
   "components": {
     "schemas": {
+      "AccountListResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "totals",
+          "baseCurrencyTotal"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "totals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstitutionTotalResponse"
+            }
+          },
+          "baseCurrencyTotal": {
+            "$ref": "#/components/schemas/BaseCurrencyTotalResponse"
+          }
+        }
+      },
+      "AccountRequest": {
+        "required": [
+          "name",
+          "type",
+          "currency",
+          "openingDate"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "openingDate": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "openingBalance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "amountOwed": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "last4": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "creditLimit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statementDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "paymentDueDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "AccountResponse": {
+        "required": [
+          "id",
+          "institutionId",
+          "name",
+          "type",
+          "currency",
+          "openingBalance",
+          "amountOwed",
+          "openingDate",
+          "balance",
+          "isArchived",
+          "rowVersion",
+          "last4",
+          "creditLimit",
+          "statementDay",
+          "paymentDueDay",
+          "availableCredit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "institutionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "openingBalance": {
+            "type": "string"
+          },
+          "amountOwed": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "isArchived": {
+            "type": "boolean"
+          },
+          "rowVersion": {
+            "type": "string"
+          },
+          "last4": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "creditLimit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statementDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "paymentDueDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "availableCredit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AccountType": {
+        "enum": [
+          "current",
+          "savings",
+          "creditCard",
+          "cash",
+          "eWallet",
+          "loan"
+        ]
+      },
       "AntiforgeryTokenResponse": {
         "required": [
           "token"
@@ -1222,6 +1738,35 @@
         "properties": {
           "token": {
             "type": "string"
+          }
+        }
+      },
+      "BaseCurrencyTotalResponse": {
+        "required": [
+          "currency",
+          "balance",
+          "notConverted",
+          "institutions"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotConvertedAmountResponse"
+            }
+          },
+          "institutions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstitutionBaseCurrencyTotalResponse"
+            }
           }
         }
       },
@@ -1414,6 +1959,32 @@
           }
         }
       },
+      "InstitutionBaseCurrencyTotalResponse": {
+        "required": [
+          "institutionId",
+          "balance",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "institutionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotConvertedAmountResponse"
+            }
+          }
+        }
+      },
       "InstitutionListResponse": {
         "required": [
           "items",
@@ -1492,6 +2063,29 @@
           }
         }
       },
+      "InstitutionTotalResponse": {
+        "required": [
+          "institutionId",
+          "currency",
+          "balance"
+        ],
+        "type": "object",
+        "properties": {
+          "institutionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
+            "type": "string"
+          }
+        }
+      },
       "Locale": {
         "enum": [
           "en",
@@ -1506,6 +2100,21 @@
         "type": "object",
         "properties": {
           "password": {
+            "type": "string"
+          }
+        }
+      },
+      "NotConvertedAmountResponse": {
+        "required": [
+          "currency",
+          "balance"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
             "type": "string"
           }
         }
@@ -1791,6 +2400,9 @@
     },
     {
       "name": "Institutions"
+    },
+    {
+      "name": "Accounts"
     },
     {
       "name": "Categories"
