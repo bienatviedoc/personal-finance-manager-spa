@@ -83,4 +83,107 @@ describe('signing in', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/')
   })
+
+  it('says when the client has made too many attempts', async () => {
+    const api = fakeAuthApi()
+    api.overRateLimit = true
+    const { user } = renderApp('/login')
+
+    await user.type(await screen.findByLabelText('Email'), testUser.email)
+    await user.type(screen.getByLabelText('Password'), testPassword)
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts. Wait a minute, then try again.')
+  })
+
+  it('warns that several wrong attempts pause signing in', async () => {
+    fakeAuthApi()
+    const { user } = renderApp('/login')
+
+    await user.type(await screen.findByLabelText('Email'), testUser.email)
+    await user.type(screen.getByLabelText('Password'), 'not the password')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('After 5 wrong attempts in a row, signing in is paused for 15 minutes.')
+  })
+})
+
+describe('signing in with two factors', () => {
+  const twoFactor = () => ({ code: '123456', recoveryCodes: ['AAAAA-BBBBB', 'CCCCC-DDDDD'] })
+  const withTwoFactor = () => fakeAuthApi({ users: [{ ...testUser, password: testPassword, verified: true, twoFactor: twoFactor() }] })
+
+  async function enterEmailAndPassword(user: ReturnType<typeof renderApp>['user']) {
+    await user.type(await screen.findByLabelText('Email'), testUser.email)
+    await user.type(screen.getByLabelText('Password'), testPassword)
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+  }
+
+  it('asks for the code from the authenticator app after the password, then signs in', async () => {
+    const api = withTwoFactor()
+    const { user } = renderApp('/budgets')
+    await enterEmailAndPassword(user)
+
+    const code = await screen.findByLabelText('Code from your authenticator app')
+    expect(code).toHaveFocus()
+    expect(code).toHaveAttribute('autocomplete', 'one-time-code')
+    expect(api.signedInAs).toBeNull()
+    await user.type(code, '123456')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+  })
+
+  it('says when the code is wrong and lets the visitor try another', async () => {
+    const api = withTwoFactor()
+    const { user } = renderApp('/login')
+    await enterEmailAndPassword(user)
+
+    const code = await screen.findByLabelText('Code from your authenticator app')
+    await user.type(code, '000000')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('That code is not right.')
+    expect(api.signedInAs).toBeNull()
+    await user.clear(code)
+    await user.type(code, '123456')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
+  })
+
+  it('asks for a code before contacting the API again', async () => {
+    withTwoFactor()
+    const { user } = renderApp('/login')
+    await enterEmailAndPassword(user)
+
+    await screen.findByLabelText('Code from your authenticator app')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByText('Enter the 6-digit code.')).toBeInTheDocument()
+  })
+
+  it('takes a recovery code in place of the authenticator, which then cannot be used again', async () => {
+    const api = withTwoFactor()
+    const { user } = renderApp('/login')
+    await enterEmailAndPassword(user)
+
+    await user.click(await screen.findByRole('button', { name: 'Use a recovery code instead' }))
+    await user.type(screen.getByLabelText('Recovery code'), 'AAAAA-BBBBB')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
+    expect(api.users[0]?.twoFactor?.recoveryCodes).toEqual(['CCCCC-DDDDD'])
+  })
+
+  it('lets the visitor go back from a recovery code to the authenticator, or start over', async () => {
+    withTwoFactor()
+    const { user } = renderApp('/login')
+    await enterEmailAndPassword(user)
+
+    await user.click(await screen.findByRole('button', { name: 'Use a recovery code instead' }))
+    await user.click(screen.getByRole('button', { name: 'Use your authenticator app instead' }))
+    expect(screen.getByLabelText('Code from your authenticator app')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Sign in as someone else' }))
+    expect(await screen.findByLabelText('Email')).toHaveValue('')
+  })
 })

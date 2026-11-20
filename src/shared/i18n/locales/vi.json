@@ -100,12 +100,30 @@
       "resend": "Gửi lại liên kết",
       "resent": "Chúng tôi đã gửi một liên kết mới đến {{email}}."
     },
+    "twoFactor": {
+      "body": "Mở ứng dụng xác thực và nhập mã hiển thị cho Personal Finance Manager.",
+      "code": "Mã từ ứng dụng xác thực",
+      "recoveryCodeBody": "Nhập một trong các mã khôi phục bạn đã lưu khi bật đăng nhập hai lớp. Mỗi mã chỉ dùng được một lần.",
+      "recoveryCode": "Mã khôi phục",
+      "useRecoveryCode": "Dùng mã khôi phục",
+      "useAuthenticator": "Dùng ứng dụng xác thực",
+      "startOver": "Đăng nhập bằng người dùng khác",
+      "errors": {
+        "codeInvalid": "Nhập mã gồm 6 chữ số.",
+        "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực.",
+        "recoveryCodeRequired": "Nhập mã khôi phục.",
+        "recoveryCodeIncorrect": "Mã khôi phục không đúng hoặc đã được dùng.",
+        "paused": "Việc đăng nhập bị tạm dừng 15 phút sau quá nhiều lần thử sai. Hãy thử lại sau."
+      }
+    },
     "errors": {
       "emailInvalid": "Hãy nhập địa chỉ email hợp lệ.",
       "passwordRequired": "Hãy nhập mật khẩu.",
       "passwordTooShort": "Hãy dùng ít nhất 12 ký tự.",
       "wrongCredentials": "Email hoặc mật khẩu không đúng.",
-      "generic": "Đã xảy ra lỗi. Hãy thử lại."
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "lockWarning": "Sau 5 lần thử sai liên tiếp, việc đăng nhập bị tạm dừng 15 phút.",
+      "tooManyAttempts": "Quá nhiều lần thử. Hãy đợi một phút rồi thử lại."
     },
     "userMenu": {
       "signedInAs": "Đã đăng nhập: {{email}}",
@@ -284,7 +302,59 @@
         "locale": "Không thể chọn ngôn ngữ này."
       }
     },
-    "categories": "Danh mục"
+    "categories": "Danh mục",
+    "security": {
+      "title": "Bảo mật",
+      "cancel": "Hủy",
+      "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút.",
+      "password": {
+        "title": "Mật khẩu",
+        "current": "Mật khẩu hiện tại",
+        "new": "Mật khẩu mới",
+        "newHint": "Ít nhất 12 ký tự.",
+        "submit": "Đổi mật khẩu",
+        "changed": "Mật khẩu của bạn đã được đổi. Bạn đã được đăng xuất ở mọi nơi khác.",
+        "errors": {
+          "currentRequired": "Nhập mật khẩu hiện tại.",
+          "currentIncorrect": "Đó không phải mật khẩu hiện tại của bạn.",
+          "newTooShort": "Dùng ít nhất 12 ký tự."
+        }
+      },
+      "twoFactor": {
+        "title": "Đăng nhập hai lớp",
+        "intro": "Với đăng nhập hai lớp, bạn đăng nhập bằng mật khẩu và một mã từ ứng dụng xác thực trên điện thoại.",
+        "loading": "Đang tải…",
+        "on": "Đăng nhập hai lớp đang bật.",
+        "off": "Đăng nhập hai lớp đang tắt.",
+        "setUp": "Thiết lập đăng nhập hai lớp",
+        "scan": "Quét mã QR này bằng ứng dụng xác thực.",
+        "qrCode": "Mã QR để quét bằng ứng dụng xác thực",
+        "keyInstead": "Không quét được? Hãy nhập khóa này vào ứng dụng:",
+        "confirm": "Nhập mã ứng dụng hiển thị để xác nhận đã thiết lập xong.",
+        "code": "Mã từ ứng dụng xác thực",
+        "turnOn": "Bật",
+        "recoveryCodes": "Mã khôi phục",
+        "recoveryCodesBody": "Hãy lưu các mã này ở nơi an toàn. Mỗi mã giúp bạn đăng nhập một lần nếu mất ứng dụng xác thực. Chúng chỉ hiển thị lúc này.",
+        "copyCodes": "Sao chép mã",
+        "copied": "Đã sao chép.",
+        "codesSaved": "Tôi đã lưu",
+        "recoveryCodesLeft_one": "Còn {{count}} mã khôi phục.",
+        "recoveryCodesLeft_other": "Còn {{count}} mã khôi phục.",
+        "newRecoveryCodes": "Tạo mã khôi phục mới",
+        "newRecoveryCodesBody": "Các mã khôi phục cũ sẽ không dùng được nữa. Nhập mật khẩu để nhận mã mới.",
+        "newRecoveryCodesSubmit": "Tạo mã mới",
+        "turnOff": "Tắt đăng nhập hai lớp",
+        "turnOffBody": "Việc đăng nhập sẽ chỉ cần mật khẩu. Nhập mật khẩu để tắt đăng nhập hai lớp.",
+        "turnOffSubmit": "Tắt",
+        "password": "Mật khẩu",
+        "errors": {
+          "codeInvalid": "Nhập mã gồm 6 chữ số.",
+          "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực.",
+          "passwordRequired": "Nhập mật khẩu.",
+          "passwordIncorrect": "Đó không phải mật khẩu của bạn."
+        }
+      }
+    }
   },
   "categories": {
     "title": "Danh mục",

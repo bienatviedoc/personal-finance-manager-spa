@@ -24,6 +24,11 @@ jobs:
       - name: API client matches the API
         run: npm run api:sync && git diff --exit-code -- src/shared/api
 
+      # Dependency scan: fails when a package, direct or transitive, has a known vulnerability of high or
+      # critical severity (spec section 13).
+      - name: Scan dependencies
+        run: npm audit --audit-level=high
+
       - name: Lint
         run: npm run lint
 
@@ -35,3 +40,20 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+  # Builds the nginx image on the newest base, then scans it. A vulnerability of high or critical severity that
+  # has a fix fails the job; one with no fix yet cannot be acted on, so it does not.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --pull -t pfm-spa .
+      - name: Scan image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: pfm-spa
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
