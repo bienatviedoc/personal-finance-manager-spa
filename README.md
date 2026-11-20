@@ -143,7 +143,8 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   Use it through React Hook Form's `Controller`. `parseAmount` and `formatAmountForInput` are the pure functions
   underneath.
 - **Never turn an amount into a `number`**, not even to compare or add. Totals, balances and conversions come
-  from the API (the accounts list carries each institution's total in each currency). `isZeroAmount` reads
+  from the API (the accounts list carries each institution's total in each currency, and `baseCurrencyTotal`: the
+  totals of each institution and of everything, converted into the base currency). `isZeroAmount` reads
   whether an amount is zero from its digits. `DecimalString` marks a string that holds an amount.
 - **Amount owed.** A credit card or loan is asked for the amount owed, as a positive number, instead of an
   opening balance, and the API shows it as a negative balance (`holdsAmountOwed` in `features/accounts`).
@@ -153,6 +154,12 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
   (from `useUserSettings()` in `@/features/settings`), not the browser's.
 - The user's base currency and time zone come from `useUserSettings()`.
+- **Not converted.** An amount the API could not convert, for want of an exchange rate, comes back under
+  `notConverted` in its own currency and is left out of the total next to it. Always show that flag with the
+  total (`NotConverted` on the accounts screen); never hide it or estimate the amount. Nobody enters a rate: the
+  API fetches them.
+- **Changing the base currency** loads everything again (`useUpdateProfile`), because what the API converted into
+  the old one no longer holds.
 
 ## Phones, themes and installing
 
