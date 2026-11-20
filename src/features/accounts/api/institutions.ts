@@ -14,23 +14,31 @@ export type SaveOutcome = { saved: true; institution: Institution } | { saved: f
 const institutionsKey = ['institutions']
 const institutionFields: InstitutionField[] = ['name', 'color', 'logoKey']
 
+async function loadInstitutions(includeArchived: boolean) {
+  const institutions: Institution[] = []
+  let cursor: string | undefined
+  do {
+    const { data, response } = await api.GET('/api/v1/institutions', { params: { query: { cursor, includeArchived } } })
+    if (!data) throw new Error(`Could not load institutions: ${response.status}`)
+    institutions.push(...data.items)
+    cursor = data.nextCursor ?? undefined
+  } while (cursor)
+  return institutions
+}
+
 /**
  * The user's institutions by name, without archived ones: what lists and pickers show. A user has dozens,
  * so every page is loaded.
  */
 export const institutionsQuery = queryOptions({
   queryKey: [...institutionsKey, { includeArchived: false }],
-  queryFn: async () => {
-    const institutions: Institution[] = []
-    let cursor: string | undefined
-    do {
-      const { data, response } = await api.GET('/api/v1/institutions', { params: { query: { cursor } } })
-      if (!data) throw new Error(`Could not load institutions: ${response.status}`)
-      institutions.push(...data.items)
-      cursor = data.nextCursor ?? undefined
-    } while (cursor)
-    return institutions
-  },
+  queryFn: () => loadInstitutions(false),
+})
+
+/** Every institution by name, archived ones too: for naming the institution an account is already with. */
+export const allInstitutionsQuery = queryOptions({
+  queryKey: [...institutionsKey, { includeArchived: true }],
+  queryFn: () => loadInstitutions(true),
 })
 
 export function useCreateInstitution() {

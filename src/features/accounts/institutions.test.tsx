@@ -1,11 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { renderApp } from '@/test/renderApp'
 
 describe('institutions', () => {
   it('are listed from the accounts area, by name', async () => {
     fakeInstitutionsApi([{ name: 'Vietcombank' }, { name: 'MoMo', logoKey: 'wallet' }, { name: 'Old bank', isArchived: true }])
+    fakeAccountsApi()
     const { user } = renderApp('/accounts')
 
     await user.click(await screen.findByRole('link', { name: 'Institutions' }))

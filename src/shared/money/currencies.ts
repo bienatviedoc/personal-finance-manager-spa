@@ -18,3 +18,8 @@ export const everyCurrencyListed: Missing extends never ? true : Missing = true
 
 /** A decimal string, optionally negative: digits, and a point followed by more digits if there is a fraction. */
 export const decimalPattern = /^-?\d+(\.\d+)?$/
+
+/** Whether an amount is zero, read from its digits: an amount is never turned into a number, even to compare. */
+export function isZeroAmount(amount: DecimalString): boolean {
+  return /^-?0+(\.0+)?$/.test(amount)
+}
