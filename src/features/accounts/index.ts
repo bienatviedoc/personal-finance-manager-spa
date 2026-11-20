@@ -8,3 +8,5 @@ export const accountsRoutes: RouteObject[] = [
   { path: 'accounts/institutions', Component: InstitutionsPage },
   { path: 'accounts/:accountId', Component: AccountDetailPage },
 ]
+
+export { accountsQuery, refreshAccountBalances, type Account } from './api/accounts'

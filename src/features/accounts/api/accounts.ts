@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
@@ -57,6 +57,14 @@ export const accountsQuery = ({ includeArchived = false }: { includeArchived?: b
       return { accounts, totals }
     },
   })
+
+/**
+ * Loads the accounts again, for a change made elsewhere that moves their balances: recording, editing or
+ * deleting a transaction.
+ */
+export function refreshAccountBalances(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: accountsKey })
+}
 
 export function useCreateAccount() {
   return useSaveAccount(async (fields: AccountFields) => api.POST('/api/v1/accounts', { body: fields }))
