@@ -2,6 +2,12 @@
   "app": {
     "name": "Personal Finance Manager"
   },
+  "toast": {
+    "label": "Notification",
+    "viewport": "Notifications ({hotkey})",
+    "retry": "Try again",
+    "dismiss": "Dismiss"
+  },
   "nav": {
     "label": "Main",
     "dashboard": "Dashboard",
@@ -100,16 +106,158 @@
       "resend": "Send the link again",
       "resent": "We sent a new link to {{email}}."
     },
+    "twoFactor": {
+      "body": "Open your authenticator app and enter the code it shows for Personal Finance Manager.",
+      "code": "Code from your authenticator app",
+      "recoveryCodeBody": "Enter one of the recovery codes you saved when you turned on two-factor sign-in. Each works once.",
+      "recoveryCode": "Recovery code",
+      "useRecoveryCode": "Use a recovery code instead",
+      "useAuthenticator": "Use your authenticator app instead",
+      "startOver": "Sign in as someone else",
+      "errors": {
+        "codeInvalid": "Enter the 6-digit code.",
+        "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app.",
+        "recoveryCodeRequired": "Enter a recovery code.",
+        "recoveryCodeIncorrect": "That recovery code is not right, or has been used already.",
+        "paused": "Signing in is paused for 15 minutes after too many wrong attempts. Try again later."
+      }
+    },
     "errors": {
       "emailInvalid": "Enter a valid email address.",
       "passwordRequired": "Enter your password.",
       "passwordTooShort": "Use at least 12 characters.",
       "wrongCredentials": "The email or password is incorrect.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "lockWarning": "After 5 wrong attempts in a row, signing in is paused for 15 minutes.",
+      "tooManyAttempts": "Too many attempts. Wait a minute, then try again."
     },
     "userMenu": {
       "signedInAs": "Signed in as {{email}}",
       "signOut": "Sign out"
+    }
+  },
+  "accounts": {
+    "intro": "The places your money sits, grouped by institution.",
+    "add": "Add account",
+    "new": "New account",
+    "empty": "No accounts yet. Add the accounts your money sits in.",
+    "showArchived": "Show archived accounts",
+    "archived": "Archived",
+    "noInstitution": "No institution",
+    "total": "Total",
+    "totalsOf": "Totals of {{name}}",
+    "accountsOf": "Accounts of {{name}}",
+    "allAccounts": "All accounts",
+    "totalIn": "Total in {{currency}}",
+    "inCurrency": "In {{currency}}",
+    "totalOfIn": "Total of {{name}} in {{currency}}",
+    "notConverted": "Not converted: {{amounts}}.",
+    "notConvertedExplained": "Not converted: {{amounts}}. No exchange rate is available yet, so it is left out of the total.",
+    "name": "Name",
+    "type": "Type",
+    "types": {
+      "current": "Current",
+      "savings": "Savings",
+      "creditCard": "Credit card",
+      "cash": "Cash",
+      "eWallet": "E-wallet",
+      "loan": "Loan"
+    },
+    "institution": "Institution",
+    "currency": "Currency",
+    "openingBalance": "Opening balance",
+    "openingBalanceHint": "Below zero for an overdrawn account: start it with a minus sign.",
+    "amountOwed": "Amount owed",
+    "amountOwedHint": "Enter what you owe as a positive number. The account shows it as a negative balance.",
+    "openingDate": "Opening date",
+    "last4": "Last 4 digits",
+    "last4Hint": "Optional. Only the last 4 digits, to tell your accounts apart. Never enter a full account or card number.",
+    "endingIn": "Ending in {{last4}}",
+    "creditLimit": "Credit limit",
+    "creditLimitHint": "Optional. With it, the account shows your available credit: the credit limit minus the amount owed.",
+    "availableCredit": "Available credit",
+    "statementDay": "Statement day",
+    "paymentDueDay": "Payment due day",
+    "dayNotSet": "Not set",
+    "balance": "Balance",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "editNamed": "Edit {{name}}",
+    "archive": "Archive",
+    "archiveNamed": "Archive {{name}}",
+    "archiveExplained": "Archive {{name}}? It leaves pickers and lists, and stays in your history.",
+    "archiveNotZero": "Its balance is not zero: {{balance}} stays in your totals and reports.",
+    "archiveConfirm": "Archive",
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Use at most 100 characters.",
+      "type": "Choose one of the account types.",
+      "institution": "Choose one of your institutions that is not archived.",
+      "currency": "Choose one of the currencies.",
+      "currencyLocked": "The currency cannot change once the account has transactions.",
+      "amountRequired": "Enter an amount.",
+      "amountInvalid": "Enter an amount, such as {{example}}.",
+      "openingDate": "Enter a date.",
+      "last4": "Enter exactly 4 digits: the last 4 of the number, never all of it.",
+      "creditLimit": "Enter a credit limit, such as {{example}}, or leave it empty.",
+      "day": "Choose a day of the month, from 1 to 31.",
+      "stale": "This account was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "generic": "Something went wrong. Try again.",
+      "notSaved": "The account was not saved.",
+      "notArchived": "The account was not archived."
+    }
+  },
+  "transactions": {
+    "intro": "Your income and expenses, newest first.",
+    "add": "Add transaction",
+    "new": "New transaction",
+    "editTitle": "Edit transaction",
+    "empty": "No transactions yet. Add your first income or expense.",
+    "noAccounts": "A transaction is recorded on an account, and you have none yet.",
+    "toAccounts": "Add an account",
+    "loading": "Loading transactions",
+    "loadMore": "Load more",
+    "type": "Type",
+    "types": {
+      "expense": "Expense",
+      "income": "Income"
+    },
+    "account": "Account",
+    "accountOption": "{{name}} ({{currency}})",
+    "amountIn": "Amount ({{currency}})",
+    "date": "Date",
+    "category": "Category",
+    "chooseCategory": "Choose a category",
+    "subcategory": "{{parent}} › {{name}}",
+    "payee": "Payee",
+    "note": "Note",
+    "save": "Save",
+    "cancel": "Cancel",
+    "done": "Done",
+    "savedAddAnother_one": "Saved. Add another, or close when you are done.",
+    "savedAddAnother_other": "{{count}} saved. Add another, or close when you are done.",
+    "edit": "Edit",
+    "editNamed": "Edit {{name}}",
+    "delete": "Delete",
+    "deleteNamed": "Delete {{name}}",
+    "deleteExplained": "Delete {{name}}? It leaves this list and its account's balance.",
+    "deleteConfirm": "Delete",
+    "errors": {
+      "type": "Choose income or expense.",
+      "account": "Choose one of your accounts that is not archived.",
+      "amountRequired": "Enter an amount.",
+      "amountZero": "Enter an amount greater than zero.",
+      "amountInvalid": "Enter an amount, such as {{example}}.",
+      "date": "Enter a date.",
+      "dateInFuture": "The date cannot be in the future.",
+      "category": "Choose a category.",
+      "payeeTooLong": "Use at most 200 characters.",
+      "noteTooLong": "Use at most 1000 characters.",
+      "stale": "This transaction was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "generic": "Something went wrong. Try again.",
+      "notSaved": "The transaction was not saved.",
+      "notDeleted": "The transaction was not deleted."
     }
   },
   "institutions": {
@@ -165,7 +313,59 @@
         "locale": "This language cannot be chosen."
       }
     },
-    "categories": "Categories"
+    "categories": "Categories",
+    "security": {
+      "title": "Security",
+      "cancel": "Cancel",
+      "failed": "Something went wrong. Try again in a little while.",
+      "password": {
+        "title": "Password",
+        "current": "Current password",
+        "new": "New password",
+        "newHint": "At least 12 characters.",
+        "submit": "Change password",
+        "changed": "Your password is changed. You are signed out everywhere else.",
+        "errors": {
+          "currentRequired": "Enter your current password.",
+          "currentIncorrect": "That is not your current password.",
+          "newTooShort": "Use at least 12 characters."
+        }
+      },
+      "twoFactor": {
+        "title": "Two-factor sign-in",
+        "intro": "With two-factor sign-in, signing in takes your password and a code from an authenticator app on your phone.",
+        "loading": "Loading…",
+        "on": "Two-factor sign-in is on.",
+        "off": "Two-factor sign-in is off.",
+        "setUp": "Set up two-factor sign-in",
+        "scan": "Scan this QR code with your authenticator app.",
+        "qrCode": "QR code to scan with your authenticator app",
+        "keyInstead": "Cannot scan it? Enter this key in the app instead:",
+        "confirm": "Enter the code the app shows, to confirm it is set up.",
+        "code": "Code from your authenticator app",
+        "turnOn": "Turn on",
+        "recoveryCodes": "Recovery codes",
+        "recoveryCodesBody": "Save these codes somewhere safe. Each one signs you in once if you lose your authenticator app. They are shown only now.",
+        "copyCodes": "Copy codes",
+        "copied": "Copied.",
+        "codesSaved": "I have saved them",
+        "recoveryCodesLeft_one": "{{count}} recovery code left.",
+        "recoveryCodesLeft_other": "{{count}} recovery codes left.",
+        "newRecoveryCodes": "Get new recovery codes",
+        "newRecoveryCodesBody": "Your old recovery codes will stop working. Enter your password to get new ones.",
+        "newRecoveryCodesSubmit": "Get new codes",
+        "turnOff": "Turn off two-factor sign-in",
+        "turnOffBody": "Signing in will take only your password. Enter it to turn off two-factor sign-in.",
+        "turnOffSubmit": "Turn off",
+        "password": "Password",
+        "errors": {
+          "codeInvalid": "Enter the 6-digit code.",
+          "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app.",
+          "passwordRequired": "Enter your password.",
+          "passwordIncorrect": "That is not your password."
+        }
+      }
+    }
   },
   "categories": {
     "title": "Categories",

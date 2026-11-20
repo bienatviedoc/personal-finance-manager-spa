@@ -7,12 +7,24 @@ export type Institution = components['schemas']['InstitutionResponse']
 export type InstitutionFields = components['schemas']['InstitutionRequest']
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type InstitutionField = 'name' | 'color' | 'logoKey'
+const institutionFields = ['name', 'color', 'logoKey'] as const
+export type InstitutionField = (typeof institutionFields)[number]
 
 export type SaveOutcome = { saved: true; institution: Institution } | { saved: false; fields: InstitutionField[] }
 
 const institutionsKey = ['institutions']
-const institutionFields: InstitutionField[] = ['name', 'color', 'logoKey']
+
+async function loadInstitutions(includeArchived: boolean) {
+  const institutions: Institution[] = []
+  let cursor: string | undefined
+  do {
+    const { data, response } = await api.GET('/api/v1/institutions', { params: { query: { cursor, includeArchived } } })
+    if (!data) throw new Error(`Could not load institutions: ${response.status}`)
+    institutions.push(...data.items)
+    cursor = data.nextCursor ?? undefined
+  } while (cursor)
+  return institutions
+}
 
 /**
  * The user's institutions by name, without archived ones: what lists and pickers show. A user has dozens,
@@ -20,17 +32,13 @@ const institutionFields: InstitutionField[] = ['name', 'color', 'logoKey']
  */
 export const institutionsQuery = queryOptions({
   queryKey: [...institutionsKey, { includeArchived: false }],
-  queryFn: async () => {
-    const institutions: Institution[] = []
-    let cursor: string | undefined
-    do {
-      const { data, response } = await api.GET('/api/v1/institutions', { params: { query: { cursor } } })
-      if (!data) throw new Error(`Could not load institutions: ${response.status}`)
-      institutions.push(...data.items)
-      cursor = data.nextCursor ?? undefined
-    } while (cursor)
-    return institutions
-  },
+  queryFn: () => loadInstitutions(false),
+})
+
+/** Every institution by name, archived ones too: for naming the institution an account is already with. */
+export const allInstitutionsQuery = queryOptions({
+  queryKey: [...institutionsKey, { includeArchived: true }],
+  queryFn: () => loadInstitutions(true),
 })
 
 export function useCreateInstitution() {

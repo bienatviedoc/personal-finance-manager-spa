@@ -10,12 +10,12 @@ export const categoryKinds = ['expense', 'income'] as const satisfies readonly C
 export type CategoryFields = components['schemas']['CategoryChangeRequest']
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type CategoryField = 'name' | 'kind' | 'icon' | 'color' | 'parentId'
+const categoryFields = ['name', 'kind', 'icon', 'color', 'parentId'] as const
+export type CategoryField = (typeof categoryFields)[number]
 
 export type SaveOutcome = { saved: true; category: Category } | { saved: false; fields: CategoryField[] }
 
 const categoriesKey = ['categories']
-const categoryFields: CategoryField[] = ['name', 'kind', 'icon', 'color', 'parentId']
 
 /** The user's category tree. Archived categories are left out unless asked for, as pickers need. */
 export const categoriesQuery = ({ includeArchived = false }: { includeArchived?: boolean } = {}) =>

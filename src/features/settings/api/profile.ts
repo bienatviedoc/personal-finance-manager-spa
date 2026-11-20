@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { hashKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { signedInUserQuery } from '@/features/auth'
@@ -11,11 +11,10 @@ export type Profile = components['schemas']['ProfileResponse']
 export type ProfileChange = components['schemas']['UpdateProfileRequest']
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type ProfileField = 'baseCurrency' | 'timeZone' | 'locale'
+const profileFields = ['baseCurrency', 'timeZone', 'locale'] as const
+export type ProfileField = (typeof profileFields)[number]
 
 export type SaveOutcome = { saved: true; profile: Profile } | { saved: false; fields: ProfileField[] }
-
-const profileFields: ProfileField[] = ['baseCurrency', 'timeZone', 'locale']
 
 /** Changes the signed-in user's profile settings; any left out stay as they were. */
 export function useUpdateProfile() {
@@ -30,7 +29,16 @@ export function useUpdateProfile() {
       throw new Error(`Could not save the profile: ${response.status}`)
     },
     onSuccess: (outcome) => {
-      if (outcome.saved) queryClient.setQueryData(signedInUserQuery.queryKey, outcome.profile)
+      if (!outcome.saved) return
+      const before = queryClient.getQueryData(signedInUserQuery.queryKey)
+      queryClient.setQueryData(signedInUserQuery.queryKey, outcome.profile)
+      // Totals the API converted into the old base currency are no longer what it would answer.
+      // Everything but the profile itself, which the save just answered. Keys are compared by what they hold:
+      // the cache need not keep the very array a query was made with.
+      if (before?.baseCurrency !== outcome.profile.baseCurrency) {
+        const profileKey = hashKey(signedInUserQuery.queryKey)
+        return queryClient.invalidateQueries({ predicate: (query) => query.queryHash !== profileKey })
+      }
     },
   })
 }

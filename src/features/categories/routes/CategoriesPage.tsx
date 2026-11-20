@@ -16,6 +16,8 @@ import {
 } from '../api/categories'
 import { CategoryBadge } from '../components/CategoryBadge'
 import { CategoryForm } from '../components/CategoryForm'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { FailureToast } from '@/shared/components/FailureToast'
 
 /** What the form is open for, if anything. */
 type Editing =
@@ -44,6 +46,9 @@ export function CategoriesPage() {
   const create = useCreateCategory()
   const edit = useEditCategory()
   const archive = useArchiveCategory()
+  const formId = useId()
+  // One form is open at a time, so one of these at most has failed.
+  const save = create.isError ? create : edit
 
   const collator = new Intl.Collator(locale)
   const byName = (a: Category, b: Category) => collator.compare(a.name, b.name)
@@ -61,6 +66,7 @@ export function CategoriesPage() {
       case 'new':
         return (
           <CategoryForm
+            id={formId}
             key={`new-${editing.kind}`}
             title={t(`categories.new.${editing.kind}`)}
             initial={{ ...newCategoryLooks, name: '', kind: editing.kind }}
@@ -73,6 +79,7 @@ export function CategoriesPage() {
         const { parent } = editing
         return (
           <CategoryForm
+            id={formId}
             key={`sub-${parent.id}`}
             title={t('categories.newSubcategory', { name: parent.name })}
             initial={{ name: '', kind: parent.kind, icon: parent.icon, color: parent.color }}
@@ -87,6 +94,7 @@ export function CategoriesPage() {
         const isSubcategory = category.parentId !== null
         return (
           <CategoryForm
+            id={formId}
             key={`edit-${category.id}`}
             title={t('categories.editTitle', { name: category.name })}
             initial={{ name: category.name, kind: category.kind, icon: category.icon, color: category.color }}
@@ -109,11 +117,14 @@ export function CategoriesPage() {
         {t('categories.showArchived')}
       </label>
 
-      {(create.isError || edit.isError || archive.isError || categories.isError) && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('categories.errors.generic')}
-        </p>
-      )}
+      {categories.isError && <ErrorMessage>{t('categories.errors.generic')}</ErrorMessage>}
+      <FailureToast failed={save.isError} message={t('categories.errors.generic')} retry={{ form: formId }} onDismiss={save.reset} />
+      <FailureToast
+        failed={archive.isError}
+        message={t('categories.errors.generic')}
+        retry={() => archive.variables !== undefined && archive.mutate(archive.variables)}
+        onDismiss={archive.reset}
+      />
 
       {form}
 

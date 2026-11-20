@@ -16,5 +16,15 @@ type Missing = Exclude<Currency, (typeof currencies)[number]>
 // Fails to compile while `currencies` lacks a currency the API supports.
 export const everyCurrencyListed: Missing extends never ? true : Missing = true
 
+/** Sorts things that have a currency into the order `currencies` lists them: `totals.toSorted(inCurrencyOrder)`. */
+export function inCurrencyOrder(a: { currency: Currency }, b: { currency: Currency }): number {
+  return currencies.indexOf(a.currency) - currencies.indexOf(b.currency)
+}
+
 /** A decimal string, optionally negative: digits, and a point followed by more digits if there is a fraction. */
 export const decimalPattern = /^-?\d+(\.\d+)?$/
+
+/** Whether an amount is zero, read from its digits: an amount is never turned into a number, even to compare. */
+export function isZeroAmount(amount: DecimalString): boolean {
+  return /^-?0+(\.0+)?$/.test(amount)
+}

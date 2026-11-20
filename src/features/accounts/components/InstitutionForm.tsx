@@ -26,6 +26,8 @@ const serverErrors: Record<InstitutionField, ParseKeys> = {
 }
 
 type Props = {
+  /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
+  id?: string
   /** The institution being edited; none when adding one. */
   institution?: Institution
   onSave: (fields: InstitutionFields) => Promise<SaveOutcome>
@@ -33,7 +35,7 @@ type Props = {
 }
 
 /** Adds or edits an institution: a name, and optionally a colour and a logo. */
-export function InstitutionForm({ institution, onSave, onDone }: Props) {
+export function InstitutionForm({ id, institution, onSave, onDone }: Props) {
   const { t } = useTranslation()
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -44,7 +46,9 @@ export function InstitutionForm({ institution, onSave, onDone }: Props) {
   const colorOptions = paletteWith(institution?.color)
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const outcome = await onSave({ name: values.name, color: values.color || null, logoKey: values.logoKey || null })
+    // Whoever saves says that it failed; the form keeps what was entered, to be saved again.
+    const outcome = await onSave({ name: values.name, color: values.color || null, logoKey: values.logoKey || null }).catch(() => undefined)
+    if (!outcome) return
     if (outcome.saved) {
       onDone()
       return
@@ -53,7 +57,7 @@ export function InstitutionForm({ institution, onSave, onDone }: Props) {
   })
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">
+    <form id={id} noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">
       <TextField
         label={t('institutions.name')}
         autoComplete="off"

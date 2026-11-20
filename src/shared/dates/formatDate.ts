@@ -3,7 +3,7 @@ import type { Language } from '@/shared/i18n'
 /** A calendar date with no time, as the API sends it: `YYYY-MM-DD`. */
 export type CalendarDate = string
 
-const calendarDatePattern = /^\d{4}-\d{2}-\d{2}$/
+export const calendarDatePattern = /^\d{4}-\d{2}-\d{2}$/
 
 /**
  * Writes a calendar date the way the locale does: `formatDate('2026-11-19', 'vi')` is `19 thg 11, 2026`

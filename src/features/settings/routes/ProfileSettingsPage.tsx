@@ -11,6 +11,7 @@ import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { currencies, formatMoney } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { useUpdateProfile, useUserSettings, type ProfileField } from '../api/profile'
+import { FailureToast } from '@/shared/components/FailureToast'
 
 const schema = z.object({
   baseCurrency: z.enum(currencies),
@@ -33,6 +34,7 @@ export function ProfileSettingsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('settings.profile.title'))
   const headingId = useId()
+  const formId = useId()
   const interfaceLocale = useLocale()
   const settings = useUserSettings()
   const update = useUpdateProfile()
@@ -81,7 +83,7 @@ export function ProfileSettingsPage() {
     lastSaved.locale === settings.locale
 
   return (
-    <form noValidate aria-labelledby={headingId} onSubmit={onSubmit} className="max-w-md space-y-4">
+    <form id={formId} noValidate aria-labelledby={headingId} onSubmit={onSubmit} className="max-w-md space-y-4">
       <h2 id={headingId} className="text-lg font-semibold">
         {t('settings.profile.title')}
       </h2>
@@ -114,11 +116,7 @@ export function ProfileSettingsPage() {
         </span>
       </p>
 
-      {update.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('settings.profile.saveFailed')}
-        </p>
-      )}
+      <FailureToast failed={update.isError} message={t('settings.profile.saveFailed')} retry={{ form: formId }} onDismiss={update.reset} />
       {saved && (
         <p role="status" className="text-sm">
           {t('settings.profile.saved')}

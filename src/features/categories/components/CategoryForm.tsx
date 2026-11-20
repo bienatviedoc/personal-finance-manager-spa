@@ -10,6 +10,7 @@ import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { categoryKinds, type CategoryField, type CategoryFields, type SaveOutcome } from '../api/categories'
 import { categoryIcons } from './appearance'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   name: z.string().trim().min(1, { error: 'categories.errors.nameRequired' }).max(100, { error: 'categories.errors.nameTooLong' }),
@@ -31,6 +32,8 @@ const serverErrors: Record<CategoryField, { field: keyof Values; message: ParseK
 }
 
 type Props = {
+  /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
+  id?: string
   /** Already translated: names the form for assistive technology. */
   title: string
   initial: CategoryFields
@@ -43,7 +46,7 @@ type Props = {
 }
 
 /** Adds or changes a category: its name, kind, icon and colour. */
-export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCancel }: Props) {
+export function CategoryForm({ id, title, initial, kindFixed, kindHint, onSave, onCancel }: Props) {
   const { t } = useTranslation()
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: initial })
   const { errors } = form.formState
@@ -52,8 +55,9 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
   useEffect(() => form.setFocus('name'), [form])
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const outcome = await onSave(values)
-    if (outcome.saved) return
+    // Whoever saves says that it failed; the form keeps what was entered, to be saved again.
+    const outcome = await onSave(values).catch(() => undefined)
+    if (!outcome || outcome.saved) return
     for (const refused of outcome.fields) {
       const { field, message } = serverErrors[refused]
       form.setError(field, { message })
@@ -63,7 +67,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
   const colors = paletteWith(initial.color)
 
   return (
-    <form aria-label={title} noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">
+    <form id={id} aria-label={title} noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">
       <h3 className="text-lg font-semibold">{title}</h3>
       <TextField label={t('categories.name')} error={errors.name?.message && t(errors.name.message as ParseKeys)} {...form.register('name')} />
 
@@ -85,11 +89,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
           )}
         </fieldset>
       )}
-      {errors.kind?.message && (
-        <p role="alert" className="text-sm text-destructive">
-          {t(errors.kind.message as ParseKeys)}
-        </p>
-      )}
+      {errors.kind?.message && <ErrorMessage>{t(errors.kind.message as ParseKeys)}</ErrorMessage>}
 
       <fieldset className="space-y-1.5">
         <legend className="text-sm font-medium">{t('categories.icon')}</legend>

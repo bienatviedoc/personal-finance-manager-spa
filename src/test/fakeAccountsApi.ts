@@ -1,0 +1,235 @@
+import { http, HttpResponse } from 'msw'
+import type { components } from '@/shared/api/schema'
+import { apiUrl, problem, refuseWithoutToken, server } from './server'
+
+type Account = components['schemas']['AccountResponse']
+type AccountRequest = components['schemas']['AccountRequest']
+type InstitutionTotal = components['schemas']['InstitutionTotalResponse']
+type BaseCurrencyTotal = components['schemas']['BaseCurrencyTotalResponse']
+type NotConverted = components['schemas']['NotConvertedAmountResponse']
+type Currency = components['schemas']['Currency']
+
+const types = ['current', 'savings', 'creditCard', 'cash', 'eWallet', 'loan']
+const owedTypes = ['creditCard', 'loan']
+const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
+
+/** An amount as the API writes it: at least two decimals. Test amounts are small, so a number holds them. */
+const text = (amount: number) => amount.toFixed(2)
+
+/** The credit limit minus the amount owed now: the limit plus the balance, which is negative while anything is owed. */
+const availableCredit = (creditLimit: string | null, balance: string) => (creditLimit === null ? null : text(Number(creditLimit) + Number(balance)))
+
+const isDay = (day: unknown) => Number.isInteger(day) && (day as number) >= 1 && (day as number) <= 31
+
+type Options = {
+  /** The institutions an account may be put with, as `fakeInstitutionsApi` keeps them. Without it any institution is taken. */
+  institutions?: { id: string; isArchived: boolean }[]
+  /** The user's base currency, which the totals are converted into; a function when it can change mid-test. VND when left out. */
+  baseCurrency?: Currency | (() => Currency)
+  /**
+   * Today's exchange rates, by base currency: `{ VND: { USD: 25000 } }` says a dollar is 25,000 dong. A
+   * currency with no rate into the base currency is not converted. No rates when left out.
+   */
+  rates?: Partial<Record<Currency, Partial<Record<Currency, number>>>>
+}
+
+/**
+ * A stand-in for the API's account endpoints, keeping state across requests and following the same rules
+ * as the real API (see the API's AccountTests): the list is by name, a page at a time, without archived
+ * accounts unless asked, and carries the total of each institution in each currency, and those totals
+ * converted into the base currency and added up, leaving out and naming what has no rate; a credit card or loan
+ * takes `amountOwed` and holds it as a negative balance; with no transactions the balance is the opening
+ * balance; an edit must name the row version in `If-Match` (412 when stale, 428 when missing); deleting
+ * archives. Any account takes `last4`, exactly 4 digits; only a credit card takes `creditLimit`, `statementDay`
+ * and `paymentDueDay`, and its `availableCredit` is the limit plus its (negative) balance.
+ */
+export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institutions, baseCurrency = 'VND', rates = {} }: Options = {}) {
+  const state = {
+    accounts: accounts.map((account, index): Account => {
+      const openingBalance = account.openingBalance ?? '0.00'
+      const balance = account.balance ?? openingBalance
+      return {
+        id: `01970000-0000-7000-8000-2000000000${String(index).padStart(2, '0')}`,
+        institutionId: null,
+        name: `Account ${index}`,
+        type: 'current',
+        currency: 'VND',
+        amountOwed: null,
+        openingDate: '2026-11-01',
+        isArchived: false,
+        rowVersion: '1',
+        last4: null,
+        creditLimit: null,
+        statementDay: null,
+        paymentDueDay: null,
+        ...account,
+        openingBalance,
+        balance,
+        availableCredit: account.availableCredit ?? availableCredit(account.creditLimit ?? null, balance),
+      }
+    }),
+    /** The `If-Match` header of every edit, in the order they arrived. */
+    ifMatches: [] as (string | null)[],
+  }
+
+  const find = (id: unknown) => state.accounts.find((account) => account.id === id)
+
+  async function validated(request: Request, current?: Account) {
+    const body = (await request.json()) as Partial<AccountRequest>
+    const name = body.name?.trim() ?? ''
+    const errors: Record<string, string[]> = {}
+    if (name.length === 0 || name.length > 100) errors.name = ['Enter a name of at most 100 characters.']
+    if (!body.type || !types.includes(body.type)) errors.type = ['Choose one of the account types.']
+    if (!body.currency || !(body.currency in decimals)) errors.currency = ['Choose one of the currencies.']
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.openingDate ?? '')) errors.openingDate = ['Enter a date as YYYY-MM-DD.']
+
+    const owed = owedTypes.includes(body.type ?? '')
+    const [sent, other] = owed ? (['amountOwed', 'openingBalance'] as const) : (['openingBalance', 'amountOwed'] as const)
+    if (!errors.type && !errors.currency) {
+      const amount = body[sent] ?? ''
+      // Zeros past the currency's decimals change nothing: "1000.00" is a VND amount.
+      const fraction = (amount.split('.')[1] ?? '').replace(/0+$/, '')
+      const fits = /^-?\d{1,15}(\.\d+)?$/.test(amount) && fraction.length <= decimals[body.currency!]! && !(owed && amount.startsWith('-'))
+      if (!fits) errors[sent] = ['Enter an amount.']
+      if (body[other] != null) errors[other] = ['This type of account does not take it.']
+    }
+    const last4 = body.last4?.trim() || null
+    if (last4 !== null && !/^[0-9]{4}$/.test(last4)) errors.last4 = ['Enter only the last 4 digits. A full account or card number is never stored.']
+
+    const creditLimit = body.creditLimit ?? null
+    const days = { statementDay: body.statementDay ?? null, paymentDueDay: body.paymentDueDay ?? null }
+    if (body.type === 'creditCard') {
+      if (creditLimit !== null && !errors.currency) {
+        const fraction = (creditLimit.split('.')[1] ?? '').replace(/0+$/, '')
+        if (!/^\d{1,15}(\.\d+)?$/.test(creditLimit) || fraction.length > decimals[body.currency!]!) errors.creditLimit = ['Enter an amount.']
+      }
+      for (const [field, day] of Object.entries(days)) if (day !== null && !isDay(day)) errors[field] = ['Enter a day of the month, 1 to 31.']
+    } else if (!errors.type) {
+      for (const [field, sentValue] of Object.entries({ creditLimit, ...days })) if (sentValue !== null) errors[field] = ['Only a credit card has it.']
+    }
+    if (Object.keys(errors).length > 0) return { refused: problem(400, { errors }) }
+
+    const institutionId = body.institutionId ?? null
+    if (institutionId !== null && institutionId !== current?.institutionId && institutions) {
+      const institution = institutions.find((candidate) => candidate.id === institutionId)
+      if (!institution || institution.isArchived) {
+        return { refused: problem(400, { errors: { institutionId: ['Choose one of your institutions that is not archived.'] } }) }
+      }
+    }
+
+    const amount = Number(body[sent])
+    const openingBalance = text(owed ? -amount : amount)
+    return {
+      fields: {
+        institutionId,
+        name,
+        type: body.type as Account['type'],
+        currency: body.currency as Account['currency'],
+        openingBalance,
+        amountOwed: owed ? text(amount) : null,
+        openingDate: body.openingDate!,
+        // No transactions yet: the balance is the opening balance.
+        balance: openingBalance,
+        last4,
+        creditLimit: creditLimit === null ? null : text(Number(creditLimit)),
+        statementDay: days.statementDay as number | null,
+        paymentDueDay: days.paymentDueDay as number | null,
+        availableCredit: availableCredit(creditLimit, openingBalance),
+      },
+    }
+  }
+
+  function totalsOf(listed: Account[]): InstitutionTotal[] {
+    const totals = new Map<string, InstitutionTotal & { sum: number }>()
+    for (const account of listed) {
+      const key = `${account.institutionId}:${account.currency}`
+      const total = totals.get(key) ?? { institutionId: account.institutionId, currency: account.currency, balance: '', sum: 0 }
+      total.sum += Number(account.balance)
+      totals.set(key, total)
+    }
+    return [...totals.values()].map(({ sum, ...total }) => ({ ...total, balance: text(sum) }))
+  }
+
+  /** Each institution's total in each currency converted once, then added up: the institutions come to the whole. */
+  function inBaseCurrency(totals: InstitutionTotal[]): BaseCurrencyTotal {
+    const currency = typeof baseCurrency === 'function' ? baseCurrency() : baseCurrency
+    const round = (amount: number) => Number(amount.toFixed(decimals[currency]))
+    const institutions = new Map<string | null, { institutionId: string | null; sum: number; notConverted: NotConverted[] }>()
+    for (const total of totals) {
+      const institution = institutions.get(total.institutionId) ?? { institutionId: total.institutionId, sum: 0, notConverted: [] }
+      const rate = total.currency === currency ? 1 : rates[currency]?.[total.currency]
+      if (rate === undefined) institution.notConverted.push({ currency: total.currency, balance: total.balance })
+      else institution.sum += round(Number(total.balance) * rate)
+      institutions.set(total.institutionId, institution)
+    }
+    const leftOut = new Map<Currency, number>()
+    for (const { notConverted } of institutions.values()) {
+      for (const amount of notConverted) leftOut.set(amount.currency, (leftOut.get(amount.currency) ?? 0) + Number(amount.balance))
+    }
+    return {
+      currency,
+      balance: text([...institutions.values()].reduce((sum, institution) => sum + institution.sum, 0)),
+      notConverted: Object.keys(decimals)
+        .filter((code) => leftOut.has(code as Currency))
+        .map((code) => ({ currency: code as Currency, balance: text(leftOut.get(code as Currency)!) })),
+      institutions: [...institutions.values()].map(({ sum, ...institution }) => ({ ...institution, balance: text(sum) })),
+    }
+  }
+
+  server.use(
+    http.get(apiUrl('/api/v1/accounts'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const includeArchived = query.get('includeArchived') === 'true'
+      const limit = Number(query.get('limit') ?? 50)
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) return problem(400, { errors: { limit: ['Ask for 1 to 100 at a time.'] } })
+      const sorted = state.accounts
+        .filter((account) => includeArchived || !account.isArchived)
+        .toSorted((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }) || a.id.localeCompare(b.id))
+      // The real cursor is opaque; this one is the id of the page's last account.
+      const cursor = query.get('cursor')
+      const start = cursor === null ? 0 : sorted.findIndex((account) => account.id === cursor) + 1
+      if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
+      const items = sorted.slice(start, start + limit)
+      const nextCursor = start + limit < sorted.length ? items.at(-1)!.id : null
+      const totals = totalsOf(sorted)
+      return HttpResponse.json({ items, nextCursor, totals, baseCurrencyTotal: inBaseCurrency(totals) })
+    }),
+    http.get(apiUrl('/api/v1/accounts/:id'), ({ params }) => {
+      const found = find(params.id)
+      return found ? HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } }) : problem(404)
+    }),
+    http.post(apiUrl('/api/v1/accounts'), async ({ request }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const result = await validated(request)
+      if (result.refused) return result.refused
+      const created: Account = { id: crypto.randomUUID(), isArchived: false, rowVersion: '1', ...result.fields }
+      state.accounts.push(created)
+      return HttpResponse.json(created, { status: 201, headers: { ETag: `"${created.rowVersion}"` } })
+    }),
+    http.put(apiUrl('/api/v1/accounts/:id'), async ({ request, params }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const ifMatch = request.headers.get('If-Match')
+      state.ifMatches.push(ifMatch)
+      if (ifMatch === null) return problem(428)
+      const found = find(params.id)
+      if (!found) return problem(404)
+      if (ifMatch !== `"${found.rowVersion}"`) return problem(412)
+      const result = await validated(request, found)
+      if (result.refused) return result.refused
+      Object.assign(found, result.fields, { rowVersion: String(Number(found.rowVersion) + 1) })
+      return HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } })
+    }),
+    http.delete(apiUrl('/api/v1/accounts/:id'), ({ request, params }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const found = find(params.id)
+      if (!found) return problem(404)
+      if (!found.isArchived) Object.assign(found, { isArchived: true, rowVersion: String(Number(found.rowVersion) + 1) })
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+
+  return state
+}

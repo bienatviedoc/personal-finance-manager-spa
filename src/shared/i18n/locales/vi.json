@@ -2,6 +2,12 @@
   "app": {
     "name": "Quản lý Tài chính Cá nhân"
   },
+  "toast": {
+    "label": "Thông báo",
+    "viewport": "Thông báo ({hotkey})",
+    "retry": "Thử lại",
+    "dismiss": "Đóng"
+  },
   "nav": {
     "label": "Điều hướng chính",
     "dashboard": "Tổng quan",
@@ -100,16 +106,158 @@
       "resend": "Gửi lại liên kết",
       "resent": "Chúng tôi đã gửi một liên kết mới đến {{email}}."
     },
+    "twoFactor": {
+      "body": "Mở ứng dụng xác thực và nhập mã hiển thị cho Personal Finance Manager.",
+      "code": "Mã từ ứng dụng xác thực",
+      "recoveryCodeBody": "Nhập một trong các mã khôi phục bạn đã lưu khi bật đăng nhập hai lớp. Mỗi mã chỉ dùng được một lần.",
+      "recoveryCode": "Mã khôi phục",
+      "useRecoveryCode": "Dùng mã khôi phục",
+      "useAuthenticator": "Dùng ứng dụng xác thực",
+      "startOver": "Đăng nhập bằng người dùng khác",
+      "errors": {
+        "codeInvalid": "Nhập mã gồm 6 chữ số.",
+        "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực.",
+        "recoveryCodeRequired": "Nhập mã khôi phục.",
+        "recoveryCodeIncorrect": "Mã khôi phục không đúng hoặc đã được dùng.",
+        "paused": "Việc đăng nhập bị tạm dừng 15 phút sau quá nhiều lần thử sai. Hãy thử lại sau."
+      }
+    },
     "errors": {
       "emailInvalid": "Hãy nhập địa chỉ email hợp lệ.",
       "passwordRequired": "Hãy nhập mật khẩu.",
       "passwordTooShort": "Hãy dùng ít nhất 12 ký tự.",
       "wrongCredentials": "Email hoặc mật khẩu không đúng.",
-      "generic": "Đã xảy ra lỗi. Hãy thử lại."
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "lockWarning": "Sau 5 lần thử sai liên tiếp, việc đăng nhập bị tạm dừng 15 phút.",
+      "tooManyAttempts": "Quá nhiều lần thử. Hãy đợi một phút rồi thử lại."
     },
     "userMenu": {
       "signedInAs": "Đã đăng nhập: {{email}}",
       "signOut": "Đăng xuất"
+    }
+  },
+  "accounts": {
+    "intro": "Những nơi bạn giữ tiền, nhóm theo tổ chức tài chính.",
+    "add": "Thêm tài khoản",
+    "new": "Tài khoản mới",
+    "empty": "Chưa có tài khoản nào. Hãy thêm các tài khoản bạn đang giữ tiền.",
+    "showArchived": "Hiện tài khoản đã lưu trữ",
+    "archived": "Đã lưu trữ",
+    "noInstitution": "Không thuộc tổ chức nào",
+    "total": "Tổng",
+    "totalsOf": "Tổng của {{name}}",
+    "accountsOf": "Tài khoản của {{name}}",
+    "allAccounts": "Tất cả tài khoản",
+    "totalIn": "Tổng quy đổi sang {{currency}}",
+    "inCurrency": "Quy đổi sang {{currency}}",
+    "totalOfIn": "Tổng của {{name}} quy đổi sang {{currency}}",
+    "notConverted": "Chưa quy đổi: {{amounts}}.",
+    "notConvertedExplained": "Chưa quy đổi: {{amounts}}. Chưa có tỷ giá nên khoản này không được tính vào tổng.",
+    "name": "Tên",
+    "type": "Loại",
+    "types": {
+      "current": "Thanh toán",
+      "savings": "Tiết kiệm",
+      "creditCard": "Thẻ tín dụng",
+      "cash": "Tiền mặt",
+      "eWallet": "Ví điện tử",
+      "loan": "Khoản vay"
+    },
+    "institution": "Tổ chức tài chính",
+    "currency": "Loại tiền",
+    "openingBalance": "Số dư ban đầu",
+    "openingBalanceHint": "Tài khoản đang bị thấu chi thì nhập số âm: thêm dấu trừ ở đầu.",
+    "amountOwed": "Số tiền đang nợ",
+    "amountOwedHint": "Nhập số tiền bạn đang nợ dưới dạng số dương. Tài khoản sẽ hiển thị số dư âm.",
+    "openingDate": "Ngày bắt đầu",
+    "last4": "4 số cuối",
+    "last4Hint": "Không bắt buộc. Chỉ nhập 4 số cuối để phân biệt các tài khoản. Đừng bao giờ nhập đầy đủ số tài khoản hay số thẻ.",
+    "endingIn": "Số cuối {{last4}}",
+    "creditLimit": "Hạn mức tín dụng",
+    "creditLimitHint": "Không bắt buộc. Khi có hạn mức, tài khoản sẽ hiển thị hạn mức còn lại: hạn mức tín dụng trừ số tiền đang nợ.",
+    "availableCredit": "Hạn mức còn lại",
+    "statementDay": "Ngày chốt sao kê",
+    "paymentDueDay": "Hạn thanh toán",
+    "dayNotSet": "Chưa đặt",
+    "balance": "Số dư",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "edit": "Sửa",
+    "editNamed": "Sửa {{name}}",
+    "archive": "Lưu trữ",
+    "archiveNamed": "Lưu trữ {{name}}",
+    "archiveExplained": "Lưu trữ {{name}}? Tài khoản này sẽ không còn trong danh sách chọn, nhưng vẫn được giữ trong lịch sử của bạn.",
+    "archiveNotZero": "Số dư của tài khoản khác 0: {{balance}} vẫn được tính trong tổng số và báo cáo.",
+    "archiveConfirm": "Lưu trữ",
+    "errors": {
+      "nameRequired": "Nhập tên.",
+      "nameTooLong": "Dùng tối đa 100 ký tự.",
+      "type": "Chọn một trong các loại tài khoản.",
+      "institution": "Chọn một tổ chức của bạn chưa bị lưu trữ.",
+      "currency": "Chọn một trong các loại tiền.",
+      "currencyLocked": "Không thể đổi loại tiền khi tài khoản đã có giao dịch.",
+      "amountRequired": "Nhập số tiền.",
+      "amountInvalid": "Nhập số tiền, ví dụ {{example}}.",
+      "openingDate": "Nhập ngày.",
+      "last4": "Nhập đúng 4 chữ số: 4 số cuối, không bao giờ nhập toàn bộ dãy số.",
+      "creditLimit": "Nhập hạn mức tín dụng, ví dụ {{example}}, hoặc để trống.",
+      "day": "Chọn một ngày trong tháng, từ 1 đến 31.",
+      "stale": "Tài khoản này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "notSaved": "Chưa lưu được tài khoản.",
+      "notArchived": "Chưa lưu trữ được tài khoản."
+    }
+  },
+  "transactions": {
+    "intro": "Các khoản thu và chi của bạn, mới nhất ở trên.",
+    "add": "Thêm giao dịch",
+    "new": "Giao dịch mới",
+    "editTitle": "Sửa giao dịch",
+    "empty": "Chưa có giao dịch nào. Hãy thêm khoản thu hoặc khoản chi đầu tiên.",
+    "noAccounts": "Giao dịch được ghi vào một tài khoản, và bạn chưa có tài khoản nào.",
+    "toAccounts": "Thêm tài khoản",
+    "loading": "Đang tải giao dịch",
+    "loadMore": "Tải thêm",
+    "type": "Loại",
+    "types": {
+      "expense": "Khoản chi",
+      "income": "Khoản thu"
+    },
+    "account": "Tài khoản",
+    "accountOption": "{{name}} ({{currency}})",
+    "amountIn": "Số tiền ({{currency}})",
+    "date": "Ngày",
+    "category": "Danh mục",
+    "chooseCategory": "Chọn danh mục",
+    "subcategory": "{{parent}} › {{name}}",
+    "payee": "Bên nhận / bên trả",
+    "note": "Ghi chú",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "done": "Xong",
+    "savedAddAnother_one": "Đã lưu. Thêm giao dịch khác, hoặc đóng khi bạn xong.",
+    "savedAddAnother_other": "Đã lưu {{count}} giao dịch. Thêm giao dịch khác, hoặc đóng khi bạn xong.",
+    "edit": "Sửa",
+    "editNamed": "Sửa {{name}}",
+    "delete": "Xóa",
+    "deleteNamed": "Xóa {{name}}",
+    "deleteExplained": "Xóa {{name}}? Giao dịch sẽ không còn trong danh sách này và số dư tài khoản.",
+    "deleteConfirm": "Xóa",
+    "errors": {
+      "type": "Chọn khoản thu hoặc khoản chi.",
+      "account": "Chọn một tài khoản của bạn chưa bị lưu trữ.",
+      "amountRequired": "Nhập số tiền.",
+      "amountZero": "Nhập số tiền lớn hơn 0.",
+      "amountInvalid": "Nhập số tiền, ví dụ {{example}}.",
+      "date": "Nhập ngày.",
+      "dateInFuture": "Ngày không được ở tương lai.",
+      "category": "Chọn danh mục.",
+      "payeeTooLong": "Dùng tối đa 200 ký tự.",
+      "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "stale": "Giao dịch này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "notSaved": "Chưa lưu được giao dịch.",
+      "notDeleted": "Chưa xóa được giao dịch."
     }
   },
   "institutions": {
@@ -165,7 +313,59 @@
         "locale": "Không thể chọn ngôn ngữ này."
       }
     },
-    "categories": "Danh mục"
+    "categories": "Danh mục",
+    "security": {
+      "title": "Bảo mật",
+      "cancel": "Hủy",
+      "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút.",
+      "password": {
+        "title": "Mật khẩu",
+        "current": "Mật khẩu hiện tại",
+        "new": "Mật khẩu mới",
+        "newHint": "Ít nhất 12 ký tự.",
+        "submit": "Đổi mật khẩu",
+        "changed": "Mật khẩu của bạn đã được đổi. Bạn đã được đăng xuất ở mọi nơi khác.",
+        "errors": {
+          "currentRequired": "Nhập mật khẩu hiện tại.",
+          "currentIncorrect": "Đó không phải mật khẩu hiện tại của bạn.",
+          "newTooShort": "Dùng ít nhất 12 ký tự."
+        }
+      },
+      "twoFactor": {
+        "title": "Đăng nhập hai lớp",
+        "intro": "Với đăng nhập hai lớp, bạn đăng nhập bằng mật khẩu và một mã từ ứng dụng xác thực trên điện thoại.",
+        "loading": "Đang tải…",
+        "on": "Đăng nhập hai lớp đang bật.",
+        "off": "Đăng nhập hai lớp đang tắt.",
+        "setUp": "Thiết lập đăng nhập hai lớp",
+        "scan": "Quét mã QR này bằng ứng dụng xác thực.",
+        "qrCode": "Mã QR để quét bằng ứng dụng xác thực",
+        "keyInstead": "Không quét được? Hãy nhập khóa này vào ứng dụng:",
+        "confirm": "Nhập mã ứng dụng hiển thị để xác nhận đã thiết lập xong.",
+        "code": "Mã từ ứng dụng xác thực",
+        "turnOn": "Bật",
+        "recoveryCodes": "Mã khôi phục",
+        "recoveryCodesBody": "Hãy lưu các mã này ở nơi an toàn. Mỗi mã giúp bạn đăng nhập một lần nếu mất ứng dụng xác thực. Chúng chỉ hiển thị lúc này.",
+        "copyCodes": "Sao chép mã",
+        "copied": "Đã sao chép.",
+        "codesSaved": "Tôi đã lưu",
+        "recoveryCodesLeft_one": "Còn {{count}} mã khôi phục.",
+        "recoveryCodesLeft_other": "Còn {{count}} mã khôi phục.",
+        "newRecoveryCodes": "Tạo mã khôi phục mới",
+        "newRecoveryCodesBody": "Các mã khôi phục cũ sẽ không dùng được nữa. Nhập mật khẩu để nhận mã mới.",
+        "newRecoveryCodesSubmit": "Tạo mã mới",
+        "turnOff": "Tắt đăng nhập hai lớp",
+        "turnOffBody": "Việc đăng nhập sẽ chỉ cần mật khẩu. Nhập mật khẩu để tắt đăng nhập hai lớp.",
+        "turnOffSubmit": "Tắt",
+        "password": "Mật khẩu",
+        "errors": {
+          "codeInvalid": "Nhập mã gồm 6 chữ số.",
+          "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực.",
+          "passwordRequired": "Nhập mật khẩu.",
+          "passwordIncorrect": "Đó không phải mật khẩu của bạn."
+        }
+      }
+    }
   },
   "categories": {
     "title": "Danh mục",

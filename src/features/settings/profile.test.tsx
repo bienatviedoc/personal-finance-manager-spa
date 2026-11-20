@@ -31,6 +31,18 @@ describe('profile settings', () => {
     expect(api.profile).toMatchObject({ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en' })
   })
 
+  it('are not asked for again after a new base currency is saved: the answer to the save is the profile', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user, queryClient } = renderApp('/settings/profile')
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Base currency' }), 'EUR')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+    expect(api.reads).toBe(1)
+  })
+
   it('show how amounts will look in the chosen currency and language', async () => {
     fakeProfileApi({ locale: 'en' })
     const { user } = renderApp('/settings/profile')
@@ -150,15 +162,20 @@ describe('profile settings', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('say so when the settings could not be saved, and keep what the user chose', async () => {
-    fakeProfileApi({ locale: 'en' })
+  it('say in a toast when the settings could not be saved, keep what the user chose, and save it when the user tries again', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
     const { user } = renderApp('/settings/profile')
-    server.use(http.patch(apiUrl('/api/v1/me'), () => problem(500)))
+    server.use(http.patch(apiUrl('/api/v1/me'), () => problem(500), { once: true }))
 
     await user.selectOptions(await screen.findByRole('combobox', { name: 'Base currency' }), 'USD')
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Your settings could not be saved. Try again.')
+    expect(await screen.findByText('Your settings could not be saved. Try again.')).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Base currency' })).toHaveValue('USD')
+    expect(api.profile.baseCurrency).not.toBe('USD')
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(api.profile.baseCurrency).toBe('USD'))
+    expect(screen.queryByText('Your settings could not be saved. Try again.')).not.toBeInTheDocument()
   })
 })
