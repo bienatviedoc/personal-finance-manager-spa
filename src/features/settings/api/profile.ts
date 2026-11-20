@@ -30,7 +30,13 @@ export function useUpdateProfile() {
       throw new Error(`Could not save the profile: ${response.status}`)
     },
     onSuccess: (outcome) => {
-      if (outcome.saved) queryClient.setQueryData(signedInUserQuery.queryKey, outcome.profile)
+      if (!outcome.saved) return
+      const before = queryClient.getQueryData(signedInUserQuery.queryKey)
+      queryClient.setQueryData(signedInUserQuery.queryKey, outcome.profile)
+      // Totals the API converted into the old base currency are no longer what it would answer.
+      if (before?.baseCurrency !== outcome.profile.baseCurrency) {
+        return queryClient.invalidateQueries({ predicate: (query) => query.queryKey !== signedInUserQuery.queryKey })
+      }
     },
   })
 }

@@ -123,6 +123,12 @@
     "total": "Tổng",
     "totalsOf": "Tổng của {{name}}",
     "accountsOf": "Tài khoản của {{name}}",
+    "allAccounts": "Tất cả tài khoản",
+    "totalIn": "Tổng quy đổi sang {{currency}}",
+    "inCurrency": "Quy đổi sang {{currency}}",
+    "totalOfIn": "Tổng của {{name}} quy đổi sang {{currency}}",
+    "notConverted": "Chưa quy đổi: {{amounts}}.",
+    "notConvertedExplained": "Chưa quy đổi: {{amounts}}. Chưa có tỷ giá nên khoản này không được tính vào tổng.",
     "name": "Tên",
     "type": "Loại",
     "types": {

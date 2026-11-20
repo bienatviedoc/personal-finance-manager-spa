@@ -8,6 +8,12 @@ export type AccountType = components['schemas']['AccountType']
 export type AccountFields = components['schemas']['AccountRequest']
 /** The balance of the listed accounts at one institution (null: at none) in one currency, added up by the API. */
 export type InstitutionTotal = components['schemas']['InstitutionTotalResponse']
+/**
+ * The balances of the listed accounts in the user's base currency, converted and added up by the API: all of
+ * them, and those of each institution. `notConverted` names what a balance leaves out for want of an exchange rate.
+ */
+export type BaseCurrencyTotal = components['schemas']['BaseCurrencyTotalResponse']
+export type NotConvertedAmount = components['schemas']['NotConvertedAmountResponse']
 
 /** Every account type, in the order the spec lists them. A type the API adds and this list lacks fails typecheck. */
 export const accountTypes = ['current', 'savings', 'creditCard', 'cash', 'eWallet', 'loan'] as const satisfies readonly AccountType[]
@@ -67,9 +73,9 @@ const accountFields: AccountField[] = [
 ]
 
 /**
- * The user's accounts by name, each with its balance, and the total of each institution in each currency.
- * Archived accounts are left out unless asked for, as pickers need. A user has dozens, so every page is loaded;
- * every page carries the totals of the whole list.
+ * The user's accounts by name, each with its balance, the total of each institution in each currency, and the
+ * totals in the base currency. Archived accounts are left out unless asked for, as pickers need. A user has
+ * dozens, so every page is loaded; every page carries the totals of the whole list.
  */
 export const accountsQuery = ({ includeArchived = false }: { includeArchived?: boolean } = {}) =>
   queryOptions({
@@ -77,15 +83,17 @@ export const accountsQuery = ({ includeArchived = false }: { includeArchived?: b
     queryFn: async () => {
       const accounts: Account[] = []
       let totals: InstitutionTotal[]
+      let baseCurrencyTotal: BaseCurrencyTotal
       let cursor: string | undefined
       do {
         const { data, response } = await api.GET('/api/v1/accounts', { params: { query: { cursor, includeArchived } } })
         if (!data) throw new Error(`Could not load accounts: ${response.status}`)
         accounts.push(...data.items)
         totals = data.totals
+        baseCurrencyTotal = data.baseCurrencyTotal
         cursor = data.nextCursor ?? undefined
       } while (cursor)
-      return { accounts, totals }
+      return { accounts, totals, baseCurrencyTotal }
     },
   })
 

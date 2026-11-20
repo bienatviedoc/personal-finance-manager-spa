@@ -123,6 +123,12 @@
     "total": "Total",
     "totalsOf": "Totals of {{name}}",
     "accountsOf": "Accounts of {{name}}",
+    "allAccounts": "All accounts",
+    "totalIn": "Total in {{currency}}",
+    "inCurrency": "In {{currency}}",
+    "totalOfIn": "Total of {{name}} in {{currency}}",
+    "notConverted": "Not converted: {{amounts}}.",
+    "notConvertedExplained": "Not converted: {{amounts}}. No exchange rate is available yet, so it is left out of the total.",
     "name": "Name",
     "type": "Type",
     "types": {
