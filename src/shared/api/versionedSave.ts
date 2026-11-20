@@ -10,7 +10,8 @@ export type VersionedSaveOutcome<Name extends string, Entity, Field extends stri
   /** The record changed since the row version the edit was made from: nothing was saved. Load it again. */
   | { saved: false; stale: true }
 
-type SaveResponse<Entity> = { data?: Entity; error?: unknown; response: Response }
+/** What the API client answers a save with: the record when it was saved, otherwise the error and the response to read it from. */
+export type VersionedSaveResponse<Entity> = { data?: Entity; error?: unknown; response: Response }
 
 /**
  * Reads the API's answer to saving such a record into its outcome: saved, stale on a 412, or the fields a 400
@@ -18,7 +19,7 @@ type SaveResponse<Entity> = { data?: Entity; error?: unknown; response: Response
  */
 export function versionedSaveOutcome<Name extends string, Entity, Field extends string>(
   name: Name,
-  { data, error, response }: SaveResponse<Entity>,
+  { data, error, response }: VersionedSaveResponse<Entity>,
   fields: readonly Field[],
 ): VersionedSaveOutcome<Name, Entity, Field> {
   if (data) return { saved: true, [name]: data } as { saved: true } & Record<Name, Entity>
@@ -28,8 +29,10 @@ export function versionedSaveOutcome<Name extends string, Entity, Field extends 
   throw new Error(`Saving the ${name} failed: ${response.status}`)
 }
 
-/** Whether the last save found the record changed somewhere else, for the screen to say so. */
-export function isStale(outcome: VersionedSaveOutcome<string, unknown, string> | undefined): boolean {
+/** Whether the save found the record changed somewhere else: the one place that reads an outcome as stale. */
+export function isStale<Outcome extends VersionedSaveOutcome<string, unknown, string>>(
+  outcome: Outcome | undefined,
+): outcome is Extract<Outcome, { stale: true }> {
   return outcome !== undefined && !outcome.saved && 'stale' in outcome
 }
 

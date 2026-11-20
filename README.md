@@ -203,8 +203,9 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   a decimal string (`"1200000.5"`), `''` when empty, or `null` when the text is not an amount (misplaced
   separators, a minus sign, or more decimals than the currency has), which the form should report as an error.
   In a form, use `<AmountField control name label currency />`, which labels it and ties its hint and error
-  to it. `parseAmount` and `formatAmountForInput` are the pure functions
-  underneath. Only the opening balance of an account that holds no amount owed takes a minus sign
+  to it, and in its schema `requiredAmount` or `typedAmount` (an amount that may be left empty), which refuse
+  what is not an amount with the form's own message. `parseAmount` and `formatAmountForInput` are the pure
+  functions underneath. Only the opening balance of an account that holds no amount owed takes a minus sign
   (`allowNegative`), because a current account can open overdrawn; amounts owed and transaction amounts are
   always positive.
 - **Never turn an amount into a `number`**, not even to compare or add. Totals, balances and conversions come

@@ -7,9 +7,10 @@ import { z } from 'zod'
 import { useUserSettings } from '@/features/settings'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
-import { todayIn } from '@/shared/dates'
+import { isStale } from '@/shared/api/versionedSave'
+import { calendarDate, todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { AmountField, currencies, formatAmountForInput } from '@/shared/money'
+import { AmountField, amountExample, currencies, requiredAmount, typedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
   accountTypes,
@@ -30,22 +31,15 @@ const schema = z
     institutionId: z.string(),
     currency: z.enum(currencies),
     // What the amount input holds: null when the text is not an amount, '' when it is empty.
-    amount: z
-      .string({ error: 'accounts.errors.amountInvalid' })
-      .nullable()
-      .refine((amount) => amount !== null, { error: 'accounts.errors.amountInvalid' })
-      .refine((amount) => amount !== '', { error: 'accounts.errors.amountRequired' }),
-    openingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'accounts.errors.openingDate' }),
+    amount: requiredAmount({ invalid: 'accounts.errors.amountInvalid', required: 'accounts.errors.amountRequired' }),
+    openingDate: calendarDate('accounts.errors.openingDate'),
     // Empty, or exactly 4 digits: a full account or card number never leaves the form (spec ACC-8).
     last4: z
       .string()
       .trim()
       .regex(/^([0-9]{4})?$/, { error: 'accounts.errors.last4' }),
     // A credit card's only. Like the amount, but '' is "no credit limit".
-    creditLimit: z
-      .string({ error: 'accounts.errors.creditLimit' })
-      .nullable()
-      .refine((limit) => limit !== null, { error: 'accounts.errors.creditLimit' }),
+    creditLimit: typedAmount('accounts.errors.creditLimit'),
     // '' is "not set", otherwise a day of the month.
     statementDay: z.string(),
     paymentDueDay: z.string(),
@@ -77,9 +71,6 @@ const creditLimitField = 'creditLimit'
 
 /** The days a month can have. In a shorter month, a later day means its last day. */
 const daysOfMonth = Array.from({ length: 31 }, (_, index) => String(index + 1))
-
-/** An amount large enough to show the locale's separators, for the hint in an error. */
-const exampleAmount = '1250000'
 
 type Props = {
   /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
@@ -138,7 +129,7 @@ export function AccountForm({ id, account, institutions, onSave, onDone }: Props
   const currencyNames = useMemo(() => new Intl.DisplayNames(locale, { type: 'currency' }), [locale])
   const institutionOptions = institutions.filter((institution) => !institution.isArchived || institution.id === account?.institutionId)
   const dayOptions = [{ value: '', label: t('accounts.dayNotSet') }, ...daysOfMonth.map((day) => ({ value: day, label: day }))]
-  const amountExample = { example: formatAmountForInput(exampleAmount, locale, currency) }
+  const example = { example: amountExample(locale, currency) }
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = values.amount as string
@@ -167,7 +158,7 @@ export function AccountForm({ id, account, institutions, onSave, onDone }: Props
       onDone()
       return
     }
-    if ('stale' in outcome) return
+    if (isStale(outcome)) return
     for (const refused of outcome.fields) {
       const { field, message } = serverErrors[refused]
       form.setError(field, { message }, { shouldFocus: true })
@@ -209,7 +200,7 @@ export function AccountForm({ id, account, institutions, onSave, onDone }: Props
         name={amountField}
         label={owed ? t('accounts.amountOwed') : t('accounts.openingBalance')}
         hint={owed ? t('accounts.amountOwedHint') : t('accounts.openingBalanceHint')}
-        error={errors.amount?.message && t(errors.amount.message as ParseKeys, amountExample)}
+        error={errors.amount?.message && t(errors.amount.message as ParseKeys, example)}
         currency={currency}
         allowNegative={!owed}
       />
@@ -236,7 +227,7 @@ export function AccountForm({ id, account, institutions, onSave, onDone }: Props
             name={creditLimitField}
             label={t('accounts.creditLimit')}
             hint={t('accounts.creditLimitHint')}
-            error={errors.creditLimit?.message && t(errors.creditLimit.message as ParseKeys, amountExample)}
+            error={errors.creditLimit?.message && t(errors.creditLimit.message as ParseKeys, example)}
             currency={currency}
           />
           <SelectField

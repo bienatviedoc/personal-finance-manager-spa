@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
-import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome } from '@/shared/api/versionedSave'
+import { ifMatch, isStale, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
 
 export type Account = components['schemas']['AccountResponse']
 export type AccountType = components['schemas']['AccountType']
@@ -104,15 +104,13 @@ export function useArchiveAccount() {
   })
 }
 
-type SaveResponse = { data?: Account; error?: unknown; response: Response }
-
-function useSaveAccount(save: (fields: AccountFields) => Promise<SaveResponse>) {
+function useSaveAccount(save: (fields: AccountFields) => Promise<VersionedSaveResponse<Account>>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (fields: AccountFields): Promise<SaveOutcome> => versionedSaveOutcome('account', await save(fields), accountFields),
     // Saved, or stale: either way the list no longer shows what the API holds.
     onSuccess: (outcome) => {
-      if (outcome.saved || 'stale' in outcome) return queryClient.invalidateQueries({ queryKey: accountsKey })
+      if (outcome.saved || isStale(outcome)) return queryClient.invalidateQueries({ queryKey: accountsKey })
     },
   })
 }

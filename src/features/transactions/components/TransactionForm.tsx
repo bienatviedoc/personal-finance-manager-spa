@@ -9,11 +9,12 @@ import type { Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
-import { todayIn, type CalendarDate } from '@/shared/dates'
+import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRingWithin } from '@/shared/lib/utils'
-import { AmountField, formatAmountForInput, isZeroAmount, parseAmount } from '@/shared/money'
+import { AmountField, amountExample, formatAmountForInput, isZeroAmount, parseAmount, requiredAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
+import { isStale } from '@/shared/api/versionedSave'
 import { transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
 /**
@@ -25,17 +26,12 @@ const schemaFor = (today: CalendarDate) =>
     type: z.enum(transactionTypes),
     accountId: z.string().min(1, { error: 'transactions.errors.account' }),
     // What the amount input holds: null when the text is not an amount, '' when it is empty.
-    amount: z
-      .string({ error: 'transactions.errors.amountInvalid' })
-      .nullable()
-      .refine((amount) => amount !== null, { error: 'transactions.errors.amountInvalid' })
-      .refine((amount) => amount !== '', { error: 'transactions.errors.amountRequired' })
-      .refine((amount) => !amount || !isZeroAmount(amount), { error: 'transactions.errors.amountZero' }),
-    date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'transactions.errors.date' })
-      // Calendar dates as YYYY-MM-DD sort as text.
-      .refine((date) => date <= today, { error: 'transactions.errors.dateInFuture' }),
+    amount: requiredAmount({ invalid: 'transactions.errors.amountInvalid', required: 'transactions.errors.amountRequired' }).refine(
+      (amount) => !amount || !isZeroAmount(amount),
+      { error: 'transactions.errors.amountZero' },
+    ),
+    // Calendar dates as YYYY-MM-DD sort as text.
+    date: calendarDate('transactions.errors.date').refine((date) => date <= today, { error: 'transactions.errors.dateInFuture' }),
     categoryId: z.string().min(1, { error: 'transactions.errors.category' }),
     payee: z.string().trim().max(200, { error: 'transactions.errors.payeeTooLong' }),
     note: z.string().trim().max(1000, { error: 'transactions.errors.noteTooLong' }),
@@ -58,9 +54,6 @@ const serverErrors: Record<TransactionField, ParseKeys> = {
 
 // Named outside JSX, where lint would take a field name for user-facing text.
 const amountField = 'amount'
-
-/** An amount large enough to show the locale's separators, for the hint in an error. */
-const exampleAmount = '1250000'
 
 type Props = {
   /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
@@ -164,7 +157,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
       onSaved()
       return
     }
-    if ('stale' in outcome) return
+    if (isStale(outcome)) return
     for (const refused of outcome.fields) {
       form.setError(refused, { message: serverErrors[refused] }, { shouldFocus: true })
     }
@@ -201,7 +194,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
         control={form.control}
         name={amountField}
         label={t('transactions.amountIn', { currency })}
-        error={errors.amount?.message && t(errors.amount.message as ParseKeys, { example: formatAmountForInput(exampleAmount, locale, currency) })}
+        error={errors.amount?.message && t(errors.amount.message as ParseKeys, { example: amountExample(locale, currency) })}
         currency={currency}
       />
 

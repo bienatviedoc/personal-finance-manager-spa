@@ -2,7 +2,7 @@ import { infiniteQueryOptions, useMutation, useQueryClient, type InfiniteData, t
 import { refreshAccountBalances } from '@/features/accounts'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
-import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome } from '@/shared/api/versionedSave'
+import { ifMatch, isStale, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
 import type { Currency } from '@/shared/money'
 
 export type Transaction = components['schemas']['TransactionResponse']
@@ -94,27 +94,27 @@ export function useDeleteTransaction() {
   })
 }
 
-type SaveResponse = { data?: Transaction; error?: unknown; response: Response }
-type Lists = InfiniteData<TransactionPage, string | undefined>
+/** The pages of the list loaded so far. */
+type LoadedPages = InfiniteData<TransactionPage, string | undefined>
 
 /**
  * Saves a transaction optimistically (spec section 12): the lists show it as soon as it is sent, are put
  * back if it is not saved, and are loaded again, with the account balances, once the API has answered.
  */
 function useSaveTransaction<Draft extends TransactionDraft>(
-  save: (draft: Draft) => Promise<SaveResponse>,
+  save: (draft: Draft) => Promise<VersionedSaveResponse<Transaction>>,
   /** What the transaction is known by while it is shown ahead of the API's answer. */
   identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion'> | Pick<PendingTransaction, 'pendingKey'>,
 ) {
   const queryClient = useQueryClient()
-  const lists = { queryKey: transactionsQuery.queryKey }
+  const list = { queryKey: transactionsQuery.queryKey }
 
   return useMutation({
     mutationFn: async (draft: Draft): Promise<SaveOutcome> => versionedSaveOutcome('transaction', await save(draft), transactionFields),
     onMutate: async (draft) => {
       // A list still loading would otherwise overwrite the optimistic one when it lands.
-      await queryClient.cancelQueries(lists)
-      const before = queryClient.getQueryData<Lists>(lists.queryKey)
+      await queryClient.cancelQueries(list)
+      const before = queryClient.getQueryData<LoadedPages>(list.queryKey)
       const { fields, currency } = draft
       const shown: ListedTransaction = {
         ...identify(draft),
@@ -123,18 +123,18 @@ function useSaveTransaction<Draft extends TransactionDraft>(
         payee: fields.payee?.trim() || null,
         note: fields.note?.trim() || null,
       }
-      queryClient.setQueryData<Lists>(lists.queryKey, (data) => data && withTransaction(data, shown))
+      queryClient.setQueryData<LoadedPages>(list.queryKey, (data) => data && withTransaction(data, shown))
       return { before }
     },
     onError: (_error, _draft, context) => {
-      queryClient.setQueryData(lists.queryKey, context?.before)
+      queryClient.setQueryData(list.queryKey, context?.before)
       // A request that failed may still have been saved.
       return refresh(queryClient)
     },
     onSuccess: (outcome, _draft, context) => {
       // Refused by the API: nothing changed there, so the lists go back to what they showed.
-      if (!outcome.saved && 'fields' in outcome) {
-        queryClient.setQueryData(lists.queryKey, context.before)
+      if (!outcome.saved && !isStale(outcome)) {
+        queryClient.setQueryData(list.queryKey, context.before)
         return
       }
       // Saved, or stale: either way the lists and balances no longer show what the API holds.
@@ -158,7 +158,7 @@ function comesBefore(a: ListedTransaction, b: ListedTransaction) {
  * The loaded pages with the transaction put where the list's order has it, in place of the one with its id if
  * there is one. A transaction that belongs after the pages loaded so far is left out, until those are loaded.
  */
-function withTransaction(data: Lists, transaction: ListedTransaction): Lists {
+function withTransaction(data: LoadedPages, transaction: ListedTransaction): LoadedPages {
   const pages = data.pages.map((page) => ({ ...page, items: page.items.filter((item) => listKey(item) !== listKey(transaction)) }))
   for (const page of pages) {
     const index = page.items.findIndex((item) => comesBefore(transaction, item))

@@ -1,4 +1,5 @@
 export { AmountField } from './AmountField'
+export { amountExample, requiredAmount, typedAmount } from './amountSchema'
 export { AmountInput, type AmountValue } from './AmountInput'
 export { currencies, inCurrencyOrder, isZeroAmount, type Currency, type DecimalString } from './currencies'
 export { formatMoney } from './formatMoney'
