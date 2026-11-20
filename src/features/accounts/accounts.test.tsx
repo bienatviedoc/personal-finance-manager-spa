@@ -48,7 +48,7 @@ describe('accounts', () => {
       { name: 'Everyday', institutionId: vietcombank, openingBalance: '1000000.00' },
       { name: 'Visa', type: 'creditCard', institutionId: vietcombank, openingBalance: '-200000.00', amountOwed: '200000.00' },
       { name: 'Dollars', type: 'savings', institutionId: vietcombank, currency: 'USD', openingBalance: '50.25' },
-      { name: 'Wallet', type: 'eWallet', institutionId: momo, openingBalance: '70000.00' },
+      { name: 'Top-ups', type: 'eWallet', institutionId: momo, openingBalance: '70000.00' },
       { name: 'Pocket', type: 'cash', openingBalance: '5000.00' },
       { name: 'Closed', institutionId: momo, openingBalance: '999.00', isArchived: true },
     ])
@@ -66,7 +66,7 @@ describe('accounts', () => {
       ['Visa', '-₫200,000'],
     ])
     expect(totalsOf('Vietcombank')).toEqual(['Total ₫800,000', 'Total $50.25'])
-    expect(listedUnder('MoMo')).toEqual([['Wallet', '₫70,000']])
+    expect(listedUnder('MoMo')).toEqual([['Top-ups', '₫70,000']])
     expect(totalsOf('MoMo')).toEqual(['Total ₫70,000'])
     expect(listedUnder('No institution')).toEqual([['Pocket', '₫5,000']])
     expect(within(screen.getByRole('region', { name: 'Vietcombank' })).getByText('Credit card')).toBeInTheDocument()

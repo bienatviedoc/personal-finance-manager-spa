@@ -74,7 +74,7 @@ type Props = {
   categories: Category[]
   onSave: (draft: TransactionDraft) => Promise<SaveOutcome>
   /**
-   * Called once the transaction is saved. A form that records stays as it is for the next entry, keeping the
+   * Called once the transaction is saved. A form that records stays as it is for the next transaction, keeping the
    * type, account and date; one that edits is done.
    */
   onSaved: () => void
@@ -122,7 +122,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     .filter(({ category }) => category.kind === type && (!category.isArchived || category.id === transaction?.categoryId))
     .map(({ category, label }) => ({ value: category.id, label }))
 
-  // Once the emptied form has rendered, the next entry starts at the amount.
+  // Once the emptied form has rendered, the next transaction starts at the amount.
   useEffect(() => {
     if (savedCount > 0) form.setFocus('amount')
   }, [savedCount, form])
@@ -260,7 +260,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           {savedCount > 0 ? t('transactions.done') : t('transactions.cancel')}
         </Button>
       </div>
-      {/* Says the entry was saved when the form has emptied itself for the next one. */}
+      {/* Says the transaction was saved when the form has emptied itself for the next one. */}
       <p role="status" className="text-sm text-muted-foreground">
         {savedCount > 0 && !isSubmitting && t('transactions.savedAddAnother', { count: savedCount })}
       </p>

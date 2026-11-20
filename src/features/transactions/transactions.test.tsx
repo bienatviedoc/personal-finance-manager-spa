@@ -293,7 +293,7 @@ describe('transactions', () => {
     expect(corrected).not.toBe(failed)
   })
 
-  it('keep the drawer open for the next entry, with the type, account and date of the last', async () => {
+  it('keep the drawer open for the next transaction, with the type, account and date of the last', async () => {
     const { transactionsApi } = fakeApis()
     const { user } = renderApp('/transactions')
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
