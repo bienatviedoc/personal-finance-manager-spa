@@ -629,7 +629,7 @@
         "tags": [
           "Accounts"
         ],
-        "description": "The user's accounts by name, each with its balance, and the total balance of each institution in each currency. The totals cover the whole list, whichever page is asked for. Archived accounts, which pickers never offer, only with includeArchived=true.",
+        "description": "The user's accounts by name, each with its balance, the total balance of each institution in each currency, and the totals of each institution and of everything in the user's base currency, at today's exchange rates. A balance with no rate to convert it is left out of those and listed as not converted. The totals cover the whole list, whichever page is asked for. Archived accounts, which pickers never offer, only with includeArchived=true.",
         "operationId": "ListAccounts",
         "parameters": [
           {
@@ -1133,7 +1133,8 @@
         "required": [
           "items",
           "nextCursor",
-          "totals"
+          "totals",
+          "baseCurrencyTotal"
         ],
         "type": "object",
         "properties": {
@@ -1154,6 +1155,9 @@
             "items": {
               "$ref": "#/components/schemas/InstitutionTotalResponse"
             }
+          },
+          "baseCurrencyTotal": {
+            "$ref": "#/components/schemas/BaseCurrencyTotalResponse"
           }
         }
       },
@@ -1277,6 +1281,35 @@
         "properties": {
           "token": {
             "type": "string"
+          }
+        }
+      },
+      "BaseCurrencyTotalResponse": {
+        "required": [
+          "currency",
+          "balance",
+          "notConverted",
+          "institutions"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotConvertedAmountResponse"
+            }
+          },
+          "institutions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstitutionBaseCurrencyTotalResponse"
+            }
           }
         }
       },
@@ -1454,6 +1487,32 @@
           }
         }
       },
+      "InstitutionBaseCurrencyTotalResponse": {
+        "required": [
+          "institutionId",
+          "balance",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "institutionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotConvertedAmountResponse"
+            }
+          }
+        }
+      },
       "InstitutionListResponse": {
         "required": [
           "items",
@@ -1561,6 +1620,21 @@
           "vi",
           null
         ]
+      },
+      "NotConvertedAmountResponse": {
+        "required": [
+          "currency",
+          "balance"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
+            "type": "string"
+          }
+        }
       },
       "ProblemDetails": {
         "type": "object",

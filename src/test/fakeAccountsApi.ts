@@ -5,6 +5,9 @@ import { apiUrl, problem, refuseWithoutToken, server } from './server'
 type Account = components['schemas']['AccountResponse']
 type AccountRequest = components['schemas']['AccountRequest']
 type InstitutionTotal = components['schemas']['InstitutionTotalResponse']
+type BaseCurrencyTotal = components['schemas']['BaseCurrencyTotalResponse']
+type NotConverted = components['schemas']['NotConvertedAmountResponse']
+type Currency = components['schemas']['Currency']
 
 const types = ['current', 'savings', 'creditCard', 'cash', 'eWallet', 'loan']
 const owedTypes = ['creditCard', 'loan']
@@ -16,17 +19,25 @@ const text = (amount: number) => amount.toFixed(2)
 type Options = {
   /** The institutions an account may be put with, as `fakeInstitutionsApi` keeps them. Without it any institution is taken. */
   institutions?: { id: string; isArchived: boolean }[]
+  /** The user's base currency, which the totals are converted into; a function when it can change mid-test. VND when left out. */
+  baseCurrency?: Currency | (() => Currency)
+  /**
+   * Today's exchange rates, by base currency: `{ VND: { USD: 25000 } }` says a dollar is 25,000 dong. A
+   * currency with no rate into the base currency is not converted. No rates when left out.
+   */
+  rates?: Partial<Record<Currency, Partial<Record<Currency, number>>>>
 }
 
 /**
  * A stand-in for the API's account endpoints, keeping state across requests and following the same rules
  * as the real API (see the API's AccountTests): the list is by name, a page at a time, without archived
- * accounts unless asked, and carries the total of each institution in each currency; a credit card or loan
+ * accounts unless asked, and carries the total of each institution in each currency, and those totals
+ * converted into the base currency and added up, leaving out and naming what has no rate; a credit card or loan
  * takes `amountOwed` and holds it as a negative balance; with no transactions the balance is the opening
  * balance; an edit must name the row version in `If-Match` (412 when stale, 428 when missing); deleting
  * archives.
  */
-export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institutions }: Options = {}) {
+export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institutions, baseCurrency = 'VND', rates = {} }: Options = {}) {
   const state = {
     accounts: accounts.map((account, index): Account => {
       const openingBalance = account.openingBalance ?? '0.00'
@@ -108,6 +119,32 @@ export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institution
     return [...totals.values()].map(({ sum, ...total }) => ({ ...total, balance: text(sum) }))
   }
 
+  /** Each institution's total in each currency converted once, then added up: the institutions come to the whole. */
+  function inBaseCurrency(totals: InstitutionTotal[]): BaseCurrencyTotal {
+    const currency = typeof baseCurrency === 'function' ? baseCurrency() : baseCurrency
+    const round = (amount: number) => Number(amount.toFixed(decimals[currency]))
+    const institutions = new Map<string | null, { institutionId: string | null; sum: number; notConverted: NotConverted[] }>()
+    for (const total of totals) {
+      const institution = institutions.get(total.institutionId) ?? { institutionId: total.institutionId, sum: 0, notConverted: [] }
+      const rate = total.currency === currency ? 1 : rates[currency]?.[total.currency]
+      if (rate === undefined) institution.notConverted.push({ currency: total.currency, balance: total.balance })
+      else institution.sum += round(Number(total.balance) * rate)
+      institutions.set(total.institutionId, institution)
+    }
+    const leftOut = new Map<Currency, number>()
+    for (const { notConverted } of institutions.values()) {
+      for (const amount of notConverted) leftOut.set(amount.currency, (leftOut.get(amount.currency) ?? 0) + Number(amount.balance))
+    }
+    return {
+      currency,
+      balance: text([...institutions.values()].reduce((sum, institution) => sum + institution.sum, 0)),
+      notConverted: Object.keys(decimals)
+        .filter((code) => leftOut.has(code as Currency))
+        .map((code) => ({ currency: code as Currency, balance: text(leftOut.get(code as Currency)!) })),
+      institutions: [...institutions.values()].map(({ sum, ...institution }) => ({ ...institution, balance: text(sum) })),
+    }
+  }
+
   server.use(
     http.get(apiUrl('/api/v1/accounts'), ({ request }) => {
       const query = new URL(request.url).searchParams
@@ -123,7 +160,8 @@ export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institution
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
       const nextCursor = start + limit < sorted.length ? items.at(-1)!.id : null
-      return HttpResponse.json({ items, nextCursor, totals: totalsOf(sorted) })
+      const totals = totalsOf(sorted)
+      return HttpResponse.json({ items, nextCursor, totals, baseCurrencyTotal: inBaseCurrency(totals) })
     }),
     http.get(apiUrl('/api/v1/accounts/:id'), ({ params }) => {
       const found = find(params.id)

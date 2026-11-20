@@ -188,7 +188,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The user's accounts by name, each with its balance, and the total balance of each institution in each currency. The totals cover the whole list, whichever page is asked for. Archived accounts, which pickers never offer, only with includeArchived=true. */
+        /** @description The user's accounts by name, each with its balance, the total balance of each institution in each currency, and the totals of each institution and of everything in the user's base currency, at today's exchange rates. A balance with no rate to convert it is left out of those and listed as not converted. The totals cover the whole list, whichever page is asked for. Archived accounts, which pickers never offer, only with includeArchived=true. */
         get: operations["ListAccounts"];
         put?: never;
         /** @description Adds an account. A credit card or loan sends amountOwed, a positive number, and shows a negative balance; any other type sends openingBalance. */
@@ -262,6 +262,7 @@ export interface components {
             items: components["schemas"]["AccountResponse"][];
             nextCursor: null | string;
             totals: components["schemas"]["InstitutionTotalResponse"][];
+            baseCurrencyTotal: components["schemas"]["BaseCurrencyTotalResponse"];
         };
         AccountRequest: {
             name: string;
@@ -293,6 +294,12 @@ export interface components {
         AccountType: "current" | "savings" | "creditCard" | "cash" | "eWallet" | "loan";
         AntiforgeryTokenResponse: {
             token: string;
+        };
+        BaseCurrencyTotalResponse: {
+            currency: components["schemas"]["Currency"];
+            balance: string;
+            notConverted: components["schemas"]["NotConvertedAmountResponse"][];
+            institutions: components["schemas"]["InstitutionBaseCurrencyTotalResponse"][];
         };
         CategoryChangeRequest: {
             name: string;
@@ -338,6 +345,12 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        InstitutionBaseCurrencyTotalResponse: {
+            /** Format: uuid */
+            institutionId: null | string;
+            balance: string;
+            notConverted: components["schemas"]["NotConvertedAmountResponse"][];
+        };
         InstitutionListResponse: {
             items: components["schemas"]["InstitutionResponse"][];
             nextCursor: null | string;
@@ -363,6 +376,10 @@ export interface components {
         };
         /** @enum {unknown} */
         Locale: "en" | "vi" | null;
+        NotConvertedAmountResponse: {
+            currency: components["schemas"]["Currency"];
+            balance: string;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
