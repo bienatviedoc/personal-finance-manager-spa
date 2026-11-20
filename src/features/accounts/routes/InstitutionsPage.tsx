@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
@@ -8,6 +8,7 @@ import { institutionsQuery, useArchiveInstitution, useCreateInstitution, useEdit
 import { InstitutionForm } from '../components/InstitutionForm'
 import { InstitutionLogo } from '../components/InstitutionLogo'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { FailureToast } from '@/shared/components/FailureToast'
 
 /** The banks and wallet providers the user holds money with: add, edit and archive them. */
 export function InstitutionsPage() {
@@ -16,6 +17,7 @@ export function InstitutionsPage() {
   const institutions = useQuery(institutionsQuery)
   const create = useCreateInstitution()
   const [adding, setAdding] = useState(false)
+  const addFormId = useId()
 
   return (
     <section className="max-w-2xl space-y-6">
@@ -28,11 +30,11 @@ export function InstitutionsPage() {
       </div>
 
       {adding ? (
-        <InstitutionForm onSave={create.mutateAsync} onDone={() => setAdding(false)} />
+        <InstitutionForm id={addFormId} onSave={create.mutateAsync} onDone={() => setAdding(false)} />
       ) : (
         <Button onClick={() => setAdding(true)}>{t('institutions.add')}</Button>
       )}
-      {create.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
+      <FailureToast failed={create.isError} message={t('institutions.errors.generic')} retry={{ form: addFormId }} onDismiss={create.reset} />
 
       {institutions.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
       {institutions.data?.length === 0 && !adding && <p className="text-muted-foreground">{t('institutions.empty')}</p>}
@@ -51,6 +53,7 @@ function InstitutionRow({ institution }: { institution: Institution }) {
   const { t } = useTranslation()
   const edit = useEditInstitution(institution.id)
   const archive = useArchiveInstitution()
+  const editFormId = useId()
   const [mode, setMode] = useState<'view' | 'edit' | 'confirmArchive'>('view')
   const toView = () => setMode('view')
   const toEdit = () => setMode('edit')
@@ -60,8 +63,8 @@ function InstitutionRow({ institution }: { institution: Institution }) {
     return (
       <li className="p-3">
         <h2 className="sr-only">{institution.name}</h2>
-        <InstitutionForm institution={institution} onSave={edit.mutateAsync} onDone={toView} />
-        {edit.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
+        <InstitutionForm id={editFormId} institution={institution} onSave={edit.mutateAsync} onDone={toView} />
+        <FailureToast failed={edit.isError} message={t('institutions.errors.generic')} retry={{ form: editFormId }} onDismiss={edit.reset} />
       </li>
     )
   }
@@ -98,9 +101,14 @@ function InstitutionRow({ institution }: { institution: Institution }) {
               {t('institutions.cancel')}
             </Button>
           </div>
-          {archive.isError && <ErrorMessage>{t('institutions.errors.generic')}</ErrorMessage>}
         </div>
       )}
+      <FailureToast
+        failed={archive.isError}
+        message={t('institutions.errors.generic')}
+        retry={() => archive.mutate(institution.id)}
+        onDismiss={archive.reset}
+      />
     </li>
   )
 }

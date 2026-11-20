@@ -75,14 +75,14 @@ export function useTurnOnTwoFactor() {
   })
 }
 
-export type PasswordConfirmedOutcome = { saved: true } | { saved: false; fields: 'password'[] }
+export type TurnOffTwoFactorOutcome = { saved: true } | { saved: false; fields: 'password'[] }
 
 /** Turns two-factor sign-in off, given the user's password. */
 export function useTurnOffTwoFactor() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (password: string): Promise<PasswordConfirmedOutcome> => {
+    mutationFn: async (password: string): Promise<TurnOffTwoFactorOutcome> => {
       const { response, error } = await api.POST('/api/v1/me/two-factor/disable', { body: { password } })
       if (response.ok) return sessionRenewed({ saved: true })
       const fields = refusedFields(response, error, ['password'] as const)

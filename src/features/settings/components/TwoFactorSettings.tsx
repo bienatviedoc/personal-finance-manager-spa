@@ -19,6 +19,7 @@ import {
   type TwoFactorSetup,
 } from '../api/security'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { FailureToast } from '@/shared/components/FailureToast'
 
 /** Two-factor sign-in with an authenticator app: turning it on and off, and the recovery codes. */
 export function TwoFactorSettings() {
@@ -72,18 +73,19 @@ function WhenOff({ onTurnedOn }: { onTurnedOn: (recoveryCodes: string[]) => void
   const start = async () => {
     const outcome = await setUp.mutateAsync().catch(() => undefined)
     // Already on, turned on somewhere else: the section, loaded again, says so, and there is nothing to set up.
-    if (!outcome || outcome.ready) setSettingUp(true)
+    if (outcome?.ready) setSettingUp(true)
   }
 
-  if (!settingUp) {
+  if (!settingUp || !setUp.data?.ready) {
     return (
-      <Button type="button" disabled={setUp.isPending} onClick={() => void start()}>
-        {t('settings.security.twoFactor.setUp')}
-      </Button>
+      <>
+        <Button type="button" disabled={setUp.isPending} onClick={() => void start()}>
+          {t('settings.security.twoFactor.setUp')}
+        </Button>
+        <FailureToast failed={setUp.isError} message={t('settings.security.failed')} retry={() => void start()} onDismiss={setUp.reset} />
+      </>
     )
   }
-  if (setUp.isError) return <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>
-  if (!setUp.data?.ready) return null
   return <SetUp setup={setUp.data.setup} onTurnedOn={onTurnedOn} onCancel={() => setSettingUp(false)} />
 }
 
@@ -157,6 +159,7 @@ const codeSchema = z.object({ code: authenticatorCode('settings.security.twoFact
 function SetUp({ setup, onTurnedOn, onCancel }: { setup: TwoFactorSetup; onTurnedOn: (recoveryCodes: string[]) => void; onCancel: () => void }) {
   const { t } = useTranslation()
   const turnOn = useTurnOnTwoFactor()
+  const formId = useId()
   const form = useForm({ resolver: zodResolver(codeSchema), defaultValues: { code: '' } })
   const { errors } = form.formState
 
@@ -168,7 +171,7 @@ function SetUp({ setup, onTurnedOn, onCancel }: { setup: TwoFactorSetup; onTurne
   })
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-4 rounded-md border p-4">
+    <form id={formId} noValidate onSubmit={onSubmit} className="space-y-4 rounded-md border p-4">
       <ol className="list-decimal space-y-4 pl-5 text-sm">
         <li className="space-y-3">
           <p>{t('settings.security.twoFactor.scan')}</p>
@@ -195,7 +198,7 @@ function SetUp({ setup, onTurnedOn, onCancel }: { setup: TwoFactorSetup; onTurne
           />
         </li>
       </ol>
-      {turnOn.isError && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
+      <FailureToast failed={turnOn.isError} message={t('settings.security.failed')} retry={{ form: formId }} onDismiss={turnOn.reset} />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={turnOn.isPending}>
           {t('settings.security.twoFactor.turnOn')}
@@ -265,6 +268,7 @@ function ConfirmWithPassword({
   onDone: () => void
 }) {
   const { t } = useTranslation()
+  const formId = useId()
   const [failed, setFailed] = useState(false)
   const form = useForm({ resolver: zodResolver(passwordSchema), defaultValues: { password: '' } })
   const { errors, isSubmitting } = form.formState
@@ -278,7 +282,7 @@ function ConfirmWithPassword({
   })
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-4 rounded-md border p-4">
+    <form id={formId} noValidate onSubmit={onSubmit} className="space-y-4 rounded-md border p-4">
       <p className="text-sm">{explanation}</p>
       <TextField
         label={t('settings.security.twoFactor.password')}
@@ -287,7 +291,7 @@ function ConfirmWithPassword({
         error={errors.password?.message && t(errors.password.message as ParseKeys)}
         {...form.register('password')}
       />
-      {failed && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
+      <FailureToast failed={failed} message={t('settings.security.failed')} retry={{ form: formId }} onDismiss={() => setFailed(false)} />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={isSubmitting}>
           {submitLabel}

@@ -1,8 +1,9 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
+import { http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { fakeSecurityApi, testAuthenticatorCode, testAuthenticatorKey } from '@/test/fakeSecurityApi'
 import { renderApp } from '@/test/renderApp'
-import { testPassword } from '@/test/server'
+import { apiUrl, problem, server, testPassword } from '@/test/server'
 
 const newPassword = 'a brand new passphrase'
 
@@ -34,6 +35,25 @@ describe('changing the password', () => {
     expect(api.password).toBe(newPassword)
     expect(form.getByLabelText('Current password')).toHaveValue('')
     expect(form.getByLabelText('New password')).toHaveValue('')
+  })
+
+  it('says in a toast when the change fails, and makes it when the user tries again', async () => {
+    const api = fakeSecurityApi()
+    const { user } = renderApp('/settings/security')
+    const form = await passwordForm()
+    server.use(http.post(apiUrl('/api/v1/me/password'), () => problem(500), { once: true }))
+
+    await user.type(form.getByLabelText('Current password'), testPassword)
+    await user.type(form.getByLabelText('New password'), newPassword)
+    await user.click(form.getByRole('button', { name: 'Change password' }))
+
+    expect(await screen.findByText('Something went wrong. Try again in a little while.')).toBeInTheDocument()
+    expect(form.getByLabelText('New password')).toHaveValue(newPassword)
+    expect(api.password).not.toBe(newPassword)
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(api.password).toBe(newPassword))
+    expect(screen.queryByText('Something went wrong. Try again in a little while.')).not.toBeInTheDocument()
   })
 
   it('points out a missing current password or a short new one without contacting the API', async () => {
@@ -213,7 +233,7 @@ describe('two-factor sign-in', () => {
     await user.click(setUp)
 
     expect(await section.findByText('Two-factor sign-in is on.')).toBeInTheDocument()
-    expect(section.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
     expect(section.getByRole('button', { name: 'Turn off two-factor sign-in' })).toBeInTheDocument()
   })
 
@@ -229,7 +249,7 @@ describe('two-factor sign-in', () => {
     await user.click(section.getByRole('button', { name: 'Get new codes' }))
 
     expect(await section.findByText('Two-factor sign-in is off.')).toBeInTheDocument()
-    expect(section.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
     expect(section.queryByLabelText('Password')).not.toBeInTheDocument()
     expect(section.getByRole('button', { name: 'Set up two-factor sign-in' })).toBeInTheDocument()
   })

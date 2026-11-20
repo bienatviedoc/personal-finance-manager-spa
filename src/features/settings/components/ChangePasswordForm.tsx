@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
 import { Button } from '@/shared/ui/button'
 import { useChangePassword } from '../api/security'
-import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { FailureToast } from '@/shared/components/FailureToast'
 
 const schema = z.object({
   currentPassword: z.string().min(1, { error: 'settings.security.password.errors.currentRequired' }),
@@ -24,6 +24,7 @@ const serverErrors: Record<keyof Values, ParseKeys> = {
 export function ChangePasswordForm() {
   const { t } = useTranslation()
   const headingId = useId()
+  const formId = useId()
   const change = useChangePassword()
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { currentPassword: '', newPassword: '' } })
   const { errors, isDirty } = form.formState
@@ -36,7 +37,7 @@ export function ChangePasswordForm() {
   })
 
   return (
-    <form noValidate aria-labelledby={headingId} onSubmit={onSubmit} className="space-y-4">
+    <form id={formId} noValidate aria-labelledby={headingId} onSubmit={onSubmit} className="space-y-4">
       <h3 id={headingId} className="font-semibold">
         {t('settings.security.password.title')}
       </h3>
@@ -55,7 +56,7 @@ export function ChangePasswordForm() {
         error={errors.newPassword?.message && t(errors.newPassword.message as ParseKeys)}
         {...form.register('newPassword')}
       />
-      {change.isError && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
+      <FailureToast failed={change.isError} message={t('settings.security.failed')} retry={{ form: formId }} onDismiss={change.reset} />
       {/* Said until the user starts on another change. */}
       {change.data?.saved && !isDirty && (
         <p role="status" className="text-sm">
