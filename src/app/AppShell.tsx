@@ -72,7 +72,7 @@ function TabBar() {
           <li key={to}>
             <NavLink to={to} end={to === '/'} className={({ isActive }) => cn(tabClass, isActive && activeTabClass)}>
               {Icon && <Icon aria-hidden className="size-5" />}
-              <span className="max-w-full truncate">{t(label)}</span>
+              <span className="max-w-full text-center leading-tight break-words">{t(label)}</span>
             </NavLink>
           </li>
         ))}
@@ -115,7 +115,7 @@ function TabBar() {
 
 /** A tab: icon over label, at least 44 px tall so it is easy to hit with a thumb. */
 const tabClass = cn(
-  'flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-xs text-muted-foreground hover:text-sidebar-foreground',
+  'flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[11px] text-muted-foreground hover:text-sidebar-foreground',
   focusRing,
 )
 const activeTabClass = 'font-medium text-sidebar-accent-foreground'

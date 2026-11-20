@@ -83,6 +83,9 @@ in its own file under `src/test/`, keeping state across requests and following t
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
+jsdom has no `matchMedia`, so `src/test/mediaQueries.ts` stands in for it: every test starts on a light-themed
+desktop, and `setScreenWidth(360)` or `setSystemTheme('dark')` changes the pretend device mid-test.
+
 ## Layout
 
 ```
@@ -99,7 +102,7 @@ src/
   each feature's `index.ts` is its public interface. Reaching into another feature's folders fails lint
   (`eslint-rules/no-cross-feature-internals.js`). Inside a feature, import freely.
 - **Screens** are added to the route tree in `src/app/routes.tsx` by listing the feature's routes, and to the
-  sidebar in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
+  navigation in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
   shell and the other screens working; so does each section nested in a screen (Settings > Profile).
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
@@ -143,6 +146,20 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   (from `useUserSettings()` in `@/features/settings`), not the browser's.
 - The user's base currency and time zone come from `useUserSettings()`.
 
+## Phones, themes and installing
+
+- **Phones.** From 768 px (`sidebarQuery` in `src/app/navigation.ts`) the shell shows the sidebar; below it, a
+  bottom tab bar. Screens with a `tabIcon` get a tab (Dashboard, Transactions, Budgets, Reports); the rest, the
+  user menu, language and theme sit under More. Keep it to four tabs so labels fit at 360 px, and keep screens
+  free of fixed widths so nothing scrolls sideways at 360 px.
+- **Themes.** Light and dark follow the system unless the viewer picks one (Theme, in the sidebar or under More),
+  which is remembered in the browser (`src/shared/theme`). Dark mode is the `dark` class on `<html>`; style with
+  the colour tokens in `src/index.css` and Tailwind's `dark:` variant. A script in `index.html` sets the class
+  before the first paint, so keep its storage key in step with `src/shared/theme`.
+- **Installing.** `public/manifest.webmanifest` and the icons in `public/icons` make the app installable to a
+  home screen. There is no service worker: the app does not work offline in v1. The PNG icons are rendered from
+  the SVGs next to them; re-render all four sizes if the icon changes.
+
 ## Accessibility
 
 The target is WCAG 2.1 AA (spec section 8).
@@ -151,3 +168,5 @@ The target is WCAG 2.1 AA (spec section 8).
 - Every screen names itself in the browser tab with `useDocumentTitle`.
 - Controls styled by hand take the `focusRing` class from `src/shared/lib/utils.ts`, so keyboard focus is
   always visible; a label wrapping a visually hidden radio or checkbox takes `focusRingWithin` instead. shadcn primitives bring their own.
+- Overlays such as the More sheet are Radix dialogs, which keep focus inside while open, close on Escape and hand
+  focus back to what opened them.
