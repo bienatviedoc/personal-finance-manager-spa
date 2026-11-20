@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { hashKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { signedInUserQuery } from '@/features/auth'
@@ -34,8 +34,11 @@ export function useUpdateProfile() {
       const before = queryClient.getQueryData(signedInUserQuery.queryKey)
       queryClient.setQueryData(signedInUserQuery.queryKey, outcome.profile)
       // Totals the API converted into the old base currency are no longer what it would answer.
+      // Everything but the profile itself, which the save just answered. Keys are compared by what they hold:
+      // the cache need not keep the very array a query was made with.
       if (before?.baseCurrency !== outcome.profile.baseCurrency) {
-        return queryClient.invalidateQueries({ predicate: (query) => query.queryKey !== signedInUserQuery.queryKey })
+        const profileKey = hashKey(signedInUserQuery.queryKey)
+        return queryClient.invalidateQueries({ predicate: (query) => query.queryHash !== profileKey })
       }
     },
   })
