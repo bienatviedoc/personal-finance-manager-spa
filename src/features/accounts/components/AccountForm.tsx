@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
 import { useId, useMemo } from 'react'
-import { Controller, useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch, type Control } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { useUserSettings } from '@/features/settings'
@@ -9,10 +9,18 @@ import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { AmountInput, currencies, formatAmountForInput } from '@/shared/money'
+import { AmountInput, currencies, formatAmountForInput, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { Label } from '@/shared/ui/label'
-import { accountTypes, holdsAmountOwed, type Account, type AccountField, type AccountFields, type SaveOutcome } from '../api/accounts'
+import {
+  accountTypes,
+  hasCreditCardFields,
+  holdsAmountOwed,
+  type Account,
+  type AccountField,
+  type AccountFields,
+  type SaveOutcome,
+} from '../api/accounts'
 import type { Institution } from '../api/institutions'
 
 const schema = z.object({
@@ -28,6 +36,19 @@ const schema = z.object({
     .refine((amount) => amount !== null, { error: 'accounts.errors.amountInvalid' })
     .refine((amount) => amount !== '', { error: 'accounts.errors.amountRequired' }),
   openingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error: 'accounts.errors.openingDate' }),
+  // Empty, or exactly 4 digits: a full account or card number never leaves the form (spec ACC-8).
+  last4: z
+    .string()
+    .trim()
+    .regex(/^([0-9]{4})?$/, { error: 'accounts.errors.last4' }),
+  // A credit card's only. Like the amount, but '' is "no credit limit".
+  creditLimit: z
+    .string({ error: 'accounts.errors.creditLimit' })
+    .nullable()
+    .refine((limit) => limit !== null, { error: 'accounts.errors.creditLimit' }),
+  // '' is "not set", otherwise a day of the month.
+  statementDay: z.string(),
+  paymentDueDay: z.string(),
 })
 
 /** What the form holds; once validated, the amount is a decimal string. */
@@ -42,10 +63,18 @@ const serverErrors: Record<AccountField, { field: keyof Values; message: ParseKe
   openingBalance: { field: 'amount', message: 'accounts.errors.amountInvalid' },
   amountOwed: { field: 'amount', message: 'accounts.errors.amountInvalid' },
   openingDate: { field: 'openingDate', message: 'accounts.errors.openingDate' },
+  last4: { field: 'last4', message: 'accounts.errors.last4' },
+  creditLimit: { field: 'creditLimit', message: 'accounts.errors.creditLimit' },
+  statementDay: { field: 'statementDay', message: 'accounts.errors.day' },
+  paymentDueDay: { field: 'paymentDueDay', message: 'accounts.errors.day' },
 }
 
 // Named outside JSX, where lint would take a field name for user-facing text.
 const amountField = 'amount'
+const creditLimitField = 'creditLimit'
+
+/** The days a month can have. In a shorter month, a later day means its last day. */
+const daysOfMonth = Array.from({ length: 31 }, (_, index) => String(index + 1))
 
 /** An amount large enough to show the locale's separators, for the hint in an error. */
 const exampleAmount = '1250000'
@@ -61,13 +90,14 @@ type Props = {
 
 /**
  * Adds or edits an account. A credit card or loan is asked for the amount owed, as a positive number, instead
- * of an opening balance (spec section 3, rule 9); the API holds it as a negative balance.
+ * of an opening balance (spec section 3, rule 9); the API holds it as a negative balance. Any account can be
+ * labelled with the last 4 digits of its number; a credit card is also asked for its credit limit, statement
+ * day and payment due day, each optional.
  */
 export function AccountForm({ account, institutions, onSave, onDone }: Props) {
   const { t } = useTranslation()
   const locale = useLocale()
   const { baseCurrency, timeZone } = useUserSettings()
-  const amountId = useId()
   const form = useForm<Values, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: account
@@ -78,17 +108,33 @@ export function AccountForm({ account, institutions, onSave, onDone }: Props) {
           currency: account.currency,
           amount: account.amountOwed ?? account.openingBalance,
           openingDate: account.openingDate,
+          last4: account.last4 ?? '',
+          creditLimit: account.creditLimit ?? '',
+          statementDay: String(account.statementDay ?? ''),
+          paymentDueDay: String(account.paymentDueDay ?? ''),
         }
-      : { name: '', type: 'current', institutionId: '', currency: baseCurrency, amount: '', openingDate: todayIn(timeZone) },
+      : {
+          name: '',
+          type: 'current',
+          institutionId: '',
+          currency: baseCurrency,
+          amount: '',
+          openingDate: todayIn(timeZone),
+          last4: '',
+          creditLimit: '',
+          statementDay: '',
+          paymentDueDay: '',
+        },
   })
   const { errors, isSubmitting } = form.formState
   const [type, currency] = useWatch({ control: form.control, name: ['type', 'currency'] })
   const owed = holdsAmountOwed(type)
+  const creditCard = hasCreditCardFields(type)
 
   const currencyNames = useMemo(() => new Intl.DisplayNames(locale, { type: 'currency' }), [locale])
   const institutionOptions = institutions.filter((institution) => !institution.isArchived || institution.id === account?.institutionId)
-  const amountHintId = `${amountId}-hint`
-  const amountErrorId = `${amountId}-error`
+  const dayOptions = [{ value: '', label: t('accounts.dayNotSet') }, ...daysOfMonth.map((day) => ({ value: day, label: day }))]
+  const amountExample = { example: formatAmountForInput(exampleAmount, locale, currency) }
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = values.amount as string
@@ -99,6 +145,13 @@ export function AccountForm({ account, institutions, onSave, onDone }: Props) {
       currency: values.currency,
       openingDate: values.openingDate,
       ...(holdsAmountOwed(values.type) ? { amountOwed: amount } : { openingBalance: amount }),
+      last4: values.last4 || null,
+      // Fields the form no longer shows are not sent: only a credit card has them.
+      ...(hasCreditCardFields(values.type) && {
+        creditLimit: values.creditLimit || null,
+        statementDay: values.statementDay ? Number(values.statementDay) : null,
+        paymentDueDay: values.paymentDueDay ? Number(values.paymentDueDay) : null,
+      }),
     })
     if (outcome.saved) {
       onDone()
@@ -141,36 +194,14 @@ export function AccountForm({ account, institutions, onSave, onDone }: Props) {
         {...form.register('currency')}
       />
 
-      <div className="space-y-1.5">
-        <Label htmlFor={amountId}>{owed ? t('accounts.amountOwed') : t('accounts.openingBalance')}</Label>
-        <Controller
-          control={form.control}
-          name={amountField}
-          render={({ field }) => (
-            <AmountInput
-              id={amountId}
-              ref={field.ref}
-              name={field.name}
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              currency={currency}
-              aria-invalid={errors.amount ? true : undefined}
-              aria-describedby={[owed && amountHintId, errors.amount && amountErrorId].filter(Boolean).join(' ') || undefined}
-            />
-          )}
-        />
-        {owed && (
-          <p id={amountHintId} className="text-sm text-muted-foreground">
-            {t('accounts.amountOwedHint')}
-          </p>
-        )}
-        {errors.amount?.message && (
-          <p id={amountErrorId} className="text-sm text-destructive">
-            {t(errors.amount.message as ParseKeys, { example: formatAmountForInput(exampleAmount, locale, currency) })}
-          </p>
-        )}
-      </div>
+      <AmountField
+        control={form.control}
+        name={amountField}
+        label={owed ? t('accounts.amountOwed') : t('accounts.openingBalance')}
+        hint={owed ? t('accounts.amountOwedHint') : undefined}
+        error={errors.amount?.message && t(errors.amount.message as ParseKeys, amountExample)}
+        currency={currency}
+      />
 
       <TextField
         type="date"
@@ -178,6 +209,39 @@ export function AccountForm({ account, institutions, onSave, onDone }: Props) {
         error={errors.openingDate?.message && t(errors.openingDate.message as ParseKeys)}
         {...form.register('openingDate')}
       />
+      <TextField
+        label={t('accounts.last4')}
+        hint={t('accounts.last4Hint')}
+        inputMode="numeric"
+        autoComplete="off"
+        error={errors.last4?.message && t(errors.last4.message as ParseKeys)}
+        {...form.register('last4')}
+      />
+
+      {creditCard && (
+        <>
+          <AmountField
+            control={form.control}
+            name={creditLimitField}
+            label={t('accounts.creditLimit')}
+            hint={t('accounts.creditLimitHint')}
+            error={errors.creditLimit?.message && t(errors.creditLimit.message as ParseKeys, amountExample)}
+            currency={currency}
+          />
+          <SelectField
+            label={t('accounts.statementDay')}
+            error={errors.statementDay?.message && t(errors.statementDay.message as ParseKeys)}
+            options={dayOptions}
+            {...form.register('statementDay')}
+          />
+          <SelectField
+            label={t('accounts.paymentDueDay')}
+            error={errors.paymentDueDay?.message && t(errors.paymentDueDay.message as ParseKeys)}
+            options={dayOptions}
+            {...form.register('paymentDueDay')}
+          />
+        </>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={isSubmitting}>
@@ -188,5 +252,55 @@ export function AccountForm({ account, institutions, onSave, onDone }: Props) {
         </Button>
       </div>
     </form>
+  )
+}
+
+type AmountFieldProps = {
+  control: Control<Values, unknown, z.output<typeof schema>>
+  name: 'amount' | 'creditLimit'
+  label: string
+  hint?: string
+  /** Already translated. */
+  error?: string
+  currency: Currency
+}
+
+/** A labelled amount input in the account's currency, whose hint and error are tied to it for screen readers. */
+function AmountField({ control, name, label, hint, error, currency }: AmountFieldProps) {
+  const id = useId()
+  const hintId = `${id}-hint`
+  const errorId = `${id}-error`
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <AmountInput
+            id={id}
+            ref={field.ref}
+            name={field.name}
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            currency={currency}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={[hint && hintId, error && errorId].filter(Boolean).join(' ') || undefined}
+          />
+        )}
+      />
+      {hint && (
+        <p id={hintId} className="text-sm text-muted-foreground">
+          {hint}
+        </p>
+      )}
+      {error && (
+        <p id={errorId} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
   )
 }
