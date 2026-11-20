@@ -26,10 +26,11 @@ http://localhost:8025.
 | `npm run typecheck` | `tsc` with no output |
 | `npm test` | Unit and component tests (Vitest) |
 | `npm run build` | Typecheck and production build into `dist/` |
+| `npm run preview` | Serve the production build locally, with the headers the nginx image sends |
 | `npm run api:sync` | Copy the API's OpenAPI document and regenerate the client's types |
 
 CI runs lint, typecheck, tests and the build on every pull request, and fails when the generated API client no
-longer matches the API.
+longer matches the API, when a dependency has a known vulnerability of high severity, or when the image does.
 
 ## Talking to the API
 
@@ -48,8 +49,46 @@ longer matches the API.
   such as institutions, loads every page.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
+- **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
+  for a code; the sign-in screen then asks for the code from their authenticator app (or a recovery code) and
+  sends all of it again, keeping the email and password in memory until then. Settings > Security turns it on
+  (a QR code drawn in the page from the API's `otpauth://` link, confirmed with a code), shows the recovery codes
+  the one time the API hands them over, and changes the password. Use the glossary's words: two-factor sign-in,
+  recovery code.
+- **Lockout and rate limiting are the API's.** A locked user is answered like a wrong password, so the sign-in
+  screen warns about the lock beside that message; a 429 becomes "too many attempts".
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
   returns them to where they were going.
+
+## Serving and hardening
+
+- **The image.** `docker build -t pfm-spa .` builds the app and puts it behind nginx (running as a non-root
+  user), which serves the files, answers every other address with the app's page, and passes `/api` to the API
+  at `API_URL`, so the browser sees one origin: `docker run -p 8081:8080 -e API_URL=http://host.docker.internal:8080 pfm-spa`.
+  Build with `--build-arg VITE_SENTRY_DSN=…` to report errors. nginx tells the API who is calling
+  (`X-Forwarded-For`), which the API's rate limit needs; see "Rate limiting" in the API's README.
+- **Security headers and the content security policy** are written once, in `security-headers.ts`, with the
+  reason for each exception. The image is built with them (`scripts/nginx-security-headers.ts`) and
+  `npm run preview` sends the same; the dev server sends all but the policy, which hot reload cannot run under.
+  The policy loads everything from the app's own origin: no inline or third-party script runs, and the app
+  cannot be framed. So:
+  - an inline script in `index.html` is allowed by the hash of its text, worked out at build time; scripts added
+    any other way must be files of the app;
+  - calling another origin (a new error tracker, a font or image host) means adding it to the policy there, on
+    purpose;
+  - whatever else serves the build (a CDN, another web server) must send the same headers.
+- **Dependency scanning:** CI runs `npm audit --audit-level=high`, which fails on a known vulnerability of high
+  or critical severity in any package, direct or transitive. Fix it with `npm audit fix` or by updating the
+  package.
+- **Container scanning:** CI builds the image on the newest base and scans it with [Trivy](https://trivy.dev).
+  A vulnerability of high or critical severity that has a fix fails the job. The image already takes Alpine's
+  current fixes when it is built, so the usual fix is a rebuild. To run the same scan locally:
+
+  ```bash
+  docker build --pull -t pfm-spa .
+  docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.2 image \
+    --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 pfm-spa
+  ```
 
 ## Observability
 
@@ -76,8 +115,9 @@ in its own file under `src/test/`, keeping state across requests and following t
 
 | Fake | Stands in for |
 | --- | --- |
-| `fakeAuthApi` | Registering, verifying, signing in and out, password reset (`/api/v1/auth/...`) |
+| `fakeAuthApi` | Registering, verifying, signing in (with two factors, lockout and the rate limit) and out, password reset (`/api/v1/auth/...`) |
 | `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
+| `fakeSecurityApi` | Changing the password and two-factor sign-in (`/api/v1/me/password`, `/api/v1/me/two-factor/...`) |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
 

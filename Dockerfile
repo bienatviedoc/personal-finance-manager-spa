@@ -14,7 +14,12 @@ ENV VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
 # The security headers are written for the page just built: its inline script is allowed by its hash.
 RUN npm run build && node scripts/nginx-security-headers.ts > security-headers.conf
 
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS final
+# The slim image: nginx without the modules (image filter, XSLT, njs) this site has no use for, and their libraries.
+FROM nginxinc/nginx-unprivileged:1.29-alpine-slim AS final
+# The base image is rebuilt less often than Alpine ships fixes; take the fixes that are out now.
+USER root
+RUN apk upgrade --no-cache
+USER nginx
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
