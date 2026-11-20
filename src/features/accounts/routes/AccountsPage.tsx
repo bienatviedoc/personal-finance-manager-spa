@@ -3,6 +3,7 @@ import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { FailureToast } from '@/shared/components/FailureToast'
+import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { currencies, formatMoney, isZeroAmount, Money } from '@/shared/money'
@@ -199,7 +200,7 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
   const toView = () => setMode('view')
   const toEdit = () => setMode('edit')
   const toConfirmArchive = () => setMode('confirmArchive')
-  const stale = edit.data !== undefined && !edit.data.saved && 'stale' in edit.data
+  const stale = isStale(edit.data)
 
   if (mode === 'edit') {
     return (

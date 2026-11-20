@@ -1,8 +1,8 @@
 import { infiniteQueryOptions, useMutation, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { refreshAccountBalances } from '@/features/accounts'
 import { api } from '@/shared/api/client'
-import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
+import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome } from '@/shared/api/versionedSave'
 import type { Currency } from '@/shared/money'
 
 export type Transaction = components['schemas']['TransactionResponse']
@@ -20,11 +20,7 @@ export const everyTransactionTypeListed: MissingType extends never ? true : Miss
 /** Fields the API can refuse, which the form shows its own translated message for. */
 export type TransactionField = 'type' | 'accountId' | 'amount' | 'date' | 'categoryId' | 'payee' | 'note'
 
-export type SaveOutcome =
-  | { saved: true; transaction: Transaction }
-  | { saved: false; fields: TransactionField[] }
-  /** The transaction changed since the row version the edit was made from: nothing was saved, and the list is loaded again. */
-  | { saved: false; stale: true }
+export type SaveOutcome = VersionedSaveOutcome<'transaction', Transaction, TransactionField>
 
 /**
  * What a form hands over to be saved: the fields, and the currency of the account they name, which the
@@ -73,7 +69,7 @@ export function useCreateTransaction() {
 export function useEditTransaction({ id, rowVersion }: Pick<Transaction, 'id' | 'rowVersion'>) {
   return useSaveTransaction(
     async ({ fields }: TransactionDraft) =>
-      api.PUT('/api/v1/transactions/{id}', { params: { path: { id }, header: { 'If-Match': `"${rowVersion}"` } }, body: fields }),
+      api.PUT('/api/v1/transactions/{id}', { params: { path: { id }, header: { 'If-Match': ifMatch(rowVersion) } }, body: fields }),
     () => ({ id, rowVersion }),
   )
 }
@@ -106,14 +102,7 @@ function useSaveTransaction<Draft extends TransactionDraft>(
   const lists = { queryKey: transactionsQuery.queryKey }
 
   return useMutation({
-    mutationFn: async (draft: Draft): Promise<SaveOutcome> => {
-      const { data, error, response } = await save(draft)
-      if (data) return { saved: true, transaction: data }
-      if (response.status === 412) return { saved: false, stale: true }
-      const refused = refusedFields(response, error, transactionFields)
-      if (refused) return { saved: false, fields: refused }
-      throw new Error(`Saving a transaction failed: ${response.status}`)
-    },
+    mutationFn: async (draft: Draft): Promise<SaveOutcome> => versionedSaveOutcome('transaction', await save(draft), transactionFields),
     onMutate: async (draft) => {
       // A list still loading would otherwise overwrite the optimistic one when it lands.
       await queryClient.cancelQueries(lists)

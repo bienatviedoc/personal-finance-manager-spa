@@ -6,6 +6,7 @@ import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
+import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
@@ -152,7 +153,7 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
   const { t } = useTranslation()
   const formId = useId()
   const edit = useEditTransaction(transaction)
-  const stale = edit.data !== undefined && !edit.data.saved && 'stale' in edit.data
+  const stale = isStale(edit.data)
 
   return (
     <>

@@ -1,7 +1,7 @@
 import { queryOptions, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
-import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
+import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome } from '@/shared/api/versionedSave'
 
 export type Account = components['schemas']['AccountResponse']
 export type AccountType = components['schemas']['AccountType']
@@ -51,11 +51,7 @@ export type AccountField =
   | 'statementDay'
   | 'paymentDueDay'
 
-export type SaveOutcome =
-  | { saved: true; account: Account }
-  | { saved: false; fields: AccountField[] }
-  /** The account changed since the row version the edit was made from: nothing was saved, and the list is loaded again. */
-  | { saved: false; stale: true }
+export type SaveOutcome = VersionedSaveOutcome<'account', Account, AccountField>
 
 const accountsKey = ['accounts']
 const accountFields: AccountField[] = [
@@ -115,7 +111,7 @@ export function useCreateAccount() {
  */
 export function useEditAccount({ id, rowVersion }: Pick<Account, 'id' | 'rowVersion'>) {
   return useSaveAccount(async (fields: AccountFields) =>
-    api.PUT('/api/v1/accounts/{id}', { params: { path: { id }, header: { 'If-Match': `"${rowVersion}"` } }, body: fields }),
+    api.PUT('/api/v1/accounts/{id}', { params: { path: { id }, header: { 'If-Match': ifMatch(rowVersion) } }, body: fields }),
   )
 }
 
@@ -136,14 +132,7 @@ type SaveResponse = { data?: Account; error?: unknown; response: Response }
 function useSaveAccount(save: (fields: AccountFields) => Promise<SaveResponse>) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (fields: AccountFields): Promise<SaveOutcome> => {
-      const { data, error, response } = await save(fields)
-      if (data) return { saved: true, account: data }
-      if (response.status === 412) return { saved: false, stale: true }
-      const refused = refusedFields(response, error, accountFields)
-      if (refused) return { saved: false, fields: refused }
-      throw new Error(`Saving an account failed: ${response.status}`)
-    },
+    mutationFn: async (fields: AccountFields): Promise<SaveOutcome> => versionedSaveOutcome('account', await save(fields), accountFields),
     // Saved, or stale: either way the list no longer shows what the API holds.
     onSuccess: (outcome) => {
       if (outcome.saved || 'stale' in outcome) return queryClient.invalidateQueries({ queryKey: accountsKey })
