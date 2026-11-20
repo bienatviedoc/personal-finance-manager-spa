@@ -5,6 +5,7 @@ import { useProfileLocale, useSaveLocale } from '@/features/settings'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { LanguageSwitch } from './LanguageSwitch'
 import { navigation } from './navigation'
+import { ThemeSwitch } from './ThemeSwitch'
 
 export function AppShell() {
   const { t } = useTranslation()
@@ -39,6 +40,7 @@ export function AppShell() {
         <div className="mt-auto space-y-4 px-2">
           <UserMenu />
           <LanguageSwitch onChoose={saveLocale} />
+          <ThemeSwitch />
         </div>
       </aside>
       <main className="flex-1 p-6">

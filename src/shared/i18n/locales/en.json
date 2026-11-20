@@ -39,6 +39,12 @@
     "en": "English",
     "vi": "Tiếng Việt"
   },
+  "theme": {
+    "label": "Theme",
+    "system": "Same as system",
+    "light": "Light",
+    "dark": "Dark"
+  },
   "errors": {
     "screenTitle": "Something went wrong",
     "screenBody": "This screen could not be shown. Reload to try again, or go to the dashboard.",

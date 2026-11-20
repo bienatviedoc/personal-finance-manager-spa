@@ -39,6 +39,12 @@
     "en": "English",
     "vi": "Tiếng Việt"
   },
+  "theme": {
+    "label": "Giao diện",
+    "system": "Theo hệ thống",
+    "light": "Sáng",
+    "dark": "Tối"
+  },
   "errors": {
     "screenTitle": "Đã xảy ra lỗi",
     "screenBody": "Không thể hiển thị màn hình này. Hãy tải lại để thử lần nữa, hoặc về trang tổng quan.",
