@@ -629,7 +629,7 @@
         "tags": [
           "Accounts"
         ],
-        "description": "The user's accounts by name, each with its balance, and the total balance of each institution in each currency. The totals cover the whole list, whichever page is asked for. Archived accounts, which pickers never offer, only with includeArchived=true.",
+        "description": "The user's accounts by name, each with its balance, the total balance of each institution in each currency, and the totals of each institution and of everything in the user's base currency, at today's exchange rates. A balance with no rate to convert it is left out of those and listed as not converted. The totals cover the whole list, whichever page is asked for. Archived accounts, which pickers never offer, only with includeArchived=true.",
         "operationId": "ListAccounts",
         "parameters": [
           {
@@ -698,7 +698,7 @@
         "tags": [
           "Accounts"
         ],
-        "description": "Adds an account. A credit card or loan sends amountOwed, a positive number, and shows a negative balance; any other type sends openingBalance.",
+        "description": "Adds an account. A credit card or loan sends amountOwed, a positive number, and shows a negative balance; any other type sends openingBalance. Any account can be labelled with the last 4 digits of its number, never more of it. Only a credit card takes creditLimit, statementDay and paymentDueDay.",
         "operationId": "CreateAccount",
         "requestBody": {
           "content": {
@@ -792,7 +792,7 @@
         "tags": [
           "Accounts"
         ],
-        "description": "Changes an account; its balance follows a new opening balance at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428.",
+        "description": "Changes an account; its balance follows a new opening balance at once, and a credit card's available credit a new credit limit. Every field is replaced: last4 or a credit card field left out is removed. Send the row version last read as If-Match: a stale one answers 412, none answers 428.",
         "operationId": "EditAccount",
         "parameters": [
           {
@@ -1435,7 +1435,8 @@
         "required": [
           "items",
           "nextCursor",
-          "totals"
+          "totals",
+          "baseCurrencyTotal"
         ],
         "type": "object",
         "properties": {
@@ -1456,6 +1457,9 @@
             "items": {
               "$ref": "#/components/schemas/InstitutionTotalResponse"
             }
+          },
+          "baseCurrencyTotal": {
+            "$ref": "#/components/schemas/BaseCurrencyTotalResponse"
           }
         }
       },
@@ -1498,6 +1502,36 @@
               "null",
               "string"
             ]
+          },
+          "last4": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "creditLimit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statementDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "paymentDueDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -1513,7 +1547,12 @@
           "openingDate",
           "balance",
           "isArchived",
-          "rowVersion"
+          "rowVersion",
+          "last4",
+          "creditLimit",
+          "statementDay",
+          "paymentDueDay",
+          "availableCredit"
         ],
         "type": "object",
         "properties": {
@@ -1558,6 +1597,42 @@
           },
           "rowVersion": {
             "type": "string"
+          },
+          "last4": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "creditLimit": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statementDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "paymentDueDay": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "availableCredit": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1579,6 +1654,35 @@
         "properties": {
           "token": {
             "type": "string"
+          }
+        }
+      },
+      "BaseCurrencyTotalResponse": {
+        "required": [
+          "currency",
+          "balance",
+          "notConverted",
+          "institutions"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotConvertedAmountResponse"
+            }
+          },
+          "institutions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstitutionBaseCurrencyTotalResponse"
+            }
           }
         }
       },
@@ -1756,6 +1860,32 @@
           }
         }
       },
+      "InstitutionBaseCurrencyTotalResponse": {
+        "required": [
+          "institutionId",
+          "balance",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "institutionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotConvertedAmountResponse"
+            }
+          }
+        }
+      },
       "InstitutionListResponse": {
         "required": [
           "items",
@@ -1863,6 +1993,21 @@
           "vi",
           null
         ]
+      },
+      "NotConvertedAmountResponse": {
+        "required": [
+          "currency",
+          "balance"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
+            "type": "string"
+          }
+        }
       },
       "ProblemDetails": {
         "type": "object",
