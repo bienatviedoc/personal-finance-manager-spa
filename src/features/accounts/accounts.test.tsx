@@ -1,8 +1,10 @@
 import { screen, waitFor, within } from '@testing-library/react'
+import { http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { renderApp } from '@/test/renderApp'
+import { apiUrl, problem, server } from '@/test/server'
 
 const vietcombank = '01970000-0000-7000-8000-100000000000'
 const momo = '01970000-0000-7000-8000-100000000001'
@@ -309,6 +311,33 @@ describe('accounts', () => {
 
     expect(await screen.findByText('No accounts yet. Add the accounts your money sits in.')).toBeInTheDocument()
     expect(accountsApi.accounts[0]?.isArchived).toBe(true)
+  })
+
+  it('say in a toast when saving or archiving fails, and do it when the user tries again', async () => {
+    const { accountsApi } = fakeApis()
+    const { user } = renderApp('/accounts')
+    await user.click(await screen.findByRole('button', { name: 'Add account' }))
+    await user.type(screen.getByLabelText('Name'), 'Everyday')
+    await user.type(screen.getByLabelText('Opening balance'), '1,000')
+    server.use(http.post(apiUrl('/api/v1/accounts'), () => problem(500), { once: true }))
+
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('The account was not saved.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('Everyday')
+    expect(accountsApi.accounts).toEqual([])
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => expect(listedUnder('No institution')).toEqual([['Everyday', '₫1,000']]))
+    expect(screen.queryByText('The account was not saved.')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Archive Everyday' }))
+    server.use(http.delete(apiUrl('/api/v1/accounts/:id'), () => problem(500), { once: true }))
+    await user.click(within(screen.getByRole('group', { name: 'Archive Everyday' })).getByRole('button', { name: 'Archive' }))
+    expect(await screen.findByText('The account was not archived.')).toBeInTheDocument()
+    expect(accountsApi.accounts[0]!.isArchived).toBe(false)
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => expect(accountsApi.accounts[0]!.isArchived).toBe(true))
   })
 
   it('stay as they are when the user cancels archiving', async () => {

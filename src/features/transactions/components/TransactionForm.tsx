@@ -64,6 +64,8 @@ const amountField = 'amount'
 const exampleAmount = '1250000'
 
 type Props = {
+  /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
+  id?: string
   /** The transaction being edited; none when recording one. */
   transaction?: Transaction
   /** Every account of the user's. Archived ones are offered only to the transaction already on them. */
@@ -83,7 +85,7 @@ type Props = {
  * Records or edits income or an expense. The type toggle at the top decides which categories are offered;
  * the chosen account decides the currency of the amount.
  */
-export function TransactionForm({ transaction, accounts, categories, onSave, onSaved, onCancel }: Props) {
+export function TransactionForm({ id, transaction, accounts, categories, onSave, onSaved, onCancel }: Props) {
   const { t } = useTranslation()
   const locale = useLocale()
   const { baseCurrency, timeZone } = useUserSettings()
@@ -172,7 +174,7 @@ export function TransactionForm({ transaction, accounts, categories, onSave, onS
   })
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-4">
+    <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
       <fieldset>
         <legend className="sr-only">{t('transactions.type')}</legend>
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">

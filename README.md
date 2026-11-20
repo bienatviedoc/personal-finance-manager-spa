@@ -59,6 +59,11 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.
+- **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
+  `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
+  the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change
+  again; fields the API refused stay under their inputs. The toast is the Radix primitive in
+  `src/shared/ui/toast.tsx`, and stays until the user answers it.
 - **A new transaction carries an `Idempotency-Key`**, made up once for each request the user means to make
   (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
   the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a

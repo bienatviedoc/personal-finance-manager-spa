@@ -2,6 +2,12 @@
   "app": {
     "name": "Personal Finance Manager"
   },
+  "toast": {
+    "label": "Notification",
+    "viewport": "Notifications ({hotkey})",
+    "retry": "Try again",
+    "dismiss": "Dismiss"
+  },
   "nav": {
     "label": "Main",
     "dashboard": "Dashboard",
@@ -197,7 +203,9 @@
       "creditLimit": "Enter a credit limit, such as {{example}}, or leave it empty.",
       "day": "Choose a day of the month, from 1 to 31.",
       "stale": "This account was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "notSaved": "The account was not saved.",
+      "notArchived": "The account was not archived."
     }
   },
   "transactions": {
@@ -247,7 +255,9 @@
       "payeeTooLong": "Use at most 200 characters.",
       "noteTooLong": "Use at most 1000 characters.",
       "stale": "This transaction was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "notSaved": "The transaction was not saved.",
+      "notDeleted": "The transaction was not deleted."
     }
   },
   "institutions": {

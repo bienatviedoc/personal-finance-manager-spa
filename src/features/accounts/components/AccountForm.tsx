@@ -83,6 +83,8 @@ const daysOfMonth = Array.from({ length: 31 }, (_, index) => String(index + 1))
 const exampleAmount = '1250000'
 
 type Props = {
+  /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
+  id?: string
   /** The account being edited; none when adding one. */
   account?: Account
   /** Every institution of the user's. Archived ones are offered only to the account already with them. */
@@ -97,7 +99,7 @@ type Props = {
  * labelled with the last 4 digits of its number; a credit card is also asked for its credit limit, statement
  * day and payment due day, each optional.
  */
-export function AccountForm({ account, institutions, onSave, onDone }: Props) {
+export function AccountForm({ id, account, institutions, onSave, onDone }: Props) {
   const { t } = useTranslation()
   const locale = useLocale()
   const { baseCurrency, timeZone } = useUserSettings()
@@ -141,21 +143,27 @@ export function AccountForm({ account, institutions, onSave, onDone }: Props) {
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = values.amount as string
-    const outcome = await onSave({
-      name: values.name,
-      type: values.type,
-      institutionId: values.institutionId || null,
-      currency: values.currency,
-      openingDate: values.openingDate,
-      ...(holdsAmountOwed(values.type) ? { amountOwed: amount } : { openingBalance: amount }),
-      last4: values.last4 || null,
-      // Fields the form no longer shows are not sent: only a credit card has them.
-      ...(hasCreditCardFields(values.type) && {
-        creditLimit: values.creditLimit || null,
-        statementDay: values.statementDay ? Number(values.statementDay) : null,
-        paymentDueDay: values.paymentDueDay ? Number(values.paymentDueDay) : null,
-      }),
-    })
+    let outcome: SaveOutcome
+    try {
+      outcome = await onSave({
+        name: values.name,
+        type: values.type,
+        institutionId: values.institutionId || null,
+        currency: values.currency,
+        openingDate: values.openingDate,
+        ...(holdsAmountOwed(values.type) ? { amountOwed: amount } : { openingBalance: amount }),
+        last4: values.last4 || null,
+        // Fields the form no longer shows are not sent: only a credit card has them.
+        ...(hasCreditCardFields(values.type) && {
+          creditLimit: values.creditLimit || null,
+          statementDay: values.statementDay ? Number(values.statementDay) : null,
+          paymentDueDay: values.paymentDueDay ? Number(values.paymentDueDay) : null,
+        }),
+      })
+    } catch {
+      // Whoever saves says that it failed; the form keeps what was entered, to be saved again.
+      return
+    }
     if (outcome.saved) {
       onDone()
       return
@@ -168,7 +176,7 @@ export function AccountForm({ account, institutions, onSave, onDone }: Props) {
   })
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">
+    <form id={id} noValidate onSubmit={onSubmit} className="space-y-4 rounded-lg border p-4">
       <TextField
         label={t('accounts.name')}
         autoComplete="off"

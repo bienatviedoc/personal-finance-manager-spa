@@ -1,9 +1,10 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
@@ -117,6 +118,8 @@ type FormProps = { accounts: Account[]; categories: Category[]; onClose: () => v
 
 /** Records one transaction after another: the drawer stays open, ready for the next transaction (spec section 12). */
 function AddTransaction({ accounts, categories, onClose }: FormProps) {
+  const { t } = useTranslation()
+  const formId = useId()
   const create = useCreateTransaction()
   // One key per request the user means to make: saving the same values again after a failure sends the same
   // one, so the API cannot record the transaction twice. Changed values are a new request, and so is the
@@ -126,6 +129,7 @@ function AddTransaction({ accounts, categories, onClose }: FormProps) {
   return (
     <>
       <TransactionForm
+        id={formId}
         accounts={accounts}
         categories={categories}
         onSave={(draft: TransactionDraft) => {
@@ -139,13 +143,14 @@ function AddTransaction({ accounts, categories, onClose }: FormProps) {
         }}
         onCancel={onClose}
       />
-      {create.isError && <ErrorMessage />}
+      <FailureToast failed={create.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={create.reset} />
     </>
   )
 }
 
 function EditTransaction({ transaction, accounts, categories, onClose }: FormProps & { transaction: Transaction }) {
   const { t } = useTranslation()
+  const formId = useId()
   const edit = useEditTransaction(transaction)
   const stale = edit.data !== undefined && !edit.data.saved && 'stale' in edit.data
 
@@ -159,6 +164,7 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
       {/* A new row version is a new transaction to edit: the form starts again from what the API holds now. */}
       <TransactionForm
         key={transaction.rowVersion}
+        id={formId}
         transaction={transaction}
         accounts={accounts}
         categories={categories}
@@ -166,7 +172,7 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
         onSaved={onClose}
         onCancel={onClose}
       />
-      {edit.isError && <ErrorMessage />}
+      <FailureToast failed={edit.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={edit.reset} />
     </>
   )
 }
@@ -219,9 +225,14 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
               {t('transactions.cancel')}
             </Button>
           </div>
-          {remove.isError && <ErrorMessage />}
         </div>
       )}
+      <FailureToast
+        failed={remove.isError}
+        message={t('transactions.errors.notDeleted')}
+        retry={() => remove.mutate(transaction.id)}
+        onDismiss={remove.reset}
+      />
     </li>
   )
 }

@@ -242,7 +242,7 @@ describe('transactions', () => {
     expect(transactionsApi.transactions).toHaveLength(2)
   })
 
-  it('leave the list again when saving fails, and saving again cannot record the transaction twice', async () => {
+  it('leave the list again when saving fails, with a toast to try again, which cannot record the transaction twice', async () => {
     const { transactionsApi } = fakeApis()
     const { user } = renderApp('/transactions')
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
@@ -252,12 +252,14 @@ describe('transactions', () => {
     transactionsApi.failNext()
 
     await user.click(drawer.getByRole('button', { name: 'Save' }))
-    expect(await drawer.findByRole('alert')).toHaveTextContent('Something went wrong. Try again.')
+    // A toast says so and offers to try again (spec section 12).
+    expect(await drawer.findByText('The transaction was not saved.')).toBeInTheDocument()
     expect(screen.queryByRole('list', { name: 'Transactions', hidden: true })).not.toBeInTheDocument()
     expect(drawer.getByLabelText('Amount (VND)')).toHaveValue('5')
 
-    await user.click(drawer.getByRole('button', { name: 'Save' }))
+    await user.click(drawer.getByRole('button', { name: 'Try again' }))
     await waitFor(() => expect(transactionsApi.transactions).toHaveLength(1))
+    expect(drawer.queryByText('The transaction was not saved.')).not.toBeInTheDocument()
     await user.type(drawer.getByLabelText('Amount (VND)'), '7')
     await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
@@ -395,6 +397,31 @@ describe('transactions', () => {
     await user.click(drawer.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(transactionsApi.ifMatches).toEqual(['"1"', '"2"']))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('say in a toast when an edit or a delete fails, and do it when the user tries again', async () => {
+    const { transactionsApi } = fakeApis([{ payee: 'Co.opmart', amount: '125000.00' }])
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Co.opmart' }))
+    const drawer = within(screen.getByRole('dialog', { name: 'Edit transaction' }))
+    await user.type(drawer.getByLabelText('Note'), 'weekly shop')
+    transactionsApi.failNext()
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+    expect(await drawer.findByText('The transaction was not saved.')).toBeInTheDocument()
+    expect(transactionsApi.transactions[0]!.note).toBeNull()
+    await user.click(drawer.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(transactionsApi.transactions[0]!.note).toBe('weekly shop')
+
+    await user.click(await screen.findByRole('button', { name: 'Delete Co.opmart' }))
+    transactionsApi.failNext()
+    await user.click(within(screen.getByRole('group', { name: 'Delete Co.opmart' })).getByRole('button', { name: 'Delete' }))
+    expect(await screen.findByText('The transaction was not deleted.')).toBeInTheDocument()
+    expect(transactionsApi.transactions).toHaveLength(1)
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(transactionsApi.transactions).toHaveLength(0))
+    await waitFor(() => expect(screen.queryByText('The transaction was not deleted.')).not.toBeInTheDocument())
   })
 
   it('leave the list once deleted, after the user confirms', async () => {
