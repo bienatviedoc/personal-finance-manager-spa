@@ -29,8 +29,27 @@ export function holdsAmountOwed(type: AccountType): boolean {
   return type === 'creditCard' || type === 'loan'
 }
 
+/**
+ * Whether an account of this type has a credit limit, a statement day and a payment due day: a credit card
+ * only. The API refuses them on any other type.
+ */
+export function hasCreditCardFields(type: AccountType): boolean {
+  return type === 'creditCard'
+}
+
 /** Fields the API can refuse, which the form shows its own translated message for. */
-export type AccountField = 'name' | 'type' | 'institutionId' | 'currency' | 'openingBalance' | 'amountOwed' | 'openingDate'
+export type AccountField =
+  | 'name'
+  | 'type'
+  | 'institutionId'
+  | 'currency'
+  | 'openingBalance'
+  | 'amountOwed'
+  | 'openingDate'
+  | 'last4'
+  | 'creditLimit'
+  | 'statementDay'
+  | 'paymentDueDay'
 
 export type SaveOutcome =
   | { saved: true; account: Account }
@@ -39,7 +58,19 @@ export type SaveOutcome =
   | { saved: false; stale: true }
 
 const accountsKey = ['accounts']
-const accountFields: AccountField[] = ['name', 'type', 'institutionId', 'currency', 'openingBalance', 'amountOwed', 'openingDate']
+const accountFields: AccountField[] = [
+  'name',
+  'type',
+  'institutionId',
+  'currency',
+  'openingBalance',
+  'amountOwed',
+  'openingDate',
+  'last4',
+  'creditLimit',
+  'statementDay',
+  'paymentDueDay',
+]
 
 /**
  * The user's accounts by name, each with its balance, the total of each institution in each currency, and the

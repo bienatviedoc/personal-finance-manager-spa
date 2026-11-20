@@ -16,6 +16,11 @@ const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
 /** An amount as the API writes it: at least two decimals. Test amounts are small, so a number holds them. */
 const text = (amount: number) => amount.toFixed(2)
 
+/** The credit limit minus the amount owed now: the limit plus the balance, which is negative while anything is owed. */
+const availableCredit = (creditLimit: string | null, balance: string) => (creditLimit === null ? null : text(Number(creditLimit) + Number(balance)))
+
+const isDay = (day: unknown) => Number.isInteger(day) && (day as number) >= 1 && (day as number) <= 31
+
 type Options = {
   /** The institutions an account may be put with, as `fakeInstitutionsApi` keeps them. Without it any institution is taken. */
   institutions?: { id: string; isArchived: boolean }[]
@@ -35,12 +40,14 @@ type Options = {
  * converted into the base currency and added up, leaving out and naming what has no rate; a credit card or loan
  * takes `amountOwed` and holds it as a negative balance; with no transactions the balance is the opening
  * balance; an edit must name the row version in `If-Match` (412 when stale, 428 when missing); deleting
- * archives.
+ * archives. Any account takes `last4`, exactly 4 digits; only a credit card takes `creditLimit`, `statementDay`
+ * and `paymentDueDay`, and its `availableCredit` is the limit plus its (negative) balance.
  */
 export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institutions, baseCurrency = 'VND', rates = {} }: Options = {}) {
   const state = {
     accounts: accounts.map((account, index): Account => {
       const openingBalance = account.openingBalance ?? '0.00'
+      const balance = account.balance ?? openingBalance
       return {
         id: `01970000-0000-7000-8000-2000000000${String(index).padStart(2, '0')}`,
         institutionId: null,
@@ -51,9 +58,14 @@ export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institution
         openingDate: '2026-11-01',
         isArchived: false,
         rowVersion: '1',
+        last4: null,
+        creditLimit: null,
+        statementDay: null,
+        paymentDueDay: null,
         ...account,
         openingBalance,
-        balance: account.balance ?? openingBalance,
+        balance,
+        availableCredit: account.availableCredit ?? availableCredit(account.creditLimit ?? null, balance),
       }
     }),
     /** The `If-Match` header of every edit, in the order they arrived. */
@@ -81,6 +93,20 @@ export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institution
       if (!fits) errors[sent] = ['Enter an amount.']
       if (body[other] != null) errors[other] = ['This type of account does not take it.']
     }
+    const last4 = body.last4?.trim() || null
+    if (last4 !== null && !/^[0-9]{4}$/.test(last4)) errors.last4 = ['Enter only the last 4 digits. A full account or card number is never stored.']
+
+    const creditLimit = body.creditLimit ?? null
+    const days = { statementDay: body.statementDay ?? null, paymentDueDay: body.paymentDueDay ?? null }
+    if (body.type === 'creditCard') {
+      if (creditLimit !== null && !errors.currency) {
+        const fraction = (creditLimit.split('.')[1] ?? '').replace(/0+$/, '')
+        if (!/^\d{1,15}(\.\d+)?$/.test(creditLimit) || fraction.length > decimals[body.currency!]!) errors.creditLimit = ['Enter an amount.']
+      }
+      for (const [field, day] of Object.entries(days)) if (day !== null && !isDay(day)) errors[field] = ['Enter a day of the month, 1 to 31.']
+    } else if (!errors.type) {
+      for (const [field, sentValue] of Object.entries({ creditLimit, ...days })) if (sentValue !== null) errors[field] = ['Only a credit card has it.']
+    }
     if (Object.keys(errors).length > 0) return { refused: problem(400, { errors }) }
 
     const institutionId = body.institutionId ?? null
@@ -104,6 +130,11 @@ export function fakeAccountsApi(accounts: Partial<Account>[] = [], { institution
         openingDate: body.openingDate!,
         // No transactions yet: the balance is the opening balance.
         balance: openingBalance,
+        last4,
+        creditLimit: creditLimit === null ? null : text(Number(creditLimit)),
+        statementDay: days.statementDay as number | null,
+        paymentDueDay: days.paymentDueDay as number | null,
+        availableCredit: availableCredit(creditLimit, openingBalance),
       },
     }
   }

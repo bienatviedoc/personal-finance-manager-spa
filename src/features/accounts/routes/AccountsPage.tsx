@@ -220,6 +220,12 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
           <h3 className="font-medium break-words">{account.name}</h3>
           <p className="text-sm text-muted-foreground">
             {t(`accounts.types.${account.type}`)}
+            {account.last4 && (
+              <>
+                {' · '}
+                <span>{t('accounts.endingIn', { last4: account.last4 })}</span>
+              </>
+            )}
             {account.isArchived && (
               <>
                 {' · '}
@@ -244,6 +250,7 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
           </>
         )}
       </div>
+      <CreditCardDetails account={account} />
       {mode === 'confirmArchive' && (
         <div role="group" aria-label={t('accounts.archiveNamed', { name: account.name })} className="space-y-2 rounded-md bg-muted p-3">
           <p className="text-sm">{t('accounts.archiveExplained', { name: account.name })}</p>
@@ -264,6 +271,49 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
         </div>
       )}
     </li>
+  )
+}
+
+/**
+ * What a credit card records: the credit still available, which the API works out as the credit limit minus
+ * the amount owed, then the limit, statement day and payment due day. Only what the card has is shown.
+ */
+function CreditCardDetails({ account }: { account: Account }) {
+  const { t } = useTranslation()
+  const { availableCredit, creditLimit, statementDay, paymentDueDay, currency } = account
+  if (availableCredit === null && creditLimit === null && statementDay === null && paymentDueDay === null) return null
+
+  return (
+    <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      {availableCredit !== null && (
+        <div className="flex gap-1.5">
+          <dt className="text-muted-foreground">{t('accounts.availableCredit')}</dt>
+          <dd className="font-medium tabular-nums">
+            <Money amount={availableCredit} currency={currency} />
+          </dd>
+        </div>
+      )}
+      {creditLimit !== null && (
+        <div className="flex gap-1.5">
+          <dt className="text-muted-foreground">{t('accounts.creditLimit')}</dt>
+          <dd className="tabular-nums">
+            <Money amount={creditLimit} currency={currency} />
+          </dd>
+        </div>
+      )}
+      {statementDay !== null && (
+        <div className="flex gap-1.5">
+          <dt className="text-muted-foreground">{t('accounts.statementDay')}</dt>
+          <dd>{statementDay}</dd>
+        </div>
+      )}
+      {paymentDueDay !== null && (
+        <div className="flex gap-1.5">
+          <dt className="text-muted-foreground">{t('accounts.paymentDueDay')}</dt>
+          <dd>{paymentDueDay}</dd>
+        </div>
+      )}
+    </dl>
   )
 }
 

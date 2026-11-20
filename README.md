@@ -148,6 +148,11 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   whether an amount is zero from its digits. `DecimalString` marks a string that holds an amount.
 - **Amount owed.** A credit card or loan is asked for the amount owed, as a positive number, instead of an
   opening balance, and the API shows it as a negative balance (`holdsAmountOwed` in `features/accounts`).
+- **Available credit.** A credit card with a credit limit shows its available credit, the limit minus the amount
+  owed, exactly as the API answers it (`availableCredit`); the SPA never subtracts. Only a credit card is asked
+  for a credit limit, statement day and payment due day (`hasCreditCardFields` in `features/accounts`).
+- **Last 4 digits.** Any account can be labelled with the last 4 digits of its number. The form takes exactly 4
+  digits or nothing, so a full account or card number is refused before anything is sent; never widen it.
 - **Currencies** are the API's (`Currency` from the generated schema). `currencies` lists them for pickers, and
   typecheck fails when the API adds one the list lacks.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
