@@ -94,7 +94,7 @@ src/
   features/   one folder per feature, with an index.ts and routes/; api/, components/ and
               hooks/ are added as a feature needs them
   shared/     UI primitives (shared/ui), shared components, the API client (shared/api), i18n,
-              money, dates, observability, utilities (shared/lib)
+              money, dates, observability, the theme (shared/theme), utilities (shared/lib)
   test/       test setup and helpers
 ```
 
@@ -151,11 +151,14 @@ next to a currency code; the SPA keeps it a string from the response to the scre
 - **Phones.** From 768 px (`sidebarQuery` in `src/app/navigation.ts`) the shell shows the sidebar; below it, a
   bottom tab bar. Screens with a `tabIcon` get a tab (Dashboard, Transactions, Budgets, Reports); the rest, the
   user menu, language and theme sit under More. Keep it to four tabs so labels fit at 360 px, and keep screens
-  free of fixed widths so nothing scrolls sideways at 360 px.
-- **Themes.** Light and dark follow the system unless the viewer picks one (Theme, in the sidebar or under More),
+  free of fixed widths, with rows of actions that wrap, so nothing scrolls sideways at 360 px.
+- **Themes.** Light and dark follow the system unless the viewer picks one (Theme, in the sidebar, under More, or on
+  the signed-out screens),
   which is remembered in the browser (`src/shared/theme`). Dark mode is the `dark` class on `<html>`; style with
   the colour tokens in `src/index.css` and Tailwind's `dark:` variant. A script in `index.html` sets the class
-  before the first paint, so keep its storage key in step with `src/shared/theme`.
+  before the first paint, so keep its storage key in step with `src/shared/theme`; a test runs the script
+  against a stored choice. A chosen theme also recolours the browser bar (`theme-color`); the installed app's
+  splash screen comes from the manifest and stays light.
 - **Installing.** `public/manifest.webmanifest` and the icons in `public/icons` make the app installable to a
   home screen. There is no service worker: the app does not work offline in v1. The PNG icons are rendered from
   the SVGs next to them; re-render all four sizes if the icon changes.
@@ -168,5 +171,5 @@ The target is WCAG 2.1 AA (spec section 8).
 - Every screen names itself in the browser tab with `useDocumentTitle`.
 - Controls styled by hand take the `focusRing` class from `src/shared/lib/utils.ts`, so keyboard focus is
   always visible; a label wrapping a visually hidden radio or checkbox takes `focusRingWithin` instead. shadcn primitives bring their own.
-- Overlays such as the More sheet are Radix dialogs, which keep focus inside while open, close on Escape and hand
-  focus back to what opened them.
+- Overlays such as the More sheet use the shadcn primitives built on Radix dialogs (`src/shared/ui/sheet.tsx`),
+  which keep focus inside while open, close on Escape and hand focus back to what opened them.

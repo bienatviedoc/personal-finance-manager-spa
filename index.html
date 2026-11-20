@@ -11,11 +11,13 @@
     <title>Personal Finance Manager</title>
     <script>
       // Sets the theme before the first paint so a dark page never flashes light. Keep in step with src/shared/theme.
+      // Storage can be blocked; the theme then follows the system.
+      var choice = null
       try {
-        var choice = localStorage.getItem('pfm.theme')
-        var dark = choice === 'dark' || (choice !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
-        document.documentElement.classList.toggle('dark', dark)
+        choice = localStorage.getItem('pfm.theme')
       } catch (e) {}
+      var dark = choice === 'dark' || (choice !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.classList.toggle('dark', dark)
     </script>
   </head>
   <body>

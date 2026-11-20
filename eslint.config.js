@@ -58,7 +58,7 @@ export default defineConfig([
           'jsx-attributes': {
             exclude: [
               'className', 'style', 'type', 'key', 'id', 'width', 'height',
-              'to', 'href', 'path', 'role', 'variant', 'size', 'lang', 'htmlFor',
+              'to', 'href', 'path', 'role', 'variant', 'size', 'side', 'lang', 'htmlFor',
               'rel', 'target', 'src', 'end', 'data-.*', 'autoComplete', 'inputMode',
             ],
           },

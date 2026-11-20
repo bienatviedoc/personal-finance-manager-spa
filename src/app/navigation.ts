@@ -20,5 +20,11 @@ export const navigation: NavigationItem[] = [
   { to: '/settings', label: 'nav.settings' },
 ]
 
+type TabItem = NavigationItem & { tabIcon: LucideIcon }
+
+/** On a phone: the screens with a tab of their own, and the ones under More. */
+export const tabs = navigation.filter((item): item is TabItem => item.tabIcon !== undefined)
+export const underMore = navigation.filter((item) => item.tabIcon === undefined)
+
 /** Wide enough for the sidebar; narrower screens get the bottom tab bar. Tailwind's `md`. */
 export const sidebarQuery = '(min-width: 768px)'

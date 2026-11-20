@@ -1,14 +1,14 @@
 import { Ellipsis, X } from 'lucide-react'
-import { Dialog } from 'radix-ui'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { NavLink, Outlet } from 'react-router'
+import { matchPath, NavLink, Outlet, useLocation } from 'react-router'
 import { UserMenu } from '@/features/auth'
 import { useProfileLocale, useSaveLocale } from '@/features/settings'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { useMediaQuery } from '@/shared/lib/useMediaQuery'
+import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/shared/ui/sheet'
 import { LanguageSwitch } from './LanguageSwitch'
-import { navigation, sidebarQuery, type NavigationItem } from './navigation'
+import { navigation, sidebarQuery, tabs, underMore, type NavigationItem } from './navigation'
 import { ThemeSwitch } from './ThemeSwitch'
 
 /** The signed-in layout: a sidebar on wide screens, a bottom tab bar on phones. */
@@ -16,20 +16,21 @@ export function AppShell() {
   useProfileLocale()
   const wide = useMediaQuery(sidebarQuery)
 
-  return wide ? (
-    <div className="flex min-h-svh bg-background text-foreground">
-      <Sidebar />
-      <main className="min-w-0 flex-1 p-6">
+  // The screen stays the same child whichever navigation shows, so turning a phone does not reset
+  // what the user was in the middle of.
+  return (
+    <div className={cn('flex min-h-svh bg-background text-foreground', !wide && 'flex-col')}>
+      {wide && <Sidebar />}
+      <main
+        className={cn(
+          'min-w-0 flex-1',
+          // Room at the bottom so the tab bar never covers the end of a screen.
+          wide ? 'p-6' : 'p-4 pb-[calc(5rem+env(safe-area-inset-bottom))]',
+        )}
+      >
         <Outlet />
       </main>
-    </div>
-  ) : (
-    <div className="flex min-h-svh flex-col bg-background text-foreground">
-      {/* Room at the bottom so the tab bar never covers the end of a screen. */}
-      <main className="min-w-0 flex-1 p-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
-        <Outlet />
-      </main>
-      <TabBar />
+      {!wide && <TabBar />}
     </div>
   )
 }
@@ -44,13 +45,13 @@ function Sidebar() {
         <ul className="space-y-1">
           {navigation.map((item) => (
             <li key={item.to}>
-              <ListLink item={item} />
+              <NavigationLink item={item} />
             </li>
           ))}
         </ul>
       </nav>
       <div className="mt-auto space-y-4 px-2">
-        <ViewerSettings />
+        <UserControls />
       </div>
     </aside>
   )
@@ -59,74 +60,82 @@ function Sidebar() {
 function TabBar() {
   const { t } = useTranslation()
   const [moreOpen, setMoreOpen] = useState(false)
-  const tabs = navigation.filter((item) => item.tabIcon)
-  const rest = navigation.filter((item) => !item.tabIcon)
+  const { pathname } = useLocation()
+  const onScreenUnderMore = underMore.some((item) => matchPath({ path: item.to, end: false }, pathname))
 
   return (
     <nav
       aria-label={t('nav.label')}
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-sidebar pb-[env(safe-area-inset-bottom)] text-sidebar-foreground"
     >
-      <ul className="grid grid-cols-5">
+      {/* One equal column per tab, and one for More. */}
+      <ul className="grid auto-cols-fr grid-flow-col">
         {tabs.map(({ to, label, tabIcon: Icon }) => (
           <li key={to}>
-            <NavLink to={to} end={to === '/'} className={({ isActive }) => cn(tabClass, isActive && activeTabClass)}>
-              {Icon && <Icon aria-hidden className="size-5" />}
+            <NavLink to={to} end={isHome(to)} className={({ isActive }) => cn(tabClass, isActive && activeTabClass)}>
+              <Icon aria-hidden className="size-5" />
               <span className="max-w-full text-center leading-tight break-words">{t(label)}</span>
             </NavLink>
           </li>
         ))}
         <li>
-          <Dialog.Root open={moreOpen} onOpenChange={setMoreOpen}>
-            <Dialog.Trigger className={cn(tabClass, 'w-full')}>
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <SheetTrigger
+              aria-current={onScreenUnderMore || undefined}
+              className={cn(tabClass, 'w-full', onScreenUnderMore && activeTabClass)}
+            >
               <Ellipsis aria-hidden className="size-5" />
               <span>{t('nav.more')}</span>
-            </Dialog.Trigger>
-            <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-              <Dialog.Content
-                aria-describedby={undefined}
-                className="fixed inset-x-0 bottom-0 z-50 max-h-[85svh] space-y-6 overflow-y-auto rounded-t-xl border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-foreground"
-              >
-                <div className="flex items-center justify-between">
-                  <Dialog.Title className="font-semibold">{t('nav.more')}</Dialog.Title>
-                  <Dialog.Close className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
-                    <X aria-hidden className="size-5" />
-                  </Dialog.Close>
-                </div>
-                <ul className="space-y-1">
-                  {rest.map((item) => (
-                    <li key={item.to}>
-                      <ListLink item={item} onNavigate={() => setMoreOpen(false)} />
-                    </li>
-                  ))}
-                </ul>
-                <div className="space-y-4 border-t pt-4">
-                  <ViewerSettings />
-                </div>
-              </Dialog.Content>
-            </Dialog.Portal>
-          </Dialog.Root>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              // The sheet's own close button has no translated name; ours does.
+              showCloseButton={false}
+              aria-describedby={undefined}
+              className="max-h-[85svh] gap-6 overflow-y-auto rounded-t-xl bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-foreground"
+            >
+              <div className="flex items-center justify-between">
+                <SheetTitle className="font-semibold">{t('nav.more')}</SheetTitle>
+                <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
+                  <X aria-hidden className="size-5" />
+                </SheetClose>
+              </div>
+              <ul className="space-y-1">
+                {underMore.map((item) => (
+                  <li key={item.to}>
+                    <NavigationLink item={item} onNavigate={() => setMoreOpen(false)} />
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-4 border-t pt-4">
+                <UserControls />
+              </div>
+            </SheetContent>
+          </Sheet>
         </li>
       </ul>
     </nav>
   )
 }
 
-/** A tab: icon over label, at least 44 px tall so it is easy to hit with a thumb. */
+/** A tab: icon over label, 56 px tall at least so it is easy to hit with a thumb. */
 const tabClass = cn(
   'flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5 text-[11px] text-muted-foreground hover:text-sidebar-foreground',
   focusRing,
 )
 const activeTabClass = 'font-medium text-sidebar-accent-foreground'
 
-function ListLink({ item, onNavigate }: { item: NavigationItem; onNavigate?: () => void }) {
+/** The Dashboard's link is current only on the Dashboard itself, not on every screen beneath `/`. */
+const isHome = (to: string) => to === '/'
+
+/** A row in a list of screens: the sidebar, or the list under More. */
+function NavigationLink({ item, onNavigate }: { item: NavigationItem; onNavigate?: () => void }) {
   const { t } = useTranslation()
 
   return (
     <NavLink
       to={item.to}
-      end={item.to === '/'}
+      end={isHome(item.to)}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
@@ -141,8 +150,8 @@ function ListLink({ item, onNavigate }: { item: NavigationItem; onNavigate?: () 
   )
 }
 
-/** Who is signed in, and the settings that belong to this browser. */
-function ViewerSettings() {
+/** Who is signed in and how to sign out, then the language and theme switches. */
+function UserControls() {
   const saveLocale = useSaveLocale()
 
   return (

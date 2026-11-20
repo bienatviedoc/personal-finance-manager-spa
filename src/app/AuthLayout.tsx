@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { Outlet } from 'react-router'
 import { LanguageSwitch } from './LanguageSwitch'
+import { ThemeSwitch } from './ThemeSwitch'
 
-/** Layout for the signed-out screens: no navigation, just the app name and language. */
+/** Layout for the signed-out screens: no navigation, just the app name, language and theme. */
 export function AuthLayout() {
   const { t } = useTranslation()
 
@@ -12,7 +13,10 @@ export function AuthLayout() {
       <main className="w-full max-w-sm">
         <Outlet />
       </main>
-      <LanguageSwitch />
+      <div className="flex flex-wrap justify-center gap-4">
+        <LanguageSwitch />
+        <ThemeSwitch />
+      </div>
     </div>
   )
 }

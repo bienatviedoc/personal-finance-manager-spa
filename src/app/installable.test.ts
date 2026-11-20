@@ -65,8 +65,8 @@ describe('installing the app to the home screen', () => {
       expect(icon.type).toBe('image/png')
       expect(pngSize(`/public${icon.src}`), icon.src).toBe(icon.sizes)
     }
-    const any = icons.filter((icon) => purposes(icon).includes('any')).map((icon) => icon.sizes)
-    expect(any).toEqual(expect.arrayContaining(['192x192', '512x512']))
+    const anyPurposeSizes = icons.filter((icon) => purposes(icon).includes('any')).map((icon) => icon.sizes)
+    expect(anyPurposeSizes).toEqual(expect.arrayContaining(['192x192', '512x512']))
     expect(icons.some((icon) => purposes(icon).includes('maskable'))).toBe(true)
   })
 

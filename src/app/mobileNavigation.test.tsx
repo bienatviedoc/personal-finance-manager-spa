@@ -43,6 +43,34 @@ describe('navigation on a phone', () => {
     expect(moreButton).toHaveFocus()
   })
 
+  it('marks More as current on a screen that sits under it', async () => {
+    setScreenWidth(360)
+    renderApp('/accounts')
+    const tabs = await screen.findByRole('navigation', { name: 'Main' })
+
+    expect(within(tabs).getByRole('button', { name: 'More' })).toHaveAttribute('aria-current', 'true')
+    expect(within(tabs).queryByRole('link', { current: 'page' })).not.toBeInTheDocument()
+  })
+
+  it('does not mark More as current on a screen with a tab of its own', async () => {
+    setScreenWidth(360)
+    renderApp('/budgets')
+    const tabs = await screen.findByRole('navigation', { name: 'Main' })
+
+    expect(within(tabs).getByRole('button', { name: 'More' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('keeps the open screen as it was when the screen widens, as when a phone is turned', async () => {
+    setScreenWidth(360)
+    renderApp('/budgets')
+    const screenHeading = await screen.findByRole('heading', { level: 1, name: 'Budgets' })
+
+    setScreenWidth(1024)
+
+    // The very same element: the screen was not thrown away and rendered afresh.
+    expect(screen.getByRole('heading', { level: 1, name: 'Budgets' })).toBe(screenHeading)
+  })
+
   it('becomes the sidebar again when the screen widens', async () => {
     setScreenWidth(360)
     renderApp('/budgets')

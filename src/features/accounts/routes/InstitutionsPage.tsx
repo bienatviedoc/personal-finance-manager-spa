@@ -67,9 +67,9 @@ function InstitutionRow({ institution }: { institution: Institution }) {
 
   return (
     <li className="space-y-2 p-3">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <InstitutionLogo logoKey={institution.logoKey} color={institution.color} />
-        <h2 className="flex-1 font-medium">{institution.name}</h2>
+        <h2 className="min-w-24 flex-1 font-medium break-words">{institution.name}</h2>
         {mode === 'view' && (
           <>
             <Button variant="outline" size="sm" aria-label={t('institutions.editNamed', { name: institution.name })} onClick={toEdit}>

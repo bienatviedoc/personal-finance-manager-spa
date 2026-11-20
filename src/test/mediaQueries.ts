@@ -51,12 +51,10 @@ function evaluate(media: string): boolean {
   if (colorScheme) return (colorScheme[1] === 'dark') === device.prefersDark
   const minWidth = /min-width:\s*(\d+)px/.exec(media)
   if (minWidth) return device.width >= Number(minWidth[1])
-  const maxWidth = /max-width:\s*(\d+)px/.exec(media)
-  if (maxWidth) return device.width <= Number(maxWidth[1])
   throw new Error(`The fake matchMedia does not understand "${media}".`)
 }
 
-function change(update: Partial<Device>) {
+function changeDevice(update: Partial<Device>) {
   Object.assign(device, update)
   // Wrapped in act so React finishes re-rendering before the test looks.
   act(() => {
@@ -77,10 +75,10 @@ export function installFakeMatchMedia() {
 
 /** Sets the colour scheme the device's system prefers. */
 export function setSystemTheme(theme: 'light' | 'dark') {
-  change({ prefersDark: theme === 'dark' })
+  changeDevice({ prefersDark: theme === 'dark' })
 }
 
 /** Sets the device's screen width in CSS pixels; a phone is 360. */
 export function setScreenWidth(width: number) {
-  change({ width })
+  changeDevice({ width })
 }
