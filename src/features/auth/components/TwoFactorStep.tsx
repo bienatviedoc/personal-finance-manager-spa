@@ -5,16 +5,12 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
+import { authenticatorCode } from '@/shared/lib/authenticatorCode'
 import { Button } from '@/shared/ui/button'
 import type { SignInOutcome } from '../api/signIn'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
-/** Authenticator apps show six digits, often in two groups. */
-const authenticatorCode = z.object({
-  code: z
-    .string()
-    .transform((typed) => typed.replace(/[\s-]/g, ''))
-    .pipe(z.string().regex(/^\d{6}$/, { error: 'auth.twoFactor.errors.codeInvalid' })),
-})
+const authenticatorCodeForm = z.object({ code: authenticatorCode('auth.twoFactor.errors.codeInvalid') })
 const recoveryCode = z.object({
   code: z
     .string()
@@ -55,7 +51,7 @@ export function TwoFactorStep({ onSubmit, onStartOver }: Props) {
 function CodeForm({ withRecoveryCode, onSubmit }: { withRecoveryCode: boolean; onSubmit: Props['onSubmit'] }) {
   const { t } = useTranslation()
   const [outcome, setOutcome] = useState<SignInOutcome>()
-  const form = useForm({ resolver: zodResolver(withRecoveryCode ? recoveryCode : authenticatorCode), defaultValues: { code: '' } })
+  const form = useForm({ resolver: zodResolver(withRecoveryCode ? recoveryCode : authenticatorCodeForm), defaultValues: { code: '' } })
   const { errors } = form.formState
 
   // The step replaces the form the visitor was typing in, so typing carries on here.
@@ -68,17 +64,9 @@ function CodeForm({ withRecoveryCode, onSubmit }: { withRecoveryCode: boolean; o
   return (
     <form noValidate onSubmit={submit} className="space-y-4">
       <p className="text-sm text-muted-foreground">{t(withRecoveryCode ? 'auth.twoFactor.recoveryCodeBody' : 'auth.twoFactor.body')}</p>
-      {outcome === 'two-factor-code-incorrect' && (
-        <p role="alert" className="text-sm text-destructive">
-          {t(withRecoveryCode ? 'auth.twoFactor.errors.recoveryCodeIncorrect' : 'auth.twoFactor.errors.codeIncorrect')}
-        </p>
-      )}
+      {outcome === 'two-factor-code-incorrect' && <ErrorMessage>{t(withRecoveryCode ? 'auth.twoFactor.errors.recoveryCodeIncorrect' : 'auth.twoFactor.errors.codeIncorrect')}</ErrorMessage>}
       {/* The same refusal as a wrong password: after too many wrong codes sign-in is paused, and the API does not say so. */}
-      {outcome === 'wrong-credentials' && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('auth.twoFactor.errors.paused')}
-        </p>
-      )}
+      {outcome === 'wrong-credentials' && <ErrorMessage>{t('auth.twoFactor.errors.paused')}</ErrorMessage>}
       {withRecoveryCode ? (
         <TextField
           label={t('auth.twoFactor.recoveryCode')}

@@ -10,6 +10,7 @@ import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { categoryKinds, type CategoryField, type CategoryFields, type SaveOutcome } from '../api/categories'
 import { categoryIcons } from './appearance'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   name: z.string().trim().min(1, { error: 'categories.errors.nameRequired' }).max(100, { error: 'categories.errors.nameTooLong' }),
@@ -85,11 +86,7 @@ export function CategoryForm({ title, initial, kindFixed, kindHint, onSave, onCa
           )}
         </fieldset>
       )}
-      {errors.kind?.message && (
-        <p role="alert" className="text-sm text-destructive">
-          {t(errors.kind.message as ParseKeys)}
-        </p>
-      )}
+      {errors.kind?.message && <ErrorMessage>{t(errors.kind.message as ParseKeys)}</ErrorMessage>}
 
       <fieldset className="space-y-1.5">
         <legend className="text-sm font-medium">{t('categories.icon')}</legend>

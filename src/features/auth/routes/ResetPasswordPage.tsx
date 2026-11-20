@@ -9,6 +9,7 @@ import { TextField } from '@/shared/components/TextField'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import { useResetPassword, type ResetPasswordOutcome } from '../api/passwordReset'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   password: z.string().min(12, { error: 'auth.errors.passwordTooShort' }),
@@ -59,11 +60,7 @@ export function ResetPasswordPage() {
 
       {!outcome && (
         <>
-          {reset.isError && (
-            <p role="alert" className="text-sm text-destructive">
-              {t('auth.errors.generic')}
-            </p>
-          )}
+          {reset.isError && <ErrorMessage>{t('auth.errors.generic')}</ErrorMessage>}
           <form noValidate onSubmit={onSubmit} className="space-y-4">
             <TextField
               label={t('auth.resetPassword.newPassword')}

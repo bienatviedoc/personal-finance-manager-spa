@@ -2,11 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { currencies, formatMoney, isZeroAmount, Money } from '@/shared/money'
+import { formatMoney, inCurrencyOrder, isZeroAmount, Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
   accountsQuery,
@@ -77,7 +78,7 @@ export function AccountsPage() {
       </label>
 
       <FailureToast failed={create.isError} message={t('accounts.errors.notSaved')} retry={{ form: addFormId }} onDismiss={create.reset} />
-      {(accounts.isError || institutions.isError) && <ErrorMessage />}
+      {(accounts.isError || institutions.isError) && <ErrorMessage>{t('accounts.errors.generic')}</ErrorMessage>}
       {groups?.length === 0 && !adding && <p className="text-muted-foreground">{t('accounts.empty')}</p>}
       {accounts.data && groups && groups.length > 0 && <TotalOfAll total={accounts.data.baseCurrencyTotal} />}
       {groups?.map((group) => (
@@ -104,9 +105,7 @@ function groupByInstitution(
     return {
       institution,
       accounts: accounts.filter((account) => account.institutionId === id),
-      totals: totals
-        .filter((total) => total.institutionId === id)
-        .toSorted((a, b) => currencies.indexOf(a.currency) - currencies.indexOf(b.currency)),
+      totals: totals.filter((total) => total.institutionId === id).toSorted(inCurrencyOrder),
       inBaseCurrency: baseCurrencyTotal.institutions.find((total) => total.institutionId === id),
     }
   }
@@ -137,9 +136,7 @@ function NotConverted({ amounts, explained = false }: { amounts: NotConvertedAmo
   const locale = useLocale()
   if (amounts.length === 0) return null
   const list = new Intl.ListFormat(locale, { type: 'conjunction' }).format(
-    amounts
-      .toSorted((a, b) => currencies.indexOf(a.currency) - currencies.indexOf(b.currency))
-      .map((amount) => formatMoney(amount.balance, amount.currency, locale)),
+    amounts.toSorted(inCurrencyOrder).map((amount) => formatMoney(amount.balance, amount.currency, locale)),
   )
 
   return (
@@ -206,11 +203,7 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
     return (
       <li className="space-y-2 p-3">
         <h3 className="sr-only">{account.name}</h3>
-        {stale && (
-          <p role="alert" className="text-sm text-destructive">
-            {t('accounts.errors.stale')}
-          </p>
-        )}
+        {stale && <ErrorMessage>{t('accounts.errors.stale')}</ErrorMessage>}
         {/* A new row version is a new account to edit: the form starts again from what the API holds now. */}
         <AccountForm key={account.rowVersion} id={editFormId} account={account} institutions={institutions} onSave={edit.mutateAsync} onDone={toView} />
         <FailureToast failed={edit.isError} message={t('accounts.errors.notSaved')} retry={{ form: editFormId }} onDismiss={edit.reset} />
@@ -324,14 +317,5 @@ function CreditCardDetails({ account }: { account: Account }) {
         </div>
       )}
     </dl>
-  )
-}
-
-function ErrorMessage() {
-  const { t } = useTranslation()
-  return (
-    <p role="alert" className="text-sm text-destructive">
-      {t('accounts.errors.generic')}
-    </p>
   )
 }

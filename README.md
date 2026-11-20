@@ -49,6 +49,8 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the edit hook takes the record and sends its `rowVersion` as `If-Match` (`useEditAccount(account)`). A 412
   means it changed somewhere else: the outcome is `{ saved: false, stale: true }`, the list is loaded again, and
   the screen shows the latest version for the user to check and save again. Never retry over it.
+  `src/shared/api/versionedSave.ts` holds the shape for every such record: the outcome type, the mapping from
+  the API's answer (`versionedSaveOutcome`), the header (`ifMatch`) and `isStale` for the screen.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
   such as institutions, loads every page. One for something they have thousands of, transactions, is an
   infinite query (`transactionsQuery`) that loads the next page when the screen asks for more.
@@ -167,6 +169,8 @@ src/
 - **Screens** are added to the route tree in `src/app/routes.tsx` by listing the feature's routes, and to the
   navigation in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
   shell and the other screens working; so does each section nested in a screen (Settings > Profile).
+- **Shared components** (`src/shared/components`): `TextField` and `SelectField` for labelled inputs,
+  `ErrorMessage` for an alert that something went wrong, `FailureToast` for a change that failed.
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
 
@@ -198,7 +202,8 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   separators (`1.200.000,5` in Vietnamese, `1,200,000.5` in English, grouping optional); the value it holds is
   a decimal string (`"1200000.5"`), `''` when empty, or `null` when the text is not an amount (misplaced
   separators, a minus sign, or more decimals than the currency has), which the form should report as an error.
-  Use it through React Hook Form's `Controller`. `parseAmount` and `formatAmountForInput` are the pure functions
+  In a form, use `<AmountField control name label currency />`, which labels it and ties its hint and error
+  to it. `parseAmount` and `formatAmountForInput` are the pure functions
   underneath. Only the opening balance of an account that holds no amount owed takes a minus sign
   (`allowNegative`), because a current account can open overdrawn; amounts owed and transaction amounts are
   always positive.

@@ -1,5 +1,6 @@
+export { AmountField } from './AmountField'
 export { AmountInput, type AmountValue } from './AmountInput'
-export { currencies, isZeroAmount, type Currency, type DecimalString } from './currencies'
+export { currencies, inCurrencyOrder, isZeroAmount, type Currency, type DecimalString } from './currencies'
 export { formatMoney } from './formatMoney'
 export { Money } from './Money'
 export { formatAmountForInput, parseAmount } from './parseAmount'

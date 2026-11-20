@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
 import { Button } from '@/shared/ui/button'
 import { useChangePassword } from '../api/security'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   currentPassword: z.string().min(1, { error: 'settings.security.password.errors.currentRequired' }),
@@ -54,11 +55,7 @@ export function ChangePasswordForm() {
         error={errors.newPassword?.message && t(errors.newPassword.message as ParseKeys)}
         {...form.register('newPassword')}
       />
-      {change.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('settings.security.failed')}
-        </p>
-      )}
+      {change.isError && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
       {/* Said until the user starts on another change. */}
       {change.data?.saved && !isDirty && (
         <p role="status" className="text-sm">

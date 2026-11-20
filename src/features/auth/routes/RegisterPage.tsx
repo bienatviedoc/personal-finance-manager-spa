@@ -8,6 +8,7 @@ import { TextField } from '@/shared/components/TextField'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import { useRegister } from '../api/register'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 const schema = z.object({
   email: z.email({ error: 'auth.errors.emailInvalid' }),
@@ -42,11 +43,7 @@ export function RegisterPage() {
     <section className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('screens.register')}</h1>
 
-      {register.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('auth.errors.generic')}
-        </p>
-      )}
+      {register.isError && <ErrorMessage>{t('auth.errors.generic')}</ErrorMessage>}
 
       <form noValidate onSubmit={onSubmit} className="space-y-4">
         <TextField

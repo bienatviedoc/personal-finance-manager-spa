@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { isStale } from '@/shared/api/versionedSave'
@@ -68,7 +69,7 @@ export function TransactionsPage() {
         </Button>
       )}
 
-      {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage />}
+      {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('transactions.errors.generic')}</ErrorMessage>}
       {!loaded && !transactions.isError && <ListSkeleton />}
       {loaded && items.length === 0 && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
       {loaded && items.length > 0 && (
@@ -157,11 +158,7 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
 
   return (
     <>
-      {stale && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('transactions.errors.stale')}
-        </p>
-      )}
+      {stale && <ErrorMessage>{t('transactions.errors.stale')}</ErrorMessage>}
       {/* A new row version is a new transaction to edit: the form starts again from what the API holds now. */}
       <TransactionForm
         key={transaction.rowVersion}
@@ -273,14 +270,5 @@ function ListSkeleton() {
         </li>
       ))}
     </ul>
-  )
-}
-
-function ErrorMessage() {
-  const { t } = useTranslation()
-  return (
-    <p role="alert" className="text-sm text-destructive">
-      {t('transactions.errors.generic')}
-    </p>
   )
 }

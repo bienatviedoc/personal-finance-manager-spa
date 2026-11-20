@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
+import { authenticatorCode } from '@/shared/lib/authenticatorCode'
 import { Button } from '@/shared/ui/button'
 import {
   twoFactorQuery,
@@ -16,6 +17,7 @@ import {
   useTurnOnTwoFactor,
   type TwoFactorSetup,
 } from '../api/security'
+import { ErrorMessage } from '@/shared/components/ErrorMessage'
 
 /** What the user is in the middle of; nothing when the section just shows whether two-factor sign-in is on. */
 type Doing = 'setting-up' | 'turning-off' | 'new-recovery-codes'
@@ -48,11 +50,7 @@ export function TwoFactorSettings() {
       <p className="text-sm text-muted-foreground">{t('settings.security.twoFactor.intro')}</p>
 
       {twoFactor.isPending && <p className="text-sm text-muted-foreground">{t('settings.security.twoFactor.loading')}</p>}
-      {twoFactor.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('settings.security.failed')}
-        </p>
-      )}
+      {twoFactor.isError && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
 
       {twoFactor.data && (
         <>
@@ -67,11 +65,7 @@ export function TwoFactorSettings() {
               {t('settings.security.twoFactor.setUp')}
             </Button>
           )}
-          {!twoFactor.data.enabled && doing === 'setting-up' && setUp.isError && (
-            <p role="alert" className="text-sm text-destructive">
-              {t('settings.security.failed')}
-            </p>
-          )}
+          {!twoFactor.data.enabled && doing === 'setting-up' && setUp.isError && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
           {!twoFactor.data.enabled && doing === 'setting-up' && setUp.data?.ready && (
             <SetUp
               setup={setUp.data.setup}
@@ -129,13 +123,7 @@ export function TwoFactorSettings() {
   )
 }
 
-/** Authenticator apps show six digits, often in two groups. */
-const codeSchema = z.object({
-  code: z
-    .string()
-    .transform((typed) => typed.replace(/[\s-]/g, ''))
-    .pipe(z.string().regex(/^\d{6}$/, { error: 'settings.security.twoFactor.errors.codeInvalid' })),
-})
+const codeSchema = z.object({ code: authenticatorCode('settings.security.twoFactor.errors.codeInvalid') })
 
 /** The QR code and key for the authenticator app, and the code that proves the app has them. */
 function SetUp({ setup, onTurnedOn, onCancel }: { setup: TwoFactorSetup; onTurnedOn: (recoveryCodes: string[]) => void; onCancel: () => void }) {
@@ -179,11 +167,7 @@ function SetUp({ setup, onTurnedOn, onCancel }: { setup: TwoFactorSetup; onTurne
           />
         </li>
       </ol>
-      {turnOn.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('settings.security.failed')}
-        </p>
-      )}
+      {turnOn.isError && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={turnOn.isPending}>
           {t('settings.security.twoFactor.turnOn')}
@@ -275,11 +259,7 @@ function ConfirmWithPassword({
         error={errors.password?.message && t(errors.password.message as ParseKeys)}
         {...form.register('password')}
       />
-      {failed && (
-        <p role="alert" className="text-sm text-destructive">
-          {t('settings.security.failed')}
-        </p>
-      )}
+      {failed && <ErrorMessage>{t('settings.security.failed')}</ErrorMessage>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={isSubmitting}>
           {submitLabel}

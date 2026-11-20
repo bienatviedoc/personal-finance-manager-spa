@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
-import { useId, useMemo } from 'react'
-import { Controller, useForm, useWatch, type Control } from 'react-hook-form'
+import { useMemo } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { useUserSettings } from '@/features/settings'
@@ -9,9 +9,8 @@ import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { AmountInput, currencies, formatAmountForInput, type Currency } from '@/shared/money'
+import { AmountField, currencies, formatAmountForInput } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { Label } from '@/shared/ui/label'
 import {
   accountTypes,
   hasCreditCardFields,
@@ -264,57 +263,5 @@ export function AccountForm({ id, account, institutions, onSave, onDone }: Props
         </Button>
       </div>
     </form>
-  )
-}
-
-type AmountFieldProps = {
-  control: Control<Values, unknown, z.output<typeof schema>>
-  name: 'amount' | 'creditLimit'
-  label: string
-  hint?: string
-  /** Already translated. */
-  error?: string
-  currency: Currency
-  allowNegative?: boolean
-}
-
-/** A labelled amount input in the account's currency, whose hint and error are tied to it for screen readers. */
-function AmountField({ control, name, label, hint, error, currency, allowNegative }: AmountFieldProps) {
-  const id = useId()
-  const hintId = `${id}-hint`
-  const errorId = `${id}-error`
-
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <Controller
-        control={control}
-        name={name}
-        render={({ field }) => (
-          <AmountInput
-            id={id}
-            ref={field.ref}
-            name={field.name}
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            currency={currency}
-            allowNegative={allowNegative}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={[hint && hintId, error && errorId].filter(Boolean).join(' ') || undefined}
-          />
-        )}
-      />
-      {hint && (
-        <p id={hintId} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      )}
-      {error && (
-        <p id={errorId} className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
   )
 }
