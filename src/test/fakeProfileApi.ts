@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { components } from '@/shared/api/schema'
-import { apiUrl as url, hasAntiforgeryToken, problem, server, testUser } from './server'
+import { apiUrl as url, problem, refuseWithoutToken, server, testUser } from './server'
 
 type ProfileResponse = components['schemas']['ProfileResponse']
 
@@ -15,7 +15,8 @@ export function fakeProfileApi(settings: Partial<Omit<ProfileResponse, 'id' | 'e
   server.use(
     http.get(url('/api/v1/me'), () => HttpResponse.json(state.profile)),
     http.patch(url('/api/v1/me'), async ({ request }) => {
-      if (!hasAntiforgeryToken(request)) return problem(400)
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
       const change = (await request.json()) as Record<string, string | null | undefined>
       state.changes.push(change)
       const errors = Object.fromEntries(

@@ -41,7 +41,7 @@ longer matches the API.
 - **One shape per feature** in `features/<feature>/api/`: reads are `queryOptions` named after what they load
   (`institutionsQuery`, `categoriesQuery`), used with `useQuery`; changes are hooks named after the API's use case
   (`useCreateCategory`, `useEditCategory`, `useArchiveCategory`). A save answers `{ saved: true, <entity> }` with
-  what the API saved, or `{ saved: false, fields }` naming the fields a 400 refused (`refusedFields` in
+  what the API saved (just `{ saved: true }` when it answers nothing, as registering does), or `{ saved: false, fields }` naming the fields a 400 refused (`refusedFields` in
   `src/shared/api/`), for the form to show its own translated messages; anything else throws. A change that
   can fail in a way no field explains (resetting a password with a used link) names its outcomes instead.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
@@ -150,4 +150,4 @@ The target is WCAG 2.1 AA (spec section 8).
 - Lint runs `jsx-a11y-x`, the ESLint 10 compatible fork of `eslint-plugin-jsx-a11y`.
 - Every screen names itself in the browser tab with `useDocumentTitle`.
 - Controls styled by hand take the `focusRing` class from `src/shared/lib/utils.ts`, so keyboard focus is
-  always visible. shadcn primitives bring their own.
+  always visible; a label wrapping a visually hidden radio or checkbox takes `focusRingWithin` instead. shadcn primitives bring their own.

@@ -2,13 +2,13 @@ import type { ParseKeys } from 'i18next'
 
 export type PaletteColor = { value: string; label: ParseKeys }
 
+/** A colour that says nothing in particular: how something looks until the user picks a colour. */
+export const neutralColor = '#64748b'
+
 /**
  * The colours offered wherever a user picks one for something they name: institutions and categories. Each is a
  * lower-case #rrggbb, the form the API's Color keeps, and every colour of the default categories is among them.
  */
-/** A colour that says nothing in particular: how something looks until the user picks a colour. */
-export const neutralColor = '#64748b'
-
 export const palette: PaletteColor[] = [
   { value: '#ef4444', label: 'colors.red' },
   { value: '#f97316', label: 'colors.orange' },

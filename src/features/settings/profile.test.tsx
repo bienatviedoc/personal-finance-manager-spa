@@ -97,6 +97,46 @@ describe('profile settings', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Cài đặt' })).toBeInTheDocument()
   })
 
+  it('keep a language picked in the sidebar after the form itself saved another', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user } = renderApp('/settings/profile')
+
+    const form = await screen.findByRole('form', { name: 'Profile' })
+    await user.selectOptions(within(form).getByRole('combobox', { name: 'Language' }), 'vi')
+    await user.click(within(form).getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Đã lưu cài đặt của bạn.')
+
+    const sidebar = screen.getByRole('navigation', { name: 'Điều hướng chính' }).parentElement!
+    await user.selectOptions(within(sidebar).getByRole('combobox', { name: 'Ngôn ngữ' }), 'en')
+    await waitFor(() => expect(api.profile.locale).toBe('en'))
+    await waitFor(() => expect(within(form).getByRole('combobox', { name: 'Language' })).toHaveValue('en'))
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+
+    await user.selectOptions(within(form).getByRole('combobox', { name: 'Base currency' }), 'USD')
+    await user.click(within(form).getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(api.profile.baseCurrency).toBe('USD'))
+    expect(api.profile.locale).toBe('en')
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+  })
+
+  it('a language picked in the sidebar replaces one changed in the form and not yet saved', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user } = renderApp('/settings/profile')
+
+    const form = await screen.findByRole('form', { name: 'Profile' })
+    await user.selectOptions(within(form).getByRole('combobox', { name: 'Base currency' }), 'EUR')
+    await user.selectOptions(within(form).getByRole('combobox', { name: 'Language' }), 'vi')
+    const sidebar = screen.getByRole('navigation', { name: 'Main' }).parentElement!
+    await user.selectOptions(within(sidebar).getByRole('combobox', { name: 'Language' }), 'vi')
+    await waitFor(() => expect(api.profile.locale).toBe('vi'))
+    await user.selectOptions(within(sidebar).getByRole('combobox', { name: 'Ngôn ngữ' }), 'en')
+    await waitFor(() => expect(api.profile.locale).toBe('en'))
+
+    await waitFor(() => expect(within(form).getByRole('combobox', { name: 'Language' })).toHaveValue('en'))
+    expect(within(form).getByRole('combobox', { name: 'Base currency' })).toHaveValue('EUR')
+  })
+
   it('name the setting the API refused, under its field', async () => {
     fakeProfileApi({ locale: 'en' })
     const { user } = renderApp('/settings/profile')

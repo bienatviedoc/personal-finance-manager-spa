@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
-import { useId, useMemo } from 'react'
+import { useEffect, useId, useMemo } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -39,12 +39,19 @@ export function ProfileSettingsPage() {
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    // Follows the profile when it changes under the form (a locale picked in the sidebar, say), so saving
-    // never puts back what was there when the screen opened. What the user has changed here is kept.
+    // Follows the profile when it changes under the form, so saving never puts back what was there when the
+    // screen opened. What the user has changed here and not yet saved is kept.
     values: { baseCurrency: settings.baseCurrency, timeZone: settings.timeZone, locale: settings.locale ?? interfaceLocale },
     resetOptions: { keepDirtyValues: true },
   })
-  const { errors } = form.formState
+  const { errors, isDirty } = form.formState
+
+  // A locale picked in the sidebar is the user's latest choice: it replaces the one in the form, even one
+  // they changed here and had not saved.
+  const savedLocale = settings.locale
+  useEffect(() => {
+    if (savedLocale) form.resetField('locale', { defaultValue: savedLocale })
+  }, [form, savedLocale])
   const [baseCurrency, locale, timeZone] = useWatch({ control: form.control, name: ['baseCurrency', 'locale', 'timeZone'] })
 
   const currencyNames = useMemo(() => new Intl.DisplayNames(interfaceLocale, { type: 'currency' }), [interfaceLocale])
@@ -55,11 +62,23 @@ export function ProfileSettingsPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     const outcome = await update.mutateAsync(values).catch(() => undefined)
-    if (outcome?.saved === false) {
-      for (const field of outcome.fields) form.setError(field, { message: serverErrors[field] }, { shouldFocus: true })
+    if (!outcome) return
+    if (outcome.saved) {
+      // What was saved is no longer a change: the form goes back to following the profile.
+      const { baseCurrency, timeZone, locale } = outcome.profile
+      form.reset({ baseCurrency, timeZone, locale: locale ?? values.locale })
+      return
     }
+    for (const field of outcome.fields) form.setError(field, { message: serverErrors[field] }, { shouldFocus: true })
   })
-  const saved = update.data?.saved === true
+  // Said only while it is true: not once the user changes a field, or the profile changes elsewhere.
+  const lastSaved = update.data?.saved ? update.data.profile : undefined
+  const saved =
+    !isDirty &&
+    lastSaved !== undefined &&
+    lastSaved.baseCurrency === settings.baseCurrency &&
+    lastSaved.timeZone === settings.timeZone &&
+    lastSaved.locale === settings.locale
 
   return (
     <form noValidate aria-labelledby={headingId} onSubmit={onSubmit} className="max-w-md space-y-4">

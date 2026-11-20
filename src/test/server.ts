@@ -23,13 +23,12 @@ export const server = setupServer(
   http.get(url('/api/v1/me'), () => HttpResponse.json(testUser)),
 )
 
-/** Like the real API: a request that changes something without the anti-forgery token is refused. */
-/** The refusal the API gives a request that changes something without the anti-forgery token; null with it. */
+/** Like the real API: a request that changes something without the anti-forgery token is refused; null with it. */
 export function refuseWithoutToken(request: Request) {
   return hasAntiforgeryToken(request) ? null : problem(400)
 }
 
-export function hasAntiforgeryToken(request: Request) {
+function hasAntiforgeryToken(request: Request) {
   return request.headers.get('X-XSRF-TOKEN') === antiforgeryToken
 }
 

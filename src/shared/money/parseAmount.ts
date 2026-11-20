@@ -31,7 +31,7 @@ export function parseAmount(text: string, locale: Language, currency: Currency):
   const integer = match[1]!.replaceAll(group, '').replace(/^0+(?=\d)/, '')
   const fraction = match[2]
   if (integer.length > maxIntegerDigits) return null
-  if (fraction && fraction.length > decimalsOf(currency)) return null
+  if (fraction && fraction.length > decimalsOf(currency, locale)) return null
 
   return fraction ? `${integer}.${fraction}` : integer
 }
@@ -40,10 +40,12 @@ export function parseAmount(text: string, locale: Language, currency: Currency):
  * Writes a decimal string the way the locale writes numbers, with no currency symbol: what an amount input
  * shows. The API sends more decimals than a currency has (`"125000.00"` for VND, `"12.5000"` for USD), so
  * zeros beyond the currency's own are left out and `parseAmount` reads the text back to the same amount.
+ * Decimals the currency lacks that are not zero (`"125000.50"` for VND) are shown, never rounded away, and
+ * read back as not an amount for the user to correct.
  */
 export function formatAmountForInput(amount: DecimalString, locale: Language, currency: Currency): string {
   let fraction = amount.split('.')[1] ?? ''
-  while (fraction.length > decimalsOf(currency) && fraction.endsWith('0')) fraction = fraction.slice(0, -1)
+  while (fraction.length > decimalsOf(currency, locale) && fraction.endsWith('0')) fraction = fraction.slice(0, -1)
   const decimals = fraction.length
   return new Intl.NumberFormat(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(
     amount as Intl.StringNumericLiteral,
@@ -51,6 +53,6 @@ export function formatAmountForInput(amount: DecimalString, locale: Language, cu
 }
 
 /** How many decimals the currency has: none for VND, two for USD and EUR. */
-function decimalsOf(currency: Currency): number {
-  return currencyFormat(currency, 'en').resolvedOptions().maximumFractionDigits ?? 0
+function decimalsOf(currency: Currency, locale: Language): number {
+  return currencyFormat(currency, locale).resolvedOptions().maximumFractionDigits ?? 0
 }

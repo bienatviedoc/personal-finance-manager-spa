@@ -51,6 +51,14 @@ describe('parseAmount', () => {
 
 describe('formatAmountForInput', () => {
   it.each([
+    ['125000.50', 'vi', 'VND', '125.000,5'],
+    ['12.3456', 'en', 'USD', '12.3456'],
+  ] as const)('shows %s in %s for %s as %s, not rounded, which reads back as not an amount', (amount, locale, currency, expected) => {
+    expect(formatAmountForInput(amount, locale, currency)).toBe(expected)
+    expect(parseAmount(expected, locale, currency)).toBeNull()
+  })
+
+  it.each([
     ['1200000.5', 'en', '1,200,000.5'],
     ['1200000.5', 'vi', '1.200.000,5'],
     ['125000', 'vi', '125.000'],
