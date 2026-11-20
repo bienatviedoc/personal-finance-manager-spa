@@ -9,9 +9,12 @@ server {
     location /api/ {
         proxy_pass ${API_URL};
         proxy_set_header Host $host;
-        # Who is really calling, for the API's rate limit. The API believes these only when told to
-        # (ASPNETCORE_FORWARDEDHEADERS_ENABLED=true); see the API's README.
+        # Who is really calling, for the API's rate limit. The API believes this only when told to
+        # (ASPNETCORE_FORWARDEDHEADERS_ENABLED=true); see the API's README. It is the address nginx sees: with
+        # another proxy in front of nginx (a load balancer ending TLS), that is the proxy's, and nginx must first
+        # be told to take the client's from it (set_real_ip_from, real_ip_header). That belongs with the deployment.
         proxy_set_header X-Forwarded-For $remote_addr;
+        # Passed on from whatever ends TLS in front of nginx, which itself listens on plain HTTP.
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     }
 

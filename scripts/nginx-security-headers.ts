@@ -2,7 +2,11 @@
 // after `npm run build`, with the same VITE_SENTRY_DSN, and nginx includes the result (nginx/default.conf.template).
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { loadEnv } from 'vite'
 import { nginxHeaders, securityHeaders } from '../security-headers.ts'
 
-const indexHtml = await readFile(path.resolve(import.meta.dirname, '../dist/index.html'), 'utf8')
-process.stdout.write(nginxHeaders(securityHeaders({ indexHtml, sentryDsn: process.env.VITE_SENTRY_DSN || undefined })))
+const root = path.resolve(import.meta.dirname, '..')
+const indexHtml = await readFile(path.join(root, 'dist/index.html'), 'utf8')
+// Read the way the build read it: from the environment or an .env file.
+const sentryDsn = loadEnv('production', root, 'VITE_').VITE_SENTRY_DSN || undefined
+process.stdout.write(nginxHeaders(securityHeaders({ indexHtml, sentryDsn })))
