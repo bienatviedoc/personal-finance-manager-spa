@@ -49,6 +49,8 @@ class FakeMediaQueryList extends EventTarget implements MediaQueryList {
 function evaluate(media: string): boolean {
   const colorScheme = /prefers-color-scheme:\s*(dark|light)/.exec(media)
   if (colorScheme) return (colorScheme[1] === 'dark') === device.prefersDark
+  // The charting library asks, to leave out its animations; the pretend device has no such preference.
+  if (/prefers-reduced-motion:\s*reduce/.test(media)) return false
   const minWidth = /min-width:\s*(\d+)px/.exec(media)
   if (minWidth) return device.width >= Number(minWidth[1])
   throw new Error(`The fake matchMedia does not understand "${media}".`)

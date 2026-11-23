@@ -35,10 +35,24 @@ export default defineConfig([
     rules: { 'react-refresh/only-export-components': 'off' },
   },
 
-  // Every user-facing string goes through i18next. Generated UI primitives and tests are exempt.
+  // The charting library is used only behind the chart wrappers, so it can be swapped without touching a
+  // feature (spec section 12, Charts).
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/shared/charts/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['recharts', 'recharts/*'], message: 'Draw a chart through a wrapper in @/shared/charts.' }] },
+      ],
+    },
+  },
+
+  // Every user-facing string goes through i18next. Generated UI primitives, the chart wrappers (which only pass
+  // the charting library its settings; every label comes from the feature) and tests are exempt.
   {
     files: ['src/**/*.tsx'],
-    ignores: ['src/shared/ui/**', 'src/**/*.test.tsx', 'src/test/**'],
+    ignores: ['src/shared/ui/**', 'src/shared/charts/**', 'src/**/*.test.tsx', 'src/test/**'],
     plugins: { i18next },
     rules: {
       'i18next/no-literal-string': [
