@@ -2,7 +2,7 @@ import { Ellipsis, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { matchPath, NavLink, Outlet, useLocation } from 'react-router'
-import { UserMenu } from '@/features/auth'
+import { DeletionCancelledNotice, UserMenu } from '@/features/auth'
 import { useProfileLocale, useSaveLocale } from '@/features/settings'
 import { QuickAdd } from '@/features/transactions'
 import { cn, focusRing } from '@/shared/lib/utils'
@@ -29,6 +29,7 @@ export function AppShell() {
           wide ? 'p-6' : 'p-4 pb-[calc(5rem+env(safe-area-inset-bottom))]',
         )}
       >
+        <DeletionCancelledNotice />
         {/* N on any screen opens the drawer that records a transaction. */}
         <QuickAdd>
           <Outlet />

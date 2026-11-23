@@ -58,6 +58,82 @@
         }
       }
     },
+    "/api/v1/export/all.zip": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "operationId": "ExportData",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/deletion": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "operationId": "DeleteUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": [
@@ -290,6 +366,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            }
+          },
           "204": {
             "description": "No Content"
           },
@@ -2760,6 +2846,17 @@
           }
         }
       },
+      "DeleteUserRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
       "FilteredTotalResponse": {
         "required": [
           "count",
@@ -3203,6 +3300,17 @@
           }
         }
       },
+      "SignInResponse": {
+        "required": [
+          "deletionCancelled"
+        ],
+        "type": "object",
+        "properties": {
+          "deletionCancelled": {
+            "type": "boolean"
+          }
+        }
+      },
       "TransactionLineRequest": {
         "required": [
           "categoryId",
@@ -3513,6 +3621,9 @@
   "tags": [
     {
       "name": "Identity"
+    },
+    {
+      "name": "Export"
     },
     {
       "name": "Institutions"

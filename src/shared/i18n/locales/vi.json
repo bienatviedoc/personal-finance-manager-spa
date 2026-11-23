@@ -134,6 +134,11 @@
     "userMenu": {
       "signedInAs": "Đã đăng nhập: {{email}}",
       "signOut": "Đăng xuất"
+    },
+    "deletion": {
+      "requested": "Bạn đã đăng xuất, và hồ sơ của bạn sẽ bị xóa sau 30 ngày. Để giữ lại, hãy đăng nhập lại trước lúc đó.",
+      "cancelled": "Chào mừng bạn trở lại. Việc đăng nhập đã hủy yêu cầu xóa hồ sơ của bạn, và không có gì bị xóa.",
+      "dismiss": "OK"
     }
   },
   "accounts": {
@@ -461,13 +466,35 @@
         "turnOff": "Tắt đăng nhập hai lớp",
         "turnOffBody": "Việc đăng nhập sẽ chỉ cần mật khẩu. Nhập mật khẩu để tắt đăng nhập hai lớp.",
         "turnOffSubmit": "Tắt",
-        "password": "Mật khẩu",
         "errors": {
           "codeInvalid": "Nhập mã gồm 6 chữ số.",
-          "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực.",
-          "passwordRequired": "Nhập mật khẩu.",
-          "passwordIncorrect": "Đó không phải mật khẩu của bạn."
+          "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực."
         }
+      }
+    },
+    "confirmWithPassword": {
+      "password": "Mật khẩu",
+      "errors": {
+        "required": "Nhập mật khẩu.",
+        "incorrect": "Đó không phải mật khẩu của bạn."
+      }
+    },
+    "data": {
+      "title": "Dữ liệu của bạn",
+      "export": {
+        "title": "Xuất dữ liệu của bạn",
+        "body": "Tải về mọi thứ ứng dụng lưu về bạn trong một tệp ZIP: hồ sơ của bạn ở dạng JSON, còn giao dịch và mọi thứ khác bạn đã nhập ở dạng tệp CSV, mở được bằng bất kỳ phần mềm bảng tính nào.",
+        "start": "Xuất dữ liệu của tôi",
+        "confirmBody": "Tệp này chứa toàn bộ dữ liệu tài chính của bạn, và ai có tệp cũng đọc được. Hãy cất nó ở nơi an toàn.",
+        "submit": "Tải về",
+        "downloaded": "Dữ liệu của bạn đã được tải về."
+      },
+      "delete": {
+        "title": "Xóa hồ sơ của bạn",
+        "body": "Khi xóa hồ sơ, bạn bị đăng xuất ngay ở mọi nơi. Trong 30 ngày bạn có thể đổi ý: chỉ cần đăng nhập lại là việc xóa bị hủy. Sau 30 ngày, mọi thứ bạn đã nhập bị xóa vĩnh viễn và không ai khôi phục được.",
+        "start": "Xóa hồ sơ của tôi",
+        "confirmBody": "Bạn sẽ bị đăng xuất ngay bây giờ. Sau 30 ngày, hồ sơ của bạn và mọi thứ trong đó sẽ bị xóa, trừ khi bạn đăng nhập lại trước lúc đó. Nhập mật khẩu để tiếp tục.",
+        "submit": "Xóa hồ sơ của tôi"
       }
     }
   },
