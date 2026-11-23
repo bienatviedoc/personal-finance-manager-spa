@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { RecurringRuleLink } from '@/features/recurring'
 import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
@@ -237,6 +238,7 @@ function TransactionRow({ transaction, account, category, categories, onEdit, ro
             </ul>
           )}
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
+          {transaction.recurringRuleId && <RecurringRuleLink ruleId={transaction.recurringRuleId} />}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
           {/* The type gives the sign, except that a refund is an expense coming back. Putting it in front of the digits is not arithmetic. */}
