@@ -4,7 +4,7 @@ import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
-import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { CategoryBadge, categoriesQuery, findCategory, type Category } from '@/features/categories'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
@@ -233,9 +233,6 @@ function nextText(rule: RecurringRule, t: ReturnType<typeof useTranslation>['t']
   return rule.endDate ? t('recurring.endedOn', { date: format(rule.endDate) }) : t('recurring.ended')
 }
 
-function findCategory(tree: Category[], id: string): Category | undefined {
-  return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
-}
 
 /** Rows standing in for the list while it loads. */
 function ListSkeleton() {

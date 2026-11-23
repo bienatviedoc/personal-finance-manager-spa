@@ -4,7 +4,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import type { Account } from '@/features/accounts'
-import type { Category } from '@/features/categories'
+import { useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
@@ -139,11 +139,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
   const [type, accountId, frequency, startDate] = useWatch({ control: form.control, name: ['type', 'accountId', 'frequency', 'startDate'] })
   const currency = accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
 
-  const categoryOptions = categories
-    .flatMap((category) => [
-      { category, label: category.name },
-      ...category.subcategories.map((subcategory) => ({ category: subcategory, label: t('recurring.subcategory', { parent: category.name, name: subcategory.name }) })),
-    ])
+  const categoryOptions = useCategoryChoices(categories)
     .filter(({ category }) => category.kind === type && (!category.isArchived || category.id === rule?.categoryId))
     .map(({ category, label }) => ({ value: category.id, label }))
 

@@ -271,7 +271,6 @@
     "chooseCategory": "Type to find a category",
     "noCategoryMatches": "No category matches.",
     "categorySuggested": "Suggested from your earlier transactions with this payee.",
-    "subcategory": "{{parent}} › {{name}}",
     "payee": "Payee",
     "note": "Note",
     "save": "Save",
@@ -400,7 +399,6 @@
     "category": "Category",
     "chooseCategory": "Choose a category",
     "noCategoryMatches": "No category matches.",
-    "subcategory": "{{parent}} › {{name}}",
     "frequency": "How often",
     "frequencyOptions": {
       "weekly": "Every week",
@@ -637,6 +635,7 @@
     }
   },
   "categories": {
+    "option": "{{parent}} › {{name}}",
     "title": "Categories",
     "showArchived": "Show archived categories",
     "sections": {

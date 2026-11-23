@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Account } from '@/features/accounts'
-import type { Category } from '@/features/categories'
+import { useCategoryChoices, type Category } from '@/features/categories'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { useLocale } from '@/shared/i18n/useLocale'
@@ -40,6 +40,7 @@ type SortOrder = keyof typeof sortOrders
  */
 export function TransactionFilterBar({ view, isFiltered, onChange, onClear, accounts, categories, fallbackCurrency }: Props) {
   const { t } = useTranslation()
+  const categoryChoices = useCategoryChoices(categories)
   // An account's amounts are in its currency, so that decides the decimals a range can be typed with.
   const currency = accounts.find((account) => account.id === view.accountId)?.currency ?? fallbackCurrency
   const [search, setSearch] = useTyped<string>(view.q ?? '', (q) => onChange({ q }), (text) => text.trim())
@@ -79,13 +80,7 @@ export function TransactionFilterBar({ view, isFiltered, onChange, onClear, acco
         onChange={(event) => setCategoryId(event.target.value)}
         options={[
           { value: '', label: t('transactions.filters.allCategories') },
-          ...categories.flatMap((category) => [
-            { value: category.id, label: category.name },
-            ...category.subcategories.map((subcategory) => ({
-              value: subcategory.id,
-              label: t('transactions.subcategory', { parent: category.name, name: subcategory.name }),
-            })),
-          ]),
+          ...categoryChoices.map(({ category, label }) => ({ value: category.id, label })),
         ]}
       />
       <SelectField

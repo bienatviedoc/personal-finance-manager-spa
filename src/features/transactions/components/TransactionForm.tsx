@@ -6,7 +6,7 @@ import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldE
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import type { Account } from '@/features/accounts'
-import type { Category } from '@/features/categories'
+import { useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
@@ -158,11 +158,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
   // What is left of the amount after the lines entered so far; unknown until there is an amount.
   const remaining = split && amount ? remainingAmount(amount, lineValues.flatMap((line) => (line.amount ? [line.amount] : []))) : null
 
-  const categoryOptions = categories
-    .flatMap((category) => [
-      { category, label: category.name },
-      ...category.subcategories.map((subcategory) => ({ category: subcategory, label: t('transactions.subcategory', { parent: category.name, name: subcategory.name }) })),
-    ])
+  const categoryOptions = useCategoryChoices(categories)
     .filter(({ category }) => category.kind === type && (!category.isArchived || transaction?.lines.some((line) => line.categoryId === category.id)))
     .map(({ category, label }) => ({ value: category.id, label }))
 

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
-import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { CategoryBadge, categoriesQuery, findCategory, type Category } from '@/features/categories'
 import { RecurringRuleLink } from '@/features/recurring'
 import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
@@ -387,10 +387,6 @@ function TransactionRow({ transaction, account, category, categories, onEdit, ro
 
 /** What stands between the parts of one line of details. */
 const separator = ' · '
-
-function findCategory(tree: Category[], id: string | null): Category | undefined {
-  return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
-}
 
 /** Rows standing in for the list while it loads, or for its next page under the rows already there. */
 function ListSkeleton({ label }: { label: string }) {

@@ -271,7 +271,6 @@
     "chooseCategory": "Gõ để tìm danh mục",
     "noCategoryMatches": "Không có danh mục nào khớp.",
     "categorySuggested": "Gợi ý từ các giao dịch trước đây của bạn với bên này.",
-    "subcategory": "{{parent}} › {{name}}",
     "payee": "Bên nhận / bên trả",
     "note": "Ghi chú",
     "save": "Lưu",
@@ -400,7 +399,6 @@
     "category": "Danh mục",
     "chooseCategory": "Chọn danh mục",
     "noCategoryMatches": "Không có danh mục nào khớp.",
-    "subcategory": "{{parent}} › {{name}}",
     "frequency": "Tần suất",
     "frequencyOptions": {
       "weekly": "Hằng tuần",
@@ -637,6 +635,7 @@
     }
   },
   "categories": {
+    "option": "{{parent}} › {{name}}",
     "title": "Danh mục",
     "showArchived": "Hiện danh mục đã lưu trữ",
     "sections": {
