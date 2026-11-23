@@ -460,7 +460,7 @@
     }
   },
   "budgets": {
-    "intro": "A spending limit for each expense category, month by month, against what you have spent.",
+    "intro": "How much you plan to spend in each expense category, month by month, against what you have spent.",
     "byCategory": "Budgets by category",
     "subcategoriesOf": "Subcategories of {{name}}",
     "empty": "No budgets for this month yet. Enter an amount next to a category to set one.",

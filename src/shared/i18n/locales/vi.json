@@ -460,7 +460,7 @@
     }
   },
   "budgets": {
-    "intro": "Hạn mức chi tiêu cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
+    "intro": "Số tiền bạn dự định chi cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
     "byCategory": "Ngân sách theo danh mục",
     "subcategoriesOf": "Danh mục con của {{name}}",
     "empty": "Tháng này chưa có ngân sách nào. Nhập số tiền bên cạnh một danh mục để đặt ngân sách.",
