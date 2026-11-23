@@ -1517,7 +1517,7 @@
         "tags": [
           "Transactions"
         ],
-        "description": "The user's transactions, newest date first and, within a date, last recorded first. A deleted transaction is never listed.",
+        "description": "The user's transactions, newest date first and, within a date, last recorded first. A deleted transaction is never listed. The two legs of a transfer are listed like any transaction, each on its own account, with the transferId they share.",
         "operationId": "ListTransactions",
         "parameters": [
           {
@@ -1691,7 +1691,7 @@
         "tags": [
           "Transactions"
         ],
-        "description": "Changes a transaction; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428.",
+        "description": "Changes income or an expense; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A leg of a transfer is refused on its type: edit the transfer under /transfers.",
         "operationId": "EditTransaction",
         "parameters": [
           {
@@ -1781,8 +1781,259 @@
         "tags": [
           "Transactions"
         ],
-        "description": "Deletes the transaction: it leaves lists and its account's balance at once.",
+        "description": "Deletes the transaction: it leaves lists and its account's balance at once. Deleting a leg of a transfer deletes the whole transfer, the other leg with it.",
         "operationId": "DeleteTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/transfers": {
+      "post": {
+        "tags": [
+          "Transfers"
+        ],
+        "description": "Moves money between two of the user's accounts. It records two linked transactions, a transferOut leg on the source account and a transferIn leg on the destination, and both balances follow at once; a transfer is neither income nor spending. Between accounts in different currencies send both amounts: no exchange rate is looked up. Send an Idempotency-Key the client made up for this transfer: a retry with the same key answers the transfer the first request recorded and records nothing, and anything else sent with a key already used answers 422.",
+        "operationId": "CreateTransfer",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transfers/{id}": {
+      "get": {
+        "tags": [
+          "Transfers"
+        ],
+        "description": "One transfer, by the transferId its two legs carry in the transaction list. The ETag header carries its row version. A deleted transfer is not found.",
+        "operationId": "GetTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Transfers"
+        ],
+        "description": "Changes a transfer, both legs together; the balances of the accounts it was and is now between follow at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428.",
+        "operationId": "EditTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Transfers"
+        ],
+        "description": "Deletes the transfer, both legs together: they leave the transaction list and both accounts' balances at once.",
+        "operationId": "DeleteTransfer",
         "parameters": [
           {
             "name": "id",
@@ -2681,6 +2932,7 @@
           "categoryId",
           "payee",
           "note",
+          "transferId",
           "rowVersion"
         ],
         "type": "object",
@@ -2707,7 +2959,10 @@
             "format": "date"
           },
           "categoryId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "payee": {
@@ -2722,6 +2977,13 @@
               "string"
             ]
           },
+          "transferId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
           "rowVersion": {
             "type": "string"
           }
@@ -2730,8 +2992,111 @@
       "TransactionType": {
         "enum": [
           "income",
-          "expense"
+          "expense",
+          "transferOut",
+          "transferIn"
         ]
+      },
+      "TransferRequest": {
+        "required": [
+          "fromAccountId",
+          "toAccountId",
+          "amount",
+          "date"
+        ],
+        "type": "object",
+        "properties": {
+          "fromAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "toAmount": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TransferResponse": {
+        "required": [
+          "id",
+          "fromAccountId",
+          "toAccountId",
+          "amount",
+          "currency",
+          "toAmount",
+          "toCurrency",
+          "date",
+          "note",
+          "outTransactionId",
+          "inTransactionId",
+          "rowVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "toAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "toAmount": {
+            "type": "string"
+          },
+          "toCurrency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outTransactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "inTransactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rowVersion": {
+            "type": "string"
+          }
+        }
       },
       "TurnOffTwoFactorRequest": {
         "required": [
@@ -2846,6 +3211,9 @@
     },
     {
       "name": "Transactions"
+    },
+    {
+      "name": "Transfers"
     }
   ]
 }

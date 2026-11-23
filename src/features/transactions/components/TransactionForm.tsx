@@ -90,11 +90,12 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     resolver: zodResolver(schema),
     defaultValues: transaction
       ? {
-          type: transaction.type,
+          // Income or an expense: a leg of a transfer opens the transfer form instead, and has no category.
+          type: transaction.type === 'income' ? 'income' : 'expense',
           accountId: transaction.accountId,
           amount: transaction.amount,
           date: transaction.date,
-          categoryId: transaction.categoryId,
+          categoryId: transaction.categoryId ?? '',
           payee: transaction.payee ?? '',
           note: transaction.note ?? '',
         }

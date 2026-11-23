@@ -8,13 +8,16 @@ import type { Currency } from '@/shared/money'
 export type Transaction = components['schemas']['TransactionResponse']
 export type TransactionType = components['schemas']['TransactionType']
 /** What recording or editing one sends. The API takes the type as text, to name it when refusing it; the SPA only ever sends one it knows. */
-export type TransactionFields = Omit<components['schemas']['TransactionRequest'], 'type'> & { type: TransactionType }
+export type TransactionFields = Omit<components['schemas']['TransactionRequest'], 'type'> & { type: (typeof transactionTypes)[number] }
 type TransactionPage = Omit<components['schemas']['TransactionListResponse'], 'items'> & { items: ListedTransaction[] }
 
-/** Both types, in the order the toggle shows them. A type the API adds and this list lacks fails typecheck. */
+/** The types a transaction recorded on its own can have, in the order the toggle shows them. */
 export const transactionTypes = ['expense', 'income'] as const satisfies readonly TransactionType[]
+/** The two legs of a transfer, which are recorded, edited and deleted only as a transfer (see `transfers.ts`). */
+export const transferLegTypes = ['transferOut', 'transferIn'] as const satisfies readonly TransactionType[]
 
-type MissingType = Exclude<TransactionType, (typeof transactionTypes)[number]>
+/** A type the API adds and neither list has fails typecheck. */
+type MissingType = Exclude<TransactionType, (typeof transactionTypes)[number] | (typeof transferLegTypes)[number]>
 export const everyTransactionTypeListed: MissingType extends never ? true : MissingType = true
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
@@ -29,7 +32,7 @@ export type SaveOutcome = VersionedSaveOutcome<'transaction', Transaction, Trans
  */
 export type TransactionDraft = { fields: TransactionFields; currency: Currency }
 
-const transactionsKey = ['transactions']
+export const transactionsKey = ['transactions']
 
 /**
  * A transaction shown before the API has answered: the API has given it no id or row version yet, so there is
@@ -41,6 +44,12 @@ export type ListedTransaction = Transaction | PendingTransaction
 export const isPending = (transaction: ListedTransaction): transaction is PendingTransaction => 'pendingKey' in transaction
 /** What tells one listed transaction from another: its id, or its key while it has none. */
 export const listKey = (transaction: ListedTransaction) => (isPending(transaction) ? transaction.pendingKey : transaction.id)
+
+/** One of the two legs of a transfer: it carries the id of its transfer, which is what edits and deletes it. */
+export type TransferLeg = Transaction & { transferId: string }
+export const isTransferLeg = (transaction: ListedTransaction): transaction is TransferLeg => transaction.transferId !== null
+/** Whether the transaction takes its amount off its account's balance: its type gives the sign. */
+export const takesFromBalance = (transaction: ListedTransaction) => transaction.type === 'expense' || transaction.type === 'transferOut'
 
 /**
  * The user's transactions, newest date first and, within a date, last recorded first. A user has
@@ -90,7 +99,7 @@ export function useDeleteTransaction() {
       // Not found: deleted already, which is what was asked for.
       if (!response.ok && response.status !== 404) throw new Error(`Deleting a transaction failed: ${response.status}`)
     },
-    onSuccess: () => refresh(queryClient),
+    onSuccess: () => refreshTransactions(queryClient),
   })
 }
 
@@ -119,6 +128,8 @@ function useSaveTransaction<Draft extends TransactionDraft>(
       const shown: ListedTransaction = {
         ...identify(draft),
         ...fields,
+        // Income or an expense, never a leg of a transfer.
+        transferId: null,
         currency,
         payee: fields.payee?.trim() || null,
         note: fields.note?.trim() || null,
@@ -129,7 +140,7 @@ function useSaveTransaction<Draft extends TransactionDraft>(
     onError: (_error, _draft, context) => {
       queryClient.setQueryData(list.queryKey, context?.before)
       // A request that failed may still have been saved.
-      return refresh(queryClient)
+      return refreshTransactions(queryClient)
     },
     onSuccess: (outcome, _draft, context) => {
       // Refused by the API: nothing changed there, so the lists go back to what they showed.
@@ -138,12 +149,13 @@ function useSaveTransaction<Draft extends TransactionDraft>(
         return
       }
       // Saved, or stale: either way the lists and balances no longer show what the API holds.
-      return refresh(queryClient)
+      return refreshTransactions(queryClient)
     },
   })
 }
 
-function refresh(queryClient: QueryClient) {
+/** Loads again everything a changed transaction or transfer shows in: the lists, an open transfer, the account balances. */
+export function refreshTransactions(queryClient: QueryClient) {
   return Promise.all([queryClient.invalidateQueries({ queryKey: transactionsKey }), refreshAccountBalances(queryClient)])
 }
 

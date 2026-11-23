@@ -14,10 +14,12 @@ import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
-import { X } from 'lucide-react'
+import { ArrowRightLeft, X } from 'lucide-react'
 import {
   isPending,
+  isTransferLeg,
   listKey,
+  takesFromBalance,
   transactionsQuery,
   useCreateTransaction,
   useDeleteTransaction,
@@ -26,14 +28,20 @@ import {
   type Transaction,
   type TransactionDraft,
 } from '../api/transactions'
+import { transferQuery, useCreateTransfer, useDeleteTransfer, useEditTransfer, type Transfer, type TransferFields } from '../api/transfers'
 import { TransactionForm } from '../components/TransactionForm'
-
-/** What the drawer is open for: recording a transaction, or editing this one, as it was when the drawer opened. */
-type Drawer = { adding: true } | { editing: Transaction } | null
+import { TransferForm } from '../components/TransferForm'
 
 /**
- * The user's income and expenses, newest first. Recording and editing happen in a side drawer (spec section
- * 12); the list shows a change as soon as it is sent.
+ * What the drawer is open for: recording a transaction, editing this one, as it was when the drawer opened,
+ * recording a transfer, or editing the transfer with this id, which either of its legs opens.
+ */
+type Drawer = { adding: true } | { editing: Transaction } | { transferring: true } | { transferId: string } | null
+
+/**
+ * The user's income, expenses and transfers, newest first. Recording and editing happen in a side drawer
+ * (spec section 12); the list shows a change to income or an expense as soon as it is sent. A transfer is
+ * listed as its two legs, each on its own account and marked as a transfer; either opens the transfer form.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
@@ -52,7 +60,18 @@ export function TransactionsPage() {
     drawer && 'editing' in drawer
       ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
       : undefined
-  const canRecord = accounts.data?.accounts.some((account) => !account.isArchived) ?? false
+  const open = accounts.data?.accounts.filter((account) => !account.isArchived) ?? []
+  const canRecord = open.length > 0
+  // A transfer is between two different accounts.
+  const canTransfer = open.length > 1
+  const drawerTitle =
+    drawer && 'transferId' in drawer
+      ? t('transfers.editTitle')
+      : drawer && 'transferring' in drawer
+        ? t('transfers.new')
+        : editing
+          ? t('transactions.editTitle')
+          : t('transactions.new')
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
 
   useShortcutToAdd(() => setDrawer((open) => open ?? { adding: true }), canRecord)
@@ -72,9 +91,17 @@ export function TransactionsPage() {
           </Link>
         </p>
       ) : (
-        <Button disabled={!loaded} aria-keyshortcuts="N" onClick={() => setDrawer({ adding: true })}>
-          {t('transactions.add')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={!loaded} aria-keyshortcuts="N" onClick={() => setDrawer({ adding: true })}>
+            {t('transactions.add')}
+          </Button>
+          {canTransfer && (
+            <Button variant="outline" disabled={!loaded} onClick={() => setDrawer({ transferring: true })}>
+              <ArrowRightLeft aria-hidden />
+              {t('transfers.add')}
+            </Button>
+          )}
+        </div>
       )}
 
       {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('transactions.errors.generic')}</ErrorMessage>}
@@ -88,7 +115,7 @@ export function TransactionsPage() {
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
-              onEdit={(editing) => setDrawer({ editing })}
+              onEdit={(editing) => setDrawer(isTransferLeg(editing) ? { transferId: editing.transferId } : { editing })}
             />
           ))}
         </ul>
@@ -107,7 +134,7 @@ export function TransactionsPage() {
           className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
         >
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">{editing ? t('transactions.editTitle') : t('transactions.new')}</SheetTitle>
+            <SheetTitle className="text-lg font-semibold">{drawerTitle}</SheetTitle>
             <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
               <X aria-hidden className="size-5" />
             </SheetClose>
@@ -117,6 +144,10 @@ export function TransactionsPage() {
           )}
           {loaded && editing && (
             <EditTransaction transaction={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
+          )}
+          {loaded && drawer && 'transferring' in drawer && <AddTransfer accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />}
+          {loaded && drawer && 'transferId' in drawer && (
+            <OpenTransfer id={drawer.transferId} accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />
           )}
         </SheetContent>
       </Sheet>
@@ -183,16 +214,81 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
   )
 }
 
+type TransferProps = { accounts: Account[]; onClose: () => void }
+
+/** Records one transfer and closes: the two legs join the list once the API has answered. */
+function AddTransfer({ accounts, onClose }: TransferProps) {
+  const { t } = useTranslation()
+  const formId = useId()
+  const create = useCreateTransfer()
+  // One key per request the user means to make, as for a transaction: the same values sent again after a
+  // failure carry the same key, and changed values a new one.
+  const attempt = useRef<{ key: string; sent?: string }>({ key: crypto.randomUUID() })
+
+  return (
+    <>
+      <TransferForm
+        id={formId}
+        accounts={accounts}
+        onSave={(fields: TransferFields) => {
+          const sending = JSON.stringify(fields)
+          if (attempt.current.sent !== undefined && attempt.current.sent !== sending) attempt.current.key = crypto.randomUUID()
+          attempt.current.sent = sending
+          return create.mutateAsync({ fields, idempotencyKey: attempt.current.key })
+        }}
+        onSaved={onClose}
+        onCancel={onClose}
+      />
+      <FailureToast failed={create.isError} message={t('transfers.errors.notSaved')} retry={{ form: formId }} onDismiss={create.reset} />
+    </>
+  )
+}
+
+/** Loads the transfer a leg belongs to, both legs as one, and opens it in the transfer form. */
+function OpenTransfer({ id, accounts, onClose }: TransferProps & { id: string }) {
+  const { t } = useTranslation()
+  const transfer = useQuery(transferQuery(id))
+
+  // Deleted somewhere else since the list was loaded: there is nothing left to edit.
+  useEffect(() => {
+    if (transfer.data === null) onClose()
+  }, [transfer.data, onClose])
+
+  if (transfer.isError) return <ErrorMessage>{t('transfers.errors.notLoaded')}</ErrorMessage>
+  if (!transfer.data) return <p aria-busy className="text-muted-foreground">{t('transfers.loading')}</p>
+  return <EditTransfer transfer={transfer.data} accounts={accounts} onClose={onClose} />
+}
+
+function EditTransfer({ transfer, accounts, onClose }: TransferProps & { transfer: Transfer }) {
+  const { t } = useTranslation()
+  const formId = useId()
+  const edit = useEditTransfer(transfer)
+  const stale = isStale(edit.data)
+
+  return (
+    <>
+      {stale && <ErrorMessage>{t('transfers.errors.stale')}</ErrorMessage>}
+      {/* A new row version is a new transfer to edit: the form starts again from what the API holds now. */}
+      <TransferForm key={transfer.rowVersion} id={formId} transfer={transfer} accounts={accounts} onSave={edit.mutateAsync} onSaved={onClose} onCancel={onClose} />
+      <FailureToast failed={edit.isError} message={t('transfers.errors.notSaved')} retry={{ form: formId }} onDismiss={edit.reset} />
+    </>
+  )
+}
+
 type RowProps = { transaction: ListedTransaction; account?: Account; category?: Category; onEdit: (transaction: Transaction) => void }
 
 function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const remove = useDeleteTransaction()
+  const removeTransaction = useDeleteTransaction()
+  const removeTransfer = useDeleteTransfer()
+  // A leg is deleted as its transfer, which takes the other leg with it.
+  const leg = isTransferLeg(transaction) ? transaction : undefined
+  const remove = leg ? removeTransfer : removeTransaction
   const [confirming, setConfirming] = useState(false)
   // One the API has not answered yet has no id: there is nothing to edit or delete.
   const saved = isPending(transaction) ? undefined : transaction
-  const id = saved?.id
+  const id = leg?.transferId ?? saved?.id
   const pending = saved === undefined
   // A transaction is known by who was paid; without a payee, by what it was for.
   const title = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
@@ -201,16 +297,21 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
     <li className="space-y-2 p-3" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
         {category && <CategoryBadge icon={category.icon} color={category.color} />}
+        {leg && (
+          <span aria-hidden data-testid="transfer-mark" className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+            <ArrowRightLeft className="size-4" />
+          </span>
+        )}
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {[category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
+            {[leg ? t('transfers.mark') : category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
           </p>
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
           {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
-          <Money amount={transaction.type === 'expense' ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
+          <Money amount={takesFromBalance(transaction) ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
         </span>
         {saved && !confirming && (
           <>
@@ -225,7 +326,7 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
       </div>
       {id !== undefined && confirming && (
         <div role="group" aria-label={t('transactions.deleteNamed', { name: title })} className="space-y-2 rounded-md bg-muted p-3">
-          <p className="text-sm">{t('transactions.deleteExplained', { name: title })}</p>
+          <p className="text-sm">{leg ? t('transfers.deleteExplained') : t('transactions.deleteExplained', { name: title })}</p>
           <div className="flex flex-wrap gap-2">
             <Button variant="destructive" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(id)}>
               {t('transactions.deleteConfirm')}
@@ -238,7 +339,7 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
       )}
       <FailureToast
         failed={remove.isError}
-        message={t('transactions.errors.notDeleted')}
+        message={leg ? t('transfers.errors.notDeleted') : t('transactions.errors.notDeleted')}
         retry={() => id !== undefined && remove.mutate(id)}
         onDismiss={remove.reset}
       />
@@ -246,7 +347,7 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   )
 }
 
-function findCategory(tree: Category[], id: string): Category | undefined {
+function findCategory(tree: Category[], id: string | null): Category | undefined {
   return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
 }
 

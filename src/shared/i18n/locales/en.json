@@ -221,7 +221,9 @@
     "type": "Type",
     "types": {
       "expense": "Expense",
-      "income": "Income"
+      "income": "Income",
+      "transferOut": "Transfer out",
+      "transferIn": "Transfer in"
     },
     "account": "Account",
     "accountOption": "{{name}} ({{currency}})",
@@ -258,6 +260,38 @@
       "generic": "Something went wrong. Try again.",
       "notSaved": "The transaction was not saved.",
       "notDeleted": "The transaction was not deleted."
+    }
+  },
+  "transfers": {
+    "add": "Transfer between accounts",
+    "new": "New transfer",
+    "editTitle": "Edit transfer",
+    "mark": "Transfer",
+    "loading": "Loading the transfer",
+    "from": "From account",
+    "to": "To account",
+    "amountIn": "Amount ({{currency}})",
+    "toAmountIn": "Amount that arrives ({{currency}})",
+    "bothAmounts": "These accounts are in different currencies, so enter both amounts. No exchange rate is looked up.",
+    "date": "Date",
+    "note": "Note",
+    "save": "Save",
+    "cancel": "Cancel",
+    "deleteExplained": "Delete this transfer? Both of its legs leave this list, and both accounts get their balance back.",
+    "errors": {
+      "account": "Choose one of your accounts that is not archived.",
+      "sameAccount": "Choose a different account from the one the money leaves.",
+      "amountRequired": "Enter an amount.",
+      "amountZero": "Enter an amount greater than zero.",
+      "amountInvalid": "Enter an amount, such as {{example}}.",
+      "toAmountRequired": "Enter the amount that arrives.",
+      "date": "Enter a date.",
+      "dateInFuture": "The date cannot be in the future.",
+      "noteTooLong": "Use at most 1000 characters.",
+      "stale": "This transfer was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "notLoaded": "The transfer could not be loaded. Try again.",
+      "notSaved": "The transfer was not saved.",
+      "notDeleted": "The transfer was not deleted."
     }
   },
   "institutions": {
