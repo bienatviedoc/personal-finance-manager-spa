@@ -7,6 +7,7 @@ import { FailureToast } from '@/shared/components/FailureToast'
 import { isStale } from '@/shared/api/versionedSave'
 import type { Language } from '@/shared/i18n'
 import { useLocale } from '@/shared/i18n/useLocale'
+import { detailSeparator } from '@/shared/lib/details'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { formatMoney, inCurrencyOrder, isZeroAmount, Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
@@ -225,13 +226,13 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
             {t(`accounts.types.${account.type}`)}
             {account.last4 && (
               <>
-                {' · '}
+                {detailSeparator}
                 <span>{t('accounts.endingIn', { last4: account.last4 })}</span>
               </>
             )}
             {account.isArchived && (
               <>
-                {' · '}
+                {detailSeparator}
                 <span>{t('accounts.archived')}</span>
               </>
             )}

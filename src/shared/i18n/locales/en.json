@@ -142,6 +142,7 @@
     }
   },
   "accounts": {
+    "option": "{{name}} ({{currency}})",
     "intro": "The places your money sits, grouped by institution.",
     "add": "Add account",
     "new": "New account",
@@ -264,14 +265,12 @@
     "refundHint": "Money coming back from a purchase. It raises the balance and lowers what you spent in the category.",
     "refund": "Refund",
     "account": "Account",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Amount ({{currency}})",
     "date": "Date",
     "category": "Category",
     "chooseCategory": "Type to find a category",
     "noCategoryMatches": "No category matches.",
     "categorySuggested": "Suggested from your earlier transactions with this payee.",
-    "subcategory": "{{parent}} › {{name}}",
     "payee": "Payee",
     "note": "Note",
     "save": "Save",
@@ -395,12 +394,10 @@
       "income": "Income"
     },
     "account": "Account",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Amount ({{currency}})",
     "category": "Category",
     "chooseCategory": "Choose a category",
     "noCategoryMatches": "No category matches.",
-    "subcategory": "{{parent}} › {{name}}",
     "frequency": "How often",
     "frequencyOptions": {
       "weekly": "Every week",
@@ -460,7 +457,7 @@
     }
   },
   "budgets": {
-    "intro": "A spending limit for each expense category, month by month, against what you have spent.",
+    "intro": "How much you plan to spend in each expense category, month by month, against what you have spent.",
     "byCategory": "Budgets by category",
     "subcategoriesOf": "Subcategories of {{name}}",
     "empty": "No budgets for this month yet. Enter an amount next to a category to set one.",
@@ -612,6 +609,8 @@
     },
     "confirmWithPassword": {
       "password": "Password",
+      "cancel": "Cancel",
+      "failed": "Something went wrong. Try again in a little while.",
       "errors": {
         "required": "Enter your password.",
         "incorrect": "That is not your password."
@@ -625,7 +624,9 @@
         "start": "Export my data",
         "confirmBody": "The file holds all your financial data, and anyone who has the file can read it. Keep it somewhere safe.",
         "submit": "Download",
-        "downloaded": "Your data is downloaded."
+        "downloaded": "Your data is downloaded.",
+        "cancel": "Cancel",
+        "failed": "Something went wrong. Try again in a little while."
       },
       "delete": {
         "title": "Delete your profile",
@@ -637,6 +638,7 @@
     }
   },
   "categories": {
+    "option": "{{parent}} › {{name}}",
     "title": "Categories",
     "showArchived": "Show archived categories",
     "sections": {

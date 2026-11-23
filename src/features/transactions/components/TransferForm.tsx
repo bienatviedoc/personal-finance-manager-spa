@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import type { Account } from '@/features/accounts'
+import { useAccountChoices, type Account } from '@/features/accounts'
 import { useUserSettings } from '@/features/settings'
 import { isStale } from '@/shared/api/versionedSave'
 import { SelectField } from '@/shared/components/SelectField'
@@ -81,7 +81,7 @@ export function TransferForm({ id, transfer, accounts, onSave, onSaved, onCancel
   const schema = useMemo(() => schemaFor(today), [today])
 
   const offered = accounts.filter((account) => !account.isArchived || account.id === transfer?.fromAccountId || account.id === transfer?.toAccountId)
-  const accountOptions = offered.map((account) => ({ value: account.id, label: t('transactions.accountOption', { name: account.name, currency: account.currency }) }))
+  const accountOptions = useAccountChoices(offered)
   const form = useForm<Values, unknown, z.output<Schema>>({
     resolver: zodResolver(schema),
     defaultValues: transfer

@@ -1,15 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { X } from 'lucide-react'
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { categoriesQuery, type Category } from '@/features/categories'
+import { useIdempotencyKey } from '@/shared/api/useIdempotencyKey'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
+import { Drawer } from '@/shared/components/Drawer'
 import { FailureToast } from '@/shared/components/FailureToast'
-import { cn, focusRing } from '@/shared/lib/utils'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { lastAccountQuery, useCreateTransaction, type TransactionDraft } from '../api/transactions'
 import { QuickAddContext } from './quickAddContext'
 import { TransactionForm } from './TransactionForm'
@@ -28,23 +26,9 @@ export function QuickAdd({ children }: { children: ReactNode }) {
   return (
     <QuickAddContext value={show}>
       {children}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent
-          // The sheet's own close button has no translated name; ours does.
-          showCloseButton={false}
-          aria-describedby={undefined}
-          onEscapeKeyDown={escapeClosesPickerFirst}
-          className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
-        >
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">{t('transactions.new')}</SheetTitle>
-            <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
-              <X aria-hidden className="size-5" />
-            </SheetClose>
-          </div>
-          <NewTransaction onClose={() => setOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      <Drawer open={open} onOpenChange={setOpen} title={t('transactions.new')}>
+        <NewTransaction onClose={() => setOpen(false)} />
+      </Drawer>
     </QuickAddContext>
   )
 }
@@ -81,10 +65,8 @@ function AddTransaction({ accounts, categories, lastAccountId, onClose }: AddPro
   const { t } = useTranslation()
   const formId = useId()
   const create = useCreateTransaction()
-  // One key per request the user means to make: saving the same values again after a failure sends the same
-  // one, so the API cannot record the transaction twice. Changed values are a new request, and so is the
-  // next transaction: each takes a new key.
-  const attempt = useRef<{ key: string; sent?: string }>({ key: crypto.randomUUID() })
+  // The next transaction is a new request too.
+  const idempotencyKey = useIdempotencyKey()
 
   return (
     <>
@@ -93,15 +75,8 @@ function AddTransaction({ accounts, categories, lastAccountId, onClose }: AddPro
         accounts={accounts}
         categories={categories}
         lastAccountId={lastAccountId}
-        onSave={(draft: TransactionDraft) => {
-          const sending = JSON.stringify(draft.fields)
-          if (attempt.current.sent !== undefined && attempt.current.sent !== sending) attempt.current.key = crypto.randomUUID()
-          attempt.current.sent = sending
-          return create.mutateAsync({ ...draft, idempotencyKey: attempt.current.key })
-        }}
-        onSaved={() => {
-          attempt.current = { key: crypto.randomUUID() }
-        }}
+        onSave={(draft: TransactionDraft) => create.mutateAsync({ ...draft, idempotencyKey: idempotencyKey.keyFor(draft.fields) })}
+        onSaved={idempotencyKey.next}
         onCancel={onClose}
       />
       <FailureToast failed={create.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={create.reset} />

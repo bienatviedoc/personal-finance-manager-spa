@@ -40,7 +40,7 @@ export function ExportData() {
                 setConfirming(false)
               }}
             >
-              {t('settings.security.cancel')}
+              {t('settings.data.export.cancel')}
             </Button>
           </div>
         </div>
@@ -56,7 +56,7 @@ export function ExportData() {
           {t('settings.data.export.start')}
         </Button>
       )}
-      <FailureToast failed={exportData.isError} message={t('settings.security.failed')} retry={() => void download()} onDismiss={exportData.reset} />
+      <FailureToast failed={exportData.isError} message={t('settings.data.export.failed')} retry={() => void download()} onDismiss={exportData.reset} />
       {/* Said until the user asks for another export. */}
       {exportData.isSuccess && !confirming && (
         <p role="status" className="text-sm">

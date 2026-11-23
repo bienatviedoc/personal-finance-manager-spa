@@ -80,7 +80,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
 - **A type-ahead picker** is `<ComboboxField>` from `@/shared/components`: typing narrows the options, whatever
   the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
-  the form's. A drawer holding one passes `escapeClosesPickerFirst` to its `onEscapeKeyDown`. Tests choose from
+  the form's. In a `Drawer`, Escape closes its list before the drawer (`escapeClosesPickerFirst`). Tests choose from
   one with `choose` and read what it offers with `offeredBy` (`src/test/combobox.ts`).
 - **A split transaction sends `lines` in place of `categoryId`** (see the glossary: split transaction, line), and
   every transaction answers its `lines`, one when it is not split (`isSplit`). The form shows what remains of the
@@ -106,7 +106,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   again; fields the API refused stay under their inputs. The toast is the Radix primitive in
   `src/shared/ui/toast.tsx`, and stays until the user answers it.
 - **A new transaction carries an `Idempotency-Key`**, made up once for each request the user means to make
-  (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
+  (`useIdempotencyKey` in `src/shared/api`, as a new transfer does). Saving the same values again after a failure sends the same key, so the API cannot record
   the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
   used key that comes with a different body), and so is the next transaction.
 - **Attachments** (receipts) live in the drawer of a transaction the API has recorded (`Attachments` in
@@ -253,6 +253,7 @@ src/
   navigation in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
   shell and the other screens working; so does each section nested in a screen (Settings > Profile).
 - **Shared components** (`src/shared/components`): `TextField` and `SelectField` for labelled inputs,
+  `ToggleField` for a choice of a few values side by side, `Drawer` for a form in a side drawer,
   `ErrorMessage` for an alert that something went wrong, `FailureToast` for a change that failed.
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
@@ -309,7 +310,8 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   the amount input takes the decimals of the chosen account's currency.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
-  (from `useUserSettings()` in `@/features/settings`), not the browser's.
+  (from `useUserSettings()` in `@/features/settings`), not the browser's. A month (`2026-11`, such as a budget month) is a
+  `CalendarMonth`, made only by `isCalendarMonth`, `monthOf` or `shiftMonth` and written with `formatMonth`.
 - The user's base currency and time zone come from `useUserSettings()`.
 - **Not converted.** An amount the API could not convert, for want of an exchange rate, comes back under
   `notConverted` in its own currency and is left out of the total next to it. Always show that flag with the

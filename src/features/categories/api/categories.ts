@@ -9,6 +9,12 @@ export type CategoryKind = components['schemas']['CategoryKind']
 export const categoryKinds = ['expense', 'income'] as const satisfies readonly CategoryKind[]
 export type CategoryFields = components['schemas']['CategoryChangeRequest']
 
+/**
+ * The kind of category income or an expense takes, which is also which of the two it is: what a form that records
+ * one, or a recurring rule, starts its type toggle on. A leg of a transfer takes no category and opens no such form.
+ */
+export const kindTakenBy = (type: components['schemas']['TransactionType']): CategoryKind => (type === 'income' ? 'income' : 'expense')
+
 /** Fields the API can refuse, which the form shows its own translated message for. */
 const categoryFields = ['name', 'kind', 'icon', 'color', 'parentId'] as const
 export type CategoryField = (typeof categoryFields)[number]

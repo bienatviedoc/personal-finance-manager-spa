@@ -60,6 +60,11 @@ export function formatAmountForInput(amount: DecimalString, locale: Language, cu
 }
 
 /** How many decimals the currency has: none for VND, two for USD and EUR. */
-function decimalsOf(currency: Currency, locale: Language): number {
+export function decimalsOf(currency: Currency, locale: Language): number {
   return currencyFormat(currency, locale).resolvedOptions().maximumFractionDigits ?? 0
+}
+
+/** The currency with the most decimals, in which an amount in any of them can be typed; undefined when there are none. */
+export function withMostDecimals(currencies: Currency[], locale: Language): Currency | undefined {
+  return currencies.toSorted((a, b) => decimalsOf(b, locale) - decimalsOf(a, locale))[0]
 }

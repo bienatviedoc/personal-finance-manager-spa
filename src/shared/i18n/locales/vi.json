@@ -142,6 +142,7 @@
     }
   },
   "accounts": {
+    "option": "{{name}} ({{currency}})",
     "intro": "Những nơi bạn giữ tiền, nhóm theo tổ chức tài chính.",
     "add": "Thêm tài khoản",
     "new": "Tài khoản mới",
@@ -264,14 +265,12 @@
     "refundHint": "Tiền được trả lại từ một lần mua. Khoản này làm tăng số dư và giảm số đã chi trong danh mục.",
     "refund": "Hoàn tiền",
     "account": "Tài khoản",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Số tiền ({{currency}})",
     "date": "Ngày",
     "category": "Danh mục",
     "chooseCategory": "Gõ để tìm danh mục",
     "noCategoryMatches": "Không có danh mục nào khớp.",
     "categorySuggested": "Gợi ý từ các giao dịch trước đây của bạn với bên này.",
-    "subcategory": "{{parent}} › {{name}}",
     "payee": "Bên nhận / bên trả",
     "note": "Ghi chú",
     "save": "Lưu",
@@ -395,12 +394,10 @@
       "income": "Khoản thu"
     },
     "account": "Tài khoản",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Số tiền ({{currency}})",
     "category": "Danh mục",
     "chooseCategory": "Chọn danh mục",
     "noCategoryMatches": "Không có danh mục nào khớp.",
-    "subcategory": "{{parent}} › {{name}}",
     "frequency": "Tần suất",
     "frequencyOptions": {
       "weekly": "Hằng tuần",
@@ -460,7 +457,7 @@
     }
   },
   "budgets": {
-    "intro": "Hạn mức chi tiêu cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
+    "intro": "Số tiền bạn dự định chi cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
     "byCategory": "Ngân sách theo danh mục",
     "subcategoriesOf": "Danh mục con của {{name}}",
     "empty": "Tháng này chưa có ngân sách nào. Nhập số tiền bên cạnh một danh mục để đặt ngân sách.",
@@ -612,6 +609,8 @@
     },
     "confirmWithPassword": {
       "password": "Mật khẩu",
+      "cancel": "Hủy",
+      "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút.",
       "errors": {
         "required": "Nhập mật khẩu.",
         "incorrect": "Đó không phải mật khẩu của bạn."
@@ -625,7 +624,9 @@
         "start": "Xuất dữ liệu của tôi",
         "confirmBody": "Tệp này chứa toàn bộ dữ liệu tài chính của bạn, và ai có tệp cũng đọc được. Hãy cất nó ở nơi an toàn.",
         "submit": "Tải về",
-        "downloaded": "Dữ liệu của bạn đã được tải về."
+        "downloaded": "Dữ liệu của bạn đã được tải về.",
+        "cancel": "Hủy",
+        "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút."
       },
       "delete": {
         "title": "Xóa hồ sơ của bạn",
@@ -637,6 +638,7 @@
     }
   },
   "categories": {
+    "option": "{{parent}} › {{name}}",
     "title": "Danh mục",
     "showArchived": "Hiện danh mục đã lưu trữ",
     "sections": {

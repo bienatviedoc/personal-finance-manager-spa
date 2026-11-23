@@ -5,16 +5,17 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import type { Account } from '@/features/accounts'
-import type { Category } from '@/features/categories'
+import { useAccountChoices, type Account } from '@/features/accounts'
+import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
+import { ToggleField } from '@/shared/components/ToggleField'
 import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDebounced } from '@/shared/lib/useDebounced'
-import { cn, focusRingWithin } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
 import {
   AmountField,
   amountExample,
@@ -133,12 +134,13 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
   const refundHintId = useId()
 
   const accountOptions = accounts.filter((account) => !account.isArchived || account.id === transaction?.accountId)
+  const accountChoices = useAccountChoices(accountOptions)
   const form = useForm<Values, unknown, z.output<Schema>>({
     resolver: zodResolver(schema),
     defaultValues: transaction
       ? {
           // Income or an expense: a leg of a transfer opens the transfer form instead, and has no category.
-          type: transaction.type === 'income' ? 'income' : 'expense',
+          type: kindTakenBy(transaction.type),
           accountId: transaction.accountId,
           amount: transaction.amount,
           date: transaction.date,
@@ -158,11 +160,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
   // What is left of the amount after the lines entered so far; unknown until there is an amount.
   const remaining = split && amount ? remainingAmount(amount, lineValues.flatMap((line) => (line.amount ? [line.amount] : []))) : null
 
-  const categoryOptions = categories
-    .flatMap((category) => [
-      { category, label: category.name },
-      ...category.subcategories.map((subcategory) => ({ category: subcategory, label: t('transactions.subcategory', { parent: category.name, name: subcategory.name }) })),
-    ])
+  const categoryOptions = useCategoryChoices(categories)
     .filter(({ category }) => category.kind === type && (!category.isArchived || transaction?.lines.some((line) => line.categoryId === category.id)))
     .map(({ category, label }) => ({ value: category.id, label }))
 
@@ -280,23 +278,11 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
 
   return (
     <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
-      <fieldset>
-        <legend className="sr-only">{t('transactions.type')}</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          {transactionTypes.map((value) => (
-            <label
-              key={value}
-              className={cn(
-                'cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-muted-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
-                focusRingWithin,
-              )}
-            >
-              <input type="radio" value={value} className="sr-only" {...typeToggle} />
-              {t(`transactions.types.${value}`)}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <ToggleField
+        legend={t('transactions.type')}
+        options={transactionTypes.map((value) => ({ value, label: t(`transactions.types.${value}`) }))}
+        registration={typeToggle}
+      />
 
       {type === 'expense' && (
         <div className="space-y-1.5">
@@ -314,7 +300,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
       <SelectField
         label={t('transactions.account')}
         error={errors.accountId?.message && t(errors.accountId.message as ParseKeys)}
-        options={accountOptions.map((account) => ({ value: account.id, label: t('transactions.accountOption', { name: account.name, currency: account.currency }) }))}
+        options={accountChoices}
         {...form.register('accountId')}
       />
 

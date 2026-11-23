@@ -3,15 +3,15 @@ import type { ParseKeys } from 'i18next'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import type { Account } from '@/features/accounts'
-import type { Category } from '@/features/categories'
+import { useAccountChoices, type Account } from '@/features/accounts'
+import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
+import { ToggleField } from '@/shared/components/ToggleField'
 import { calendarDate, todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { AmountField, amountExample, formatAmountForInput, isZeroAmount, parseAmount, requiredAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
@@ -106,12 +106,13 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
   const today = todayIn(timeZone)
 
   const accountOptions = accounts.filter((account) => !account.isArchived || account.id === rule?.accountId)
+  const accountChoices = useAccountChoices(accountOptions)
   const form = useForm<Values, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: rule
       ? {
           // A rule is only ever income or an expense.
-          type: rule.type === 'income' ? 'income' : 'expense',
+          type: kindTakenBy(rule.type),
           accountId: rule.accountId,
           amount: rule.amount,
           categoryId: rule.categoryId,
@@ -139,11 +140,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
   const [type, accountId, frequency, startDate] = useWatch({ control: form.control, name: ['type', 'accountId', 'frequency', 'startDate'] })
   const currency = accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
 
-  const categoryOptions = categories
-    .flatMap((category) => [
-      { category, label: category.name },
-      ...category.subcategories.map((subcategory) => ({ category: subcategory, label: t('recurring.subcategory', { parent: category.name, name: subcategory.name }) })),
-    ])
+  const categoryOptions = useCategoryChoices(categories)
     .filter(({ category }) => category.kind === type && (!category.isArchived || category.id === rule?.categoryId))
     .map(({ category, label }) => ({ value: category.id, label }))
 
@@ -190,29 +187,17 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
 
   return (
     <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
-      <fieldset>
-        <legend className="sr-only">{t('recurring.type')}</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          {recurringRuleTypes.map((value) => (
-            <label
-              key={value}
-              className={cn(
-                'cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-muted-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
-                focusRingWithin,
-              )}
-            >
-              <input type="radio" value={value} className="sr-only" {...typeToggle} />
-              {t(`recurring.types.${value}`)}
-            </label>
-          ))}
-        </div>
-        {errors.type?.message && <p className="text-sm text-destructive">{t(errors.type.message as ParseKeys)}</p>}
-      </fieldset>
+      <ToggleField
+        legend={t('recurring.type')}
+        options={recurringRuleTypes.map((value) => ({ value, label: t(`recurring.types.${value}`) }))}
+        registration={typeToggle}
+        error={errors.type?.message && t(errors.type.message as ParseKeys)}
+      />
 
       <SelectField
         label={t('recurring.account')}
         error={errors.accountId?.message && t(errors.accountId.message as ParseKeys)}
-        options={accountOptions.map((account) => ({ value: account.id, label: t('recurring.accountOption', { name: account.name, currency: account.currency }) }))}
+        options={accountChoices}
         {...form.register('accountId')}
       />
       <AmountField

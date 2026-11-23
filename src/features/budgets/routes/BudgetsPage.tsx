@@ -9,14 +9,14 @@ import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { isStale } from '@/shared/api/versionedSave'
-import { todayIn } from '@/shared/dates'
+import { formatMonth, isCalendarMonth, monthOf, shiftMonth, todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { amountExample, AmountInput, Money, type AmountValue, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { budgetsQuery, useRemoveBudget, useSetBudget, type Budget, type BudgetState, type BudgetTotals } from '../api/budgets'
-import { formatMonth, isBudgetMonth, shiftMonth, type BudgetMonth } from '../budgetMonth'
+import type { BudgetMonth } from '../budgetMonth'
 
 /** What a row needs of the category it is for: one from the user's tree, or the one a budget carries when it is archived. */
 type RowCategory = Pick<Category, 'id' | 'parentId' | 'name' | 'icon' | 'color' | 'isArchived'>
@@ -36,8 +36,8 @@ export function BudgetsPage() {
   useDocumentTitle(t('screens.budgets'))
   const { timeZone } = useUserSettings()
   const { month: asked } = useParams()
-  const thisMonth = todayIn(timeZone).slice(0, 7)
-  const month = isBudgetMonth(asked) ? asked : thisMonth
+  const thisMonth = monthOf(todayIn(timeZone))
+  const month = isCalendarMonth(asked) ? asked : thisMonth
   const budgets = useQuery(budgetsQuery(month))
   const categories = useQuery(categoriesQuery())
   const listId = useId()

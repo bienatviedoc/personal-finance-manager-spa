@@ -1,19 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
-import { X } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
-import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { CategoryBadge, categoriesQuery, findCategory, kindTakenBy, type Category } from '@/features/categories'
+import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
+import { joinDetails } from '@/shared/lib/details'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { cn, focusRing } from '@/shared/lib/utils'
-import { Money } from '@/shared/money'
+import { cn } from '@/shared/lib/utils'
+import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import {
   recurringRulesQuery,
   useCreateRecurringRule,
@@ -87,25 +87,12 @@ export function RecurringPage() {
         </ul>
       )}
 
-      <Sheet open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)}>
-        <SheetContent
-          // The sheet's own close button has no translated name; ours does.
-          showCloseButton={false}
-          aria-describedby={undefined}
-          className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
-        >
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">{editing ? t('recurring.editTitle') : t('recurring.new')}</SheetTitle>
-            <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
-              <X aria-hidden className="size-5" />
-            </SheetClose>
-          </div>
+      <Drawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} title={editing ? t('recurring.editTitle') : t('recurring.new')}>
           {loaded && drawer && 'adding' in drawer && (
             <AddRule accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
           {loaded && editing && <EditRule rule={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />}
-        </SheetContent>
-      </Sheet>
+      </Drawer>
     </section>
   )
 }
@@ -148,7 +135,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
   const remove = useDeleteRecurringRule()
   const [confirming, setConfirming] = useState(false)
   // A rule is only ever income or an expense.
-  const type = rule.type === 'income' ? 'income' : 'expense'
+  const type = kindTakenBy(rule.type)
   // A rule is known by who is paid; without a payee, by what it is for.
   const title = rule.payee ?? category?.name ?? t(`recurring.types.${type}`)
   const frequency = rule.frequency === 'everyNDays' ? t('recurring.everyDays', { count: Number(rule.interval) }) : t(`recurring.frequencies.${rule.frequency}`)
@@ -168,7 +155,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {[category?.name, account?.name, frequency].filter(Boolean).join(' · ')}
+            {joinDetails([category?.name, account?.name, frequency])}
           </p>
           <p data-testid="next" className="text-sm text-muted-foreground">
             {nextText(rule, t, (date) => formatDate(date, locale))}
@@ -177,7 +164,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
           {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
-          <Money amount={type === 'expense' ? `-${rule.amount}` : rule.amount} currency={rule.currency} />
+          <Money amount={signedAmount(rule.amount, type === 'expense')} currency={rule.currency} />
         </span>
         {!confirming && (
           <>
@@ -233,9 +220,6 @@ function nextText(rule: RecurringRule, t: ReturnType<typeof useTranslation>['t']
   return rule.endDate ? t('recurring.endedOn', { date: format(rule.endDate) }) : t('recurring.ended')
 }
 
-function findCategory(tree: Category[], id: string): Category | undefined {
-  return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
-}
 
 /** Rows standing in for the list while it loads. */
 function ListSkeleton() {

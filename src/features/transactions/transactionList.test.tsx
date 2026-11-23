@@ -199,8 +199,8 @@ describe('the transaction list', () => {
     await user.selectOptions(filterBar().getByLabelText('Category'), filterBar().getByRole('option', { name: 'Transport' }))
 
     await waitFor(() => expect(payees()).toEqual(['Grab refund', 'Grab', 'Aeon']))
-    // The split counts whole, and the refund is money back: 500,000 + 90,000 - 40,000.
-    expect(total()).toBe('3 transactions' + 'VND' + 'Income₫0' + 'Expenses₫550,000' + 'Net-₫550,000')
+    // The split adds only its line in Transport, and the refund is money back: 180,000 + 90,000 - 40,000.
+    expect(total()).toBe('3 transactions' + 'VND' + 'Income₫0' + 'Expenses₫230,000' + 'Net-₫230,000')
   })
 
   it('lists the legs of a transfer, which can be filtered for, and leaves them out of the income and expenses of the total', async () => {
