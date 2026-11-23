@@ -9,6 +9,8 @@ type FakeUser = {
   locale?: 'en' | 'vi' | null
   /** Set for a user who signs in with two factors: the code their authenticator shows, and their unused recovery codes. */
   twoFactor?: { code: string; recoveryCodes: string[] }
+  /** Set for a user who asked to be deleted less than 30 days ago: signing in cancels it, and the API says so. */
+  deactivated?: boolean
 }
 
 /** How many wrong passwords or codes in a row lock sign-in for a user, as in the real API. */
@@ -76,6 +78,10 @@ export function fakeAuthApi({ signedIn = false, users = [{ ...testUser, password
       }
       state.failedSignIns[email] = 0
       state.signedInAs = found
+      if (found.deactivated) {
+        found.deactivated = false
+        return HttpResponse.json({ deletionCancelled: true })
+      }
       return noContent()
     }),
     http.post(url('/api/v1/auth/logout'), ({ request }) => {
