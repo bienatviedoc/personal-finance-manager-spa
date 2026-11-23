@@ -30,6 +30,7 @@ import {
   type Transaction,
 } from '../api/transactions'
 import { transferQuery, useCreateTransfer, useDeleteTransfer, useEditTransfer, type Transfer, type TransferFields } from '../api/transfers'
+import { Attachments } from '../components/Attachments'
 import { useQuickAdd } from '../components/quickAddContext'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransferForm } from '../components/TransferForm'
@@ -177,6 +178,7 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
         onSaved={onClose}
         onCancel={onClose}
       />
+      <Attachments transactionId={transaction.id} />
       <FailureToast failed={edit.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={edit.reset} />
     </>
   )
