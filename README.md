@@ -134,6 +134,21 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **Last month's budgets are copied in one action** (BUD-4): the budget screen's "Copy budgets from …" button
   calls `useCopyBudgets(month)` with the month before the one shown. The API decides what is copied (never over a
   budget the month has, nor onto an archived category) and answers how many; the screen says that number.
+- **Reports share one frame** (spec sections 7 and 12). `ReportFrame` in `features/reports/frame` holds what every
+  report has: the period (a preset, or dates the user chooses), the account and category filters, comparing with
+  the period before, and the chart or table view, all in the address (`period`, `from`, `to`, `accountId`,
+  `categoryId`, `compare`, `view`), read and changed by `useReportFilters`. A preset is kept by name and worked
+  out again on the day the view is opened (`periodOf`, in whole calendar months), so a bookmark of "this month"
+  always shows the month it is. A report draws what the filters ask for and keeps its own state in the address
+  beside them (how far spending by category is drilled down: `parentId`, `transactionsOf`, where Back goes up a
+  step). A new report is an entry in the list in `ReportsPage`. Every figure, share and the period compared with
+  are the API's; the screen adds nothing up. What is not converted is flagged next to the figure it is left out of
+  (`NotConverted`). A change to a transaction loads the reports again (`refreshReports`).
+- **Charts are drawn through wrappers** in `src/shared/charts` (`DonutChart`), over
+  [Recharts](https://recharts.org), so the library can be swapped without touching a feature; ESLint refuses an
+  import of `recharts` anywhere else. A chart is a picture of numbers a table or legend beside it also gives, which
+  a keyboard can use: a chart's slice is chosen with a pointer only. Amounts become JavaScript numbers there for
+  drawing alone.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
