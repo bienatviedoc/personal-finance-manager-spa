@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { choose, offeredBy } from '@/test/combobox'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { defaultTestCategories, fakeCategoriesApi } from '@/test/fakeCategoriesApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
@@ -65,19 +66,18 @@ describe('split transactions', () => {
     await user.type(drawer.getByLabelText('Amount (VND)'), '500,000')
     await user.clear(drawer.getByLabelText('Date'))
     await user.type(drawer.getByLabelText('Date'), '2026-11-02')
-    // Chosen by its id: the name has an ampersand, which an option's markup writes differently.
-    await user.selectOptions(drawer.getByLabelText('Category'), 'c-groceries')
+    await choose(user, drawer.getByLabelText('Category'), 'Food & drink › Groceries')
 
     await user.click(drawer.getByRole('button', { name: 'Split across categories' }))
 
     // The category already chosen becomes the first line's; the one field for it is gone.
     expect(drawer.queryByLabelText('Category')).not.toBeInTheDocument()
     expect(drawer.getByLabelText('Line 1 category')).toHaveDisplayValue('Food & drink › Groceries')
-    expect(drawer.getByLabelText('Line 2 category')).toHaveDisplayValue('Choose a category')
+    expect(drawer.getByLabelText('Line 2 category')).toHaveValue('')
     expect(drawer.getByTestId('remaining')).toHaveTextContent('₫500,000 left to split')
     await user.type(drawer.getByLabelText('Line 1 amount (VND)'), '320,000')
     await user.type(drawer.getByLabelText('Line 1 note'), 'food')
-    await user.selectOptions(drawer.getByLabelText('Line 2 category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Line 2 category'), 'Transport')
     await user.type(drawer.getByLabelText('Line 2 amount (VND)'), '170,000')
     expect(drawer.getByTestId('remaining')).toHaveTextContent('₫10,000 left to split')
 
@@ -120,9 +120,9 @@ describe('split transactions', () => {
     const drawer = await openNewDrawer(user)
     await user.type(drawer.getByLabelText('Amount (VND)'), '500,000')
     await user.click(drawer.getByRole('button', { name: 'Split across categories' }))
-    await user.selectOptions(drawer.getByLabelText('Line 1 category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Line 1 category'), 'Transport')
     await user.type(drawer.getByLabelText('Line 1 amount (VND)'), '320,000')
-    await user.selectOptions(drawer.getByLabelText('Line 2 category'), 'c-food')
+    await choose(user, drawer.getByLabelText('Line 2 category'), 'Food & drink')
     await user.type(drawer.getByLabelText('Line 2 amount (VND)'), '200,000')
 
     expect(drawer.getByTestId('remaining')).toHaveTextContent('₫20,000 more than the amount')
@@ -138,10 +138,8 @@ describe('split transactions', () => {
     const drawer = await openNewDrawer(user)
     await user.type(drawer.getByLabelText('Amount (VND)'), '500,000')
     await user.click(drawer.getByRole('button', { name: 'Split across categories' }))
-    const offered = () => within(drawer.getByLabelText('Line 2 category')).getAllByRole('option').map((option) => option.textContent)
-
-    expect(offered()).toEqual(['Choose a category', 'Food & drink', 'Food & drink › Groceries', 'Food & drink › Eating out', 'Transport'])
-    await user.selectOptions(drawer.getByLabelText('Line 1 category'), 'Transport')
+    expect(await offeredBy(user, drawer.getByLabelText('Line 2 category'))).toEqual(['Food & drink', 'Food & drink › Groceries', 'Food & drink › Eating out', 'Transport'])
+    await choose(user, drawer.getByLabelText('Line 1 category'), 'Transport')
     await user.type(drawer.getByLabelText('Line 1 amount (VND)'), '500,000')
     await user.type(drawer.getByLabelText('Line 2 amount (VND)'), '0')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
@@ -153,8 +151,8 @@ describe('split transactions', () => {
 
     // The type decides which kind of category a line takes: one of the other kind cannot stay.
     await user.click(drawer.getByRole('radio', { name: 'Income' }))
-    expect(offered()).toEqual(['Choose a category', 'Salary', 'Investments', 'Investments › Interest'])
-    expect(drawer.getByLabelText('Line 1 category')).toHaveDisplayValue('Choose a category')
+    expect(await offeredBy(user, drawer.getByLabelText('Line 2 category'))).toEqual(['Salary', 'Investments', 'Investments › Interest'])
+    expect(drawer.getByLabelText('Line 1 category')).toHaveValue('')
   })
 
   it('take more lines, and let one go while more than two are left', async () => {
@@ -170,11 +168,11 @@ describe('split transactions', () => {
     await user.click(drawer.getByRole('button', { name: 'Add a line' }))
     for (const [line, category, amount] of [
       [1, 'Transport', '33.33'],
-      [2, 'c-food', '50'],
-      [3, 'c-groceries', '33.33'],
-      [4, 'c-eating-out', '33.34'],
+      [2, 'Food & drink', '50'],
+      [3, 'Food & drink › Groceries', '33.33'],
+      [4, 'Food & drink › Eating out', '33.34'],
     ] as const) {
-      await user.selectOptions(drawer.getByLabelText(`Line ${line} category`), category)
+      await choose(user, drawer.getByLabelText(`Line ${line} category`), category)
       await user.type(drawer.getByLabelText(`Line ${line} amount (USD)`), amount)
     }
     expect(drawer.getByTestId('remaining')).toHaveTextContent('$50.00 more than the amount')
@@ -246,9 +244,9 @@ describe('split transactions', () => {
     const drawer = await openNewDrawer(user)
     await user.type(drawer.getByLabelText('Amount (VND)'), '500,000')
     await user.click(drawer.getByRole('button', { name: 'Split across categories' }))
-    await user.selectOptions(drawer.getByLabelText('Line 1 category'), 'c-food')
+    await choose(user, drawer.getByLabelText('Line 1 category'), 'Food & drink')
     await user.type(drawer.getByLabelText('Line 1 amount (VND)'), '320,000')
-    await user.selectOptions(drawer.getByLabelText('Line 2 category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Line 2 category'), 'Transport')
     await user.type(drawer.getByLabelText('Line 2 amount (VND)'), '180,000')
     // Archived on another device while this drawer is open.
     categoriesApi.categories.find((category) => category.id === 'c-transport')!.isArchived = true

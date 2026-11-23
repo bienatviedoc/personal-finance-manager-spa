@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { choose } from '@/test/combobox'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { defaultTestCategories, fakeCategoriesApi } from '@/test/fakeCategoriesApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
@@ -54,7 +55,7 @@ describe('refunds', () => {
     expect(drawer.getByRole('checkbox', { name: 'This is a refund' })).not.toBeChecked()
     await user.click(drawer.getByRole('checkbox', { name: 'This is a refund' }))
     await user.type(drawer.getByLabelText('Amount (VND)'), '300,000')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     await user.type(drawer.getByLabelText('Payee'), 'Bike shop')
     const answer = transactionsApi.hold()
     await user.click(drawer.getByRole('button', { name: 'Save' }))
@@ -86,7 +87,7 @@ describe('refunds', () => {
     await user.click(drawer.getByRole('checkbox', { name: 'This is a refund' }))
     await user.click(drawer.getByRole('radio', { name: 'Income' }))
     await user.type(drawer.getByLabelText('Amount (VND)'), '500')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Salary')
+    await choose(user, drawer.getByLabelText('Category'), 'Salary')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(transactionsApi.transactions).toHaveLength(1))
