@@ -3,7 +3,7 @@ import { ArrowRightLeft } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import { accountsQuery } from '@/features/accounts'
+import { accountsQuery, findAccount } from '@/features/accounts'
 import { categoriesQuery, findCategory } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { Drawer } from '@/shared/components/Drawer'
@@ -132,7 +132,7 @@ export function TransactionsPage() {
               key={listKey(transaction)}
               row={row}
               transaction={transaction}
-              account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
+              account={findAccount(accounts.data.accounts, transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
               categories={categories.data}
               onEdit={(editing) => setDrawer(isTransferLeg(editing) ? { transferId: editing.transferId } : { editing })}

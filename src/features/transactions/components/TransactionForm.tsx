@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import { useAccountChoices, type Account } from '@/features/accounts'
+import { currencyOf, findAccount, useAccountChoices, type Account } from '@/features/accounts'
 import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
@@ -19,12 +19,13 @@ import { cn } from '@/shared/lib/utils'
 import {
   AmountField,
   amountExample,
-  formatAmountForInput,
+  fitsCurrency,
   formatMoney,
+  isNegativeAmount,
   isZeroAmount,
-  parseAmount,
   remainingAmount,
   requiredAmount,
+  unsignedAmount,
   type Currency,
 } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
@@ -156,7 +157,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
   const lines = useFieldArray({ control: form.control, name: 'lines' })
   const { errors, isSubmitting } = form.formState
   const [type, accountId, amount, lineValues, payee, categoryId] = useWatch({ control: form.control, name: ['type', 'accountId', 'amount', 'lines', 'payee', 'categoryId'] })
-  const currency = accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
+  const currency = currencyOf(accounts, accountId, baseCurrency)
   // What is left of the amount after the lines entered so far; unknown until there is an amount.
   const remaining = split && amount ? remainingAmount(amount, lineValues.flatMap((line) => (line.amount ? [line.amount] : []))) : null
 
@@ -217,15 +218,15 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = values.amount as string
-    const account = accounts.find((candidate) => candidate.id === values.accountId)
+    const account = findAccount(accounts, values.accountId)
     // Typed for another account's currency, then moved to one with fewer decimals.
-    if (!account || parseAmount(formatAmountForInput(amount, locale, account.currency), locale, account.currency) === null) {
+    if (!account || !fitsCurrency(amount, account.currency, locale)) {
       form.setError(account ? 'amount' : 'accountId', { message: account ? 'transactions.errors.amountInvalid' : 'transactions.errors.account' }, { shouldFocus: true })
       return
     }
     const splitLines = split ? values.lines.map((line) => ({ categoryId: line.categoryId, amount: line.amount as string, note: line.note || null })) : null
     if (splitLines) {
-      const unfit = splitLines.findIndex((line) => parseAmount(formatAmountForInput(line.amount, locale, account.currency), locale, account.currency) === null)
+      const unfit = splitLines.findIndex((line) => !fitsCurrency(line.amount, account.currency, locale))
       if (unfit !== -1) {
         form.setError(`lines.${unfit}.amount`, { message: 'transactions.errors.amountInvalid' }, { shouldFocus: true })
         return
@@ -421,8 +422,8 @@ type SplitLinesProps = {
 function SplitLines({ control, register, errors, lines, categoryOptions, currency, remaining, refused, onAdd, onRemove, onUseOneCategory }: SplitLinesProps) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const left = remaining === null || isZeroAmount(remaining) ? null : formatMoney(remaining.replace('-', ''), currency, locale)
-  const over = remaining?.startsWith('-') ?? false
+  const left = remaining === null || isZeroAmount(remaining) ? null : formatMoney(unsignedAmount(remaining), currency, locale)
+  const over = remaining !== null && isNegativeAmount(remaining)
 
   return (
     <fieldset className="space-y-3 rounded-lg border p-3">

@@ -47,6 +47,10 @@ export function TransactionRow({ transaction, account, category, categories, onE
   const split = isSplit(transaction)
   // A transaction is known by who was paid; without a payee, by what it was for. A split is for several things.
   const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
+  // What deleting it says: a leg speaks of its transfer.
+  const deleting = leg
+    ? { explained: t('transfers.deleteExplained'), failed: t('transfers.errors.notDeleted') }
+    : { explained: t('transactions.deleteExplained', { name: title }), failed: t('transactions.errors.notDeleted') }
 
   return (
     <li {...row} className="space-y-2 border-b p-3 last:border-b-0" aria-busy={pending || undefined}>
@@ -60,7 +64,7 @@ export function TransactionRow({ transaction, account, category, categories, onE
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
           {transaction.isRefund && (
-            <span className="inline-block rounded-full border border-emerald-600/40 bg-emerald-600/10 px-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+            <span className="inline-block rounded-full border border-success/40 bg-success/10 px-2 text-xs font-medium text-success">
               {t('transactions.refund')}
             </span>
           )}
@@ -101,7 +105,7 @@ export function TransactionRow({ transaction, account, category, categories, onE
       </div>
       {id !== undefined && confirming && (
         <div role="group" aria-label={t('transactions.deleteNamed', { name: title })} className="space-y-2 rounded-md bg-muted p-3">
-          <p className="text-sm">{leg ? t('transfers.deleteExplained') : t('transactions.deleteExplained', { name: title })}</p>
+          <p className="text-sm">{deleting.explained}</p>
           <div className="flex flex-wrap gap-2">
             <Button variant="destructive" size="sm" disabled={remove.isPending} onClick={() => remove.mutate(id)}>
               {t('transactions.deleteConfirm')}
@@ -114,7 +118,7 @@ export function TransactionRow({ transaction, account, category, categories, onE
       )}
       <FailureToast
         failed={remove.isError}
-        message={leg ? t('transfers.errors.notDeleted') : t('transactions.errors.notDeleted')}
+        message={deleting.failed}
         retry={() => id !== undefined && remove.mutate(id)}
         onDismiss={remove.reset}
       />

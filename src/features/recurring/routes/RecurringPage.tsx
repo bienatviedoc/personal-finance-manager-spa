@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
-import { accountsQuery, type Account } from '@/features/accounts'
+import { accountsQuery, findAccount, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, findCategory, kindTakenBy, type Category } from '@/features/categories'
 import { Drawer } from '@/shared/components/Drawer'
 import { isStale } from '@/shared/api/versionedSave'
@@ -79,7 +79,7 @@ export function RecurringPage() {
             <RuleRow
               key={rule.id}
               rule={rule}
-              account={accounts.data.accounts.find((account) => account.id === rule.accountId)}
+              account={findAccount(accounts.data.accounts, rule.accountId)}
               category={findCategory(categories.data, rule.categoryId)}
               linked={rule.id === linkedRule}
               onEdit={() => setDrawer({ editing: rule.id })}

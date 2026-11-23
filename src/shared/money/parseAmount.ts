@@ -68,3 +68,11 @@ export function decimalsOf(currency: Currency, locale: Language): number {
 export function withMostDecimals(currencies: Currency[], locale: Language): Currency | undefined {
   return currencies.toSorted((a, b) => decimalsOf(b, locale) - decimalsOf(a, locale))[0]
 }
+
+/**
+ * Whether an amount, typed while another currency was chosen, is one this currency can hold: it may have been moved
+ * to one with fewer decimals (`"12.5"` fits USD, not VND). Read through the same text a form would show for it.
+ */
+export function fitsCurrency(amount: DecimalString, currency: Currency, locale: Language): boolean {
+  return parseAmount(formatAmountForInput(amount, locale, currency), locale, currency) !== null
+}

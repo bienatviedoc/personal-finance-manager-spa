@@ -4,14 +4,14 @@ import { useMemo } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import { useAccountChoices, type Account } from '@/features/accounts'
+import { currencyOf, findAccount, useAccountChoices, type Account } from '@/features/accounts'
 import { useUserSettings } from '@/features/settings'
 import { isStale } from '@/shared/api/versionedSave'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { AmountField, amountExample, formatAmountForInput, isZeroAmount, parseAmount, requiredAmount, typedAmount, type Currency } from '@/shared/money'
+import { AmountField, amountExample, fitsCurrency, isZeroAmount, requiredAmount, typedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import type { Transfer, TransferField, TransferFields, TransferSaveOutcome } from '../api/transfers'
 
@@ -98,28 +98,24 @@ export function TransferForm({ id, transfer, accounts, onSave, onSaved, onCancel
   })
   const { errors, isSubmitting } = form.formState
   const [fromAccountId, toAccountId] = useWatch({ control: form.control, name: ['fromAccountId', 'toAccountId'] })
-  const currencyOf = (accountId: string): Currency => accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
-  const [currency, toCurrency] = [currencyOf(fromAccountId), currencyOf(toAccountId)]
+  const [currency, toCurrency] = [currencyOf(accounts, fromAccountId, baseCurrency), currencyOf(accounts, toAccountId, baseCurrency)]
   const betweenCurrencies = currency !== toCurrency
-
-  /** Whether an amount typed for one currency is one the account's currency can hold: it may have been moved to one with fewer decimals. */
-  const fits = (amount: string, held: Currency) => parseAmount(formatAmountForInput(amount, locale, held), locale, held) !== null
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = values.amount as string
-    const from = accounts.find((account) => account.id === values.fromAccountId)
-    const to = accounts.find((account) => account.id === values.toAccountId)
+    const from = findAccount(accounts, values.fromAccountId)
+    const to = findAccount(accounts, values.toAccountId)
     if (!from || !to) {
       form.setError(from ? 'toAccountId' : 'fromAccountId', { message: 'transfers.errors.account' }, { shouldFocus: true })
       return
     }
-    if (!fits(amount, from.currency)) {
+    if (!fitsCurrency(amount, from.currency, locale)) {
       form.setError('amount', { message: 'transfers.errors.amountInvalid' }, { shouldFocus: true })
       return
     }
     // Between accounts in one currency one amount moves, whatever was typed for another currency before.
     const toAmount = from.currency === to.currency ? null : values.toAmount
-    if (from.currency !== to.currency && (!toAmount || !fits(toAmount, to.currency))) {
+    if (from.currency !== to.currency && (!toAmount || !fitsCurrency(toAmount, to.currency, locale))) {
       form.setError('toAmount', { message: toAmount ? 'transfers.errors.amountInvalid' : 'transfers.errors.toAmountRequired' }, { shouldFocus: true })
       return
     }

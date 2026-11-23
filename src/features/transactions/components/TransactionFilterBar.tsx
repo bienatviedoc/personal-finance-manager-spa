@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { Account } from '@/features/accounts'
+import { currencyOf, type Account } from '@/features/accounts'
 import { useCategoryChoices, type Category } from '@/features/categories'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
@@ -42,7 +42,7 @@ export function TransactionFilterBar({ view, isFiltered, onChange, onClear, acco
   const { t } = useTranslation()
   const categoryChoices = useCategoryChoices(categories)
   // An account's amounts are in its currency, so that decides the decimals a range can be typed with.
-  const currency = accounts.find((account) => account.id === view.accountId)?.currency ?? fallbackCurrency
+  const currency = currencyOf(accounts, view.accountId, fallbackCurrency)
   const [search, setSearch] = useTyped<string>(view.q ?? '', (q) => onChange({ q }), (text) => text.trim())
   const [from, setFrom] = useChosen(view.from, (chosen) => onChange({ from: chosen }))
   const [to, setTo] = useChosen(view.to, (chosen) => onChange({ to: chosen }))

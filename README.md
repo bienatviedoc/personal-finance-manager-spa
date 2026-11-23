@@ -339,7 +339,8 @@ next to a currency code; the SPA keeps it a string from the response to the scre
 - **Themes.** Light and dark follow the system unless the viewer picks one (Theme, in the sidebar, under More, or on
   the signed-out screens),
   which is remembered in the browser (`src/shared/theme`). Dark mode is the `dark` class on `<html>`; style with
-  the colour tokens in `src/index.css` and Tailwind's `dark:` variant. A script in `index.html` sets the class
+  the colour tokens in `src/index.css` and Tailwind's `dark:` variant; `success`, `warning` and `destructive` colour
+  a good, a needs-attention and a bad state, never alone: words or an icon say it too. A script in `index.html` sets the class
   before the first paint, so keep its storage key in step with `src/shared/theme`; a test runs the script
   against a stored choice. A chosen theme also recolours the browser bar (`theme-color`); the installed app's
   splash screen comes from the manifest and stays light.

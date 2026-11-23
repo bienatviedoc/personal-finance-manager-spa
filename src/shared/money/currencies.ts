@@ -36,3 +36,13 @@ export function signedAmount(amount: DecimalString, takesAway: boolean): Decimal
 export function isZeroAmount(amount: DecimalString): boolean {
   return /^-?0+(\.0+)?$/.test(amount)
 }
+
+/** Whether an amount is below zero, read from its sign: `"-0"` is not. */
+export function isNegativeAmount(amount: DecimalString): boolean {
+  return amount.startsWith('-') && !isZeroAmount(amount)
+}
+
+/** The amount without its sign, for showing how far off something is when the words around it say which way. */
+export function unsignedAmount(amount: DecimalString): DecimalString {
+  return amount.replace(/^-/, '')
+}

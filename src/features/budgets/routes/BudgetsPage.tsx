@@ -306,8 +306,8 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
 
 /** How each state looks. The words and the icon's shape say it; colour only adds to them (spec section 8). */
 const states: Record<BudgetState, { label: ParseKeys; icon: LucideIcon; badge: string; bar: string }> = {
-  onTrack: { label: 'budgets.states.onTrack', icon: CircleCheck, badge: 'text-emerald-700 dark:text-emerald-400', bar: 'bg-emerald-600 dark:bg-emerald-500' },
-  warning: { label: 'budgets.states.warning', icon: TriangleAlert, badge: 'text-amber-700 dark:text-amber-400', bar: 'bg-amber-500' },
+  onTrack: { label: 'budgets.states.onTrack', icon: CircleCheck, badge: 'text-success', bar: 'bg-success' },
+  warning: { label: 'budgets.states.warning', icon: TriangleAlert, badge: 'text-warning', bar: 'bg-warning' },
   over: { label: 'budgets.states.over', icon: CircleAlert, badge: 'text-destructive', bar: 'bg-destructive' },
 }
 

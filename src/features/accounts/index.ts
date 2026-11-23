@@ -10,4 +10,4 @@ export const accountsRoutes: RouteObject[] = [
 ]
 
 export { accountsQuery, refreshAccountBalances, type Account } from './api/accounts'
-export { useAccountChoices } from './accountChoices'
+export { currencyOf, findAccount, useAccountChoices } from './accountChoices'

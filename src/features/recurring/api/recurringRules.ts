@@ -97,13 +97,13 @@ function useSaveRecurringRule(save: (fields: RecurringRuleFields) => Promise<Ver
   })
 }
 
-/** A change to one rule that sends nothing but which rule: the list is loaded again once it is made. */
-function useChangeRecurringRule(doing: string, change: (id: string) => Promise<{ response: Response }>) {
+/** A change to one rule that sends nothing but which rule: the list is loaded again once it is made. `changeName` ("Pausing") names it in the error. */
+function useChangeRecurringRule(changeName: string, change: (id: string) => Promise<{ response: Response }>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
       const { response } = await change(id)
-      if (!response.ok) throw new Error(`${doing} a recurring rule failed: ${response.status}`)
+      if (!response.ok) throw new Error(`${changeName} a recurring rule failed: ${response.status}`)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: recurringRulesKey }),
   })

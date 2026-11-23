@@ -3,7 +3,7 @@ import type { ParseKeys } from 'i18next'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import { useAccountChoices, type Account } from '@/features/accounts'
+import { currencyOf, findAccount, useAccountChoices, type Account } from '@/features/accounts'
 import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { isStale } from '@/shared/api/versionedSave'
@@ -13,7 +13,7 @@ import { TextField } from '@/shared/components/TextField'
 import { ToggleField } from '@/shared/components/ToggleField'
 import { calendarDate, todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { AmountField, amountExample, formatAmountForInput, isZeroAmount, parseAmount, requiredAmount } from '@/shared/money'
+import { AmountField, amountExample, fitsCurrency, isZeroAmount, requiredAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
   recurringFrequencies,
@@ -139,7 +139,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
   })
   const { errors, isSubmitting } = form.formState
   const [type, accountId, frequency, startDate] = useWatch({ control: form.control, name: ['type', 'accountId', 'frequency', 'startDate'] })
-  const currency = accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
+  const currency = currencyOf(accounts, accountId, baseCurrency)
 
   const categoryOptions = useCategoryChoices(categories)
     .filter(({ category }) => category.kind === type && (!category.isArchived || category.id === rule?.categoryId))
@@ -152,9 +152,9 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = values.amount as string
-    const account = accounts.find((candidate) => candidate.id === values.accountId)
+    const account = findAccount(accounts, values.accountId)
     // Typed for another account's currency, then moved to one with fewer decimals.
-    if (!account || parseAmount(formatAmountForInput(amount, locale, account.currency), locale, account.currency) === null) {
+    if (!account || !fitsCurrency(amount, account.currency, locale)) {
       form.setError(account ? 'amount' : 'accountId', { message: account ? 'recurring.errors.amountInvalid' : 'recurring.errors.account' }, { shouldFocus: true })
       return
     }
