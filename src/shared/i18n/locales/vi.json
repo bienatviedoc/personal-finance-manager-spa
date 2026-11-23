@@ -217,6 +217,7 @@
     "noAccounts": "Giao dịch được ghi vào một tài khoản, và bạn chưa có tài khoản nào.",
     "toAccounts": "Thêm tài khoản",
     "loading": "Đang tải giao dịch",
+    "loadingForm": "Đang tải…",
     "loadMore": "Tải thêm",
     "type": "Loại",
     "types": {
@@ -228,7 +229,9 @@
     "amountIn": "Số tiền ({{currency}})",
     "date": "Ngày",
     "category": "Danh mục",
-    "chooseCategory": "Chọn danh mục",
+    "chooseCategory": "Gõ để tìm danh mục",
+    "noCategoryMatches": "Không có danh mục nào khớp.",
+    "categorySuggested": "Gợi ý từ các giao dịch trước đây của bạn với bên này.",
     "subcategory": "{{parent}} › {{name}}",
     "payee": "Bên nhận / bên trả",
     "note": "Ghi chú",

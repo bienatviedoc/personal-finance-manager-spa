@@ -1,21 +1,24 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import type { Account } from '@/features/accounts'
 import type { Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
+import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
+import { useDebounced } from '@/shared/lib/useDebounced'
 import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { AmountField, amountExample, formatAmountForInput, isZeroAmount, parseAmount, requiredAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isStale } from '@/shared/api/versionedSave'
-import { transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
+import { suggestedCategoryQuery, transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
 /**
  * The API's rules (see `Transaction` in the API), repeated here for fast feedback only; the API enforces them
@@ -54,6 +57,7 @@ const serverErrors: Record<TransactionField, ParseKeys> = {
 
 // Named outside JSX, where lint would take a field name for user-facing text.
 const amountField = 'amount'
+const categoryField = 'categoryId'
 
 type Props = {
   /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
@@ -64,6 +68,8 @@ type Props = {
   accounts: Account[]
   /** The user's category tree, archived categories included; those are offered only to the transaction that has them. */
   categories: Category[]
+  /** The account a new transaction starts on, when it is one of those offered: the one used last (spec TXN-8). */
+  lastAccountId?: string
   onSave: (draft: TransactionDraft) => Promise<SaveOutcome>
   /**
    * Called once the transaction is saved. A form that records stays as it is for the next transaction, keeping the
@@ -73,17 +79,23 @@ type Props = {
   onCancel: () => void
 }
 
+/** How long the payee is left alone, in milliseconds, before the API is asked which category it usually takes. */
+const payeeSettles = 250
+
 /**
  * Records or edits income or an expense. The type toggle at the top decides which categories are offered;
- * the chosen account decides the currency of the amount.
+ * the chosen account decides the currency of the amount. A new transaction takes the category its payee
+ * most often had, until the user chooses one themselves (spec TXN-8).
  */
-export function TransactionForm({ id, transaction, accounts, categories, onSave, onSaved, onCancel }: Props) {
+export function TransactionForm({ id, transaction, accounts, categories, lastAccountId, onSave, onSaved, onCancel }: Props) {
   const { t } = useTranslation()
   const locale = useLocale()
   const { baseCurrency, timeZone } = useUserSettings()
   const today = todayIn(timeZone)
   const schema = useMemo(() => schemaFor(today), [today])
   const [savedCount, setSavedCount] = useState(0)
+  // Whether the user picked the category themselves; until they do, a new transaction takes the one its payee suggests.
+  const [pickedCategory, setPickedCategory] = useState(false)
 
   const accountOptions = accounts.filter((account) => !account.isArchived || account.id === transaction?.accountId)
   const form = useForm<Values, unknown, z.output<Schema>>({
@@ -98,10 +110,10 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           payee: transaction.payee ?? '',
           note: transaction.note ?? '',
         }
-      : { type: 'expense', accountId: accountOptions[0]?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '' },
+      : { type: 'expense', accountId: (accountOptions.find((account) => account.id === lastAccountId) ?? accountOptions[0])?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '' },
   })
   const { errors, isSubmitting } = form.formState
-  const [type, accountId] = useWatch({ control: form.control, name: ['type', 'accountId'] })
+  const [type, accountId, payee, categoryId] = useWatch({ control: form.control, name: ['type', 'accountId', 'payee', 'categoryId'] })
   const currency = accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
 
   const categoryOptions = categories
@@ -112,6 +124,22 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     .filter(({ category }) => category.kind === type && (!category.isArchived || category.id === transaction?.categoryId))
     .map(({ category, label }) => ({ value: category.id, label }))
 
+  // Only a new transaction is suggested a category: an edited one already has the one the user gave it.
+  const settledPayee = useDebounced(payee, payeeSettles)
+  const suggestion = useQuery(suggestedCategoryQuery({ type, payee: transaction ? '' : settledPayee }))
+  // What the payee typed now suggests, among the categories offered: '' when nothing, undefined while it is not
+  // known, which it is not while the payee is still being typed or has just been emptied by a save.
+  const suggestedId =
+    suggestion.data === undefined || settledPayee !== payee ? undefined : (categoryOptions.find((option) => option.value === suggestion.data)?.value ?? '')
+  // Whether the category shown is the one suggested for what is typed now, which the picker says under itself.
+  const suggested = !pickedCategory && suggestedId !== undefined && suggestedId !== '' && suggestedId === categoryId
+  const { setValue, getValues } = form
+  useEffect(() => {
+    // What the user picked stays. Until they pick, the category follows the payee: to nothing, if it suggests nothing.
+    if (pickedCategory || suggestedId === undefined || suggestedId === getValues('categoryId')) return
+    setValue('categoryId', suggestedId, { shouldValidate: suggestedId !== '' })
+  }, [pickedCategory, suggestedId, setValue, getValues])
+
   // Once the emptied form has rendered, the next transaction starts at the amount.
   useEffect(() => {
     if (savedCount > 0) form.setFocus('amount')
@@ -119,7 +147,10 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
 
   const typeToggle = form.register('type', {
     // A category of the other kind cannot stay: the type decides which kind it takes.
-    onChange: () => form.setValue('categoryId', ''),
+    onChange: () => {
+      form.setValue('categoryId', '')
+      setPickedCategory(false)
+    },
   })
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -152,6 +183,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     if (outcome.saved) {
       if (!transaction) {
         form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '' })
+        setPickedCategory(false)
         setSavedCount((count) => count + 1)
       }
       onSaved()
@@ -205,17 +237,34 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
         error={errors.date?.message && t(errors.date.message as ParseKeys)}
         {...form.register('date')}
       />
-      <SelectField
-        label={t('transactions.category')}
-        error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
-        options={[{ value: '', label: t('transactions.chooseCategory') }, ...categoryOptions]}
-        {...form.register('categoryId')}
-      />
+      {/* Before the category, which it suggests. */}
       <TextField
         label={t('transactions.payee')}
         autoComplete="off"
         error={errors.payee?.message && t(errors.payee.message as ParseKeys)}
         {...form.register('payee')}
+      />
+      <Controller
+        control={form.control}
+        name={categoryField}
+        render={({ field }) => (
+          <ComboboxField
+            label={t('transactions.category')}
+            placeholder={t('transactions.chooseCategory')}
+            noMatches={t('transactions.noCategoryMatches')}
+            hint={suggested ? t('transactions.categorySuggested') : undefined}
+            error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
+            options={categoryOptions}
+            ref={field.ref}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChange={(value) => {
+              // Picked, or emptied, by the user: no suggestion replaces it.
+              setPickedCategory(true)
+              field.onChange(value)
+            }}
+          />
+        )}
       />
       <TextField
         label={t('transactions.note')}
