@@ -8,7 +8,7 @@ describe('signed-out visitors', () => {
   it('are sent to sign in when they open a screen', async () => {
     server.use(signedOut())
 
-    const { router } = renderApp('/budgets')
+    const { router } = renderApp('/reports')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
@@ -19,13 +19,13 @@ describe('signed-out visitors', () => {
 describe('signing in', () => {
   it('takes the visitor back to the screen they opened', async () => {
     fakeAuthApi()
-    const { user } = renderApp('/budgets')
+    const { user } = renderApp('/reports')
 
     await user.type(await screen.findByLabelText('Email'), testUser.email)
     await user.type(screen.getByLabelText('Password'), testPassword)
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Reports' })).toBeInTheDocument()
   })
 
   it('points out a missing or malformed field without contacting the API', async () => {
@@ -153,7 +153,7 @@ describe('signing in with two factors', () => {
 
   it('asks for the code from the authenticator app after the password, then signs in', async () => {
     const api = withTwoFactor()
-    const { user } = renderApp('/budgets')
+    const { user } = renderApp('/reports')
     await enterEmailAndPassword(user)
 
     const code = await screen.findByLabelText('Code from your authenticator app')
@@ -163,7 +163,7 @@ describe('signing in with two factors', () => {
     await user.type(code, '123456')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Reports' })).toBeInTheDocument()
   })
 
   it('says when the code is wrong and lets the visitor try another', async () => {

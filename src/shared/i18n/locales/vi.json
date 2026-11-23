@@ -292,6 +292,49 @@
       "notDeleted": "Chưa xóa được giao dịch."
     }
   },
+  "budgets": {
+    "intro": "Hạn mức chi tiêu cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
+    "byCategory": "Ngân sách theo danh mục",
+    "subcategoriesOf": "Danh mục con của {{name}}",
+    "empty": "Tháng này chưa có ngân sách nào. Nhập số tiền bên cạnh một danh mục để đặt ngân sách.",
+    "totals": "Tổng cộng {{month}}",
+    "budgeted": "Ngân sách",
+    "spent": "Đã chi",
+    "remaining": "Còn lại",
+    "amountFor": "Ngân sách cho {{name}}",
+    "noBudget": "Chưa có ngân sách",
+    "save": "Lưu",
+    "saveFor": "Lưu ngân sách cho {{name}}",
+    "remove": "Xóa",
+    "removeFor": "Xóa ngân sách cho {{name}}",
+    "archived": "Đã lưu trữ",
+    "countsTowardParent": "Được tính vào ngân sách của {{name}}.",
+    "subcategoriesBudgeted": "Các danh mục con đã có ngân sách riêng trong tháng này.",
+    "progress": "{{name}}: đã chi {{percent}}% ngân sách",
+    "progressOfZero": "{{name}}: chi tiêu so với ngân sách bằng không",
+    "percent": "{{percent}}%",
+    "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+    "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+    "states": {
+      "onTrack": "Đúng kế hoạch",
+      "warning": "Cảnh báo",
+      "over": "Vượt ngân sách"
+    },
+    "month": {
+      "switcher": "Tháng ngân sách",
+      "previous": "Tháng trước: {{month}}",
+      "next": "Tháng sau: {{month}}",
+      "current": "Tháng này"
+    },
+    "errors": {
+      "notLoaded": "Không thể tải ngân sách.",
+      "amount": "Nhập số tiền từ không trở lên, ví dụ {{example}}.",
+      "category": "Danh mục này không thể có ngân sách trong tháng này: một danh mục và danh mục con của nó không thể cùng có ngân sách.",
+      "stale": "Ngân sách này đã được thay đổi ở nơi khác. Số tiền mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "notSaved": "Không thể lưu ngân sách.",
+      "notRemoved": "Không thể xóa ngân sách."
+    }
+  },
   "institutions": {
     "backToAccounts": "Quay lại tài khoản",
     "intro": "Các ngân hàng và ví điện tử bạn đang giữ tiền.",
@@ -332,9 +375,12 @@
       "title": "Hồ sơ",
       "baseCurrency": "Tiền tệ cơ sở",
       "baseCurrencyHint": "Tổng số, ngân sách và báo cáo được hiển thị bằng tiền tệ này.",
+      "baseCurrencyLocked": "Tiền tệ cơ sở đã bị khóa vì bạn có ngân sách: ngân sách là số tiền bạn đã nhập bằng tiền tệ này.",
       "timeZone": "Múi giờ",
       "timeZoneHint": "Quyết định “hôm nay” là ngày nào, và tháng ngân sách bắt đầu, kết thúc khi nào.",
       "language": "Ngôn ngữ",
+      "budgetWarning": "Ngưỡng cảnh báo ngân sách (%)",
+      "budgetWarningHint": "Ngân sách chuyển sang trạng thái cảnh báo khi đã chi đến tỷ lệ này.",
       "amountExample": "Số tiền sẽ hiển thị như sau:",
       "save": "Lưu",
       "saved": "Đã lưu cài đặt của bạn.",
@@ -342,7 +388,9 @@
       "errors": {
         "baseCurrency": "Không thể chọn tiền tệ cơ sở này.",
         "timeZone": "Không thể chọn múi giờ này.",
-        "locale": "Không thể chọn ngôn ngữ này."
+        "locale": "Không thể chọn ngôn ngữ này.",
+        "baseCurrencyLocked": "Không thể đổi tiền tệ cơ sở khi bạn đang có ngân sách.",
+        "budgetWarningPercent": "Nhập một tỷ lệ phần trăm nguyên từ 1 đến 100."
       }
     },
     "categories": "Danh mục",
