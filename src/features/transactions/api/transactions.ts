@@ -7,6 +7,8 @@ import { ifMatch, isStale, versionedSaveOutcome, type VersionedSaveOutcome, type
 import type { Currency } from '@/shared/money'
 
 export type Transaction = components['schemas']['TransactionResponse']
+/** One part of a transaction's amount and the category it was for. A transaction that is not split has one. */
+export type TransactionLine = components['schemas']['TransactionLineResponse']
 export type TransactionType = components['schemas']['TransactionType']
 /** What recording or editing one sends. The API takes the type as text, to name it when refusing it; the SPA only ever sends one it knows. */
 export type TransactionFields = Omit<components['schemas']['TransactionRequest'], 'type'> & { type: TransactionType }
@@ -18,8 +20,8 @@ export const transactionTypes = ['expense', 'income'] as const satisfies readonl
 type MissingType = Exclude<TransactionType, (typeof transactionTypes)[number]>
 export const everyTransactionTypeListed: MissingType extends never ? true : MissingType = true
 
-/** Fields the API can refuse, which the form shows its own translated message for. */
-const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note'] as const
+/** Fields the API can refuse, which the form shows its own translated message for. `lines` stands for anything about a split's lines. */
+const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note', 'isRefund', 'lines'] as const
 export type TransactionField = (typeof transactionFields)[number]
 
 export type SaveOutcome = VersionedSaveOutcome<'transaction', Transaction, TransactionField>
@@ -39,6 +41,8 @@ const transactionsKey = ['transactions']
 export type PendingTransaction = Omit<Transaction, 'id' | 'rowVersion'> & { pendingKey: string }
 /** What the list shows: the API's transactions, and any still on their way to it. */
 export type ListedTransaction = Transaction | PendingTransaction
+/** Whether the transaction is split across several lines, each with its own category. */
+export const isSplit = (transaction: Pick<Transaction, 'lines'>) => transaction.lines.length > 1
 export const isPending = (transaction: ListedTransaction): transaction is PendingTransaction => 'pendingKey' in transaction
 /** What tells one listed transaction from another: its id, or its key while it has none. */
 export const listKey = (transaction: ListedTransaction) => (isPending(transaction) ? transaction.pendingKey : transaction.id)
@@ -111,15 +115,21 @@ function useSaveTransaction<Draft extends TransactionDraft>(
   const list = { queryKey: transactionsQuery.queryKey }
 
   return useMutation({
-    mutationFn: async (draft: Draft): Promise<SaveOutcome> => versionedSaveOutcome('transaction', await save(draft), transactionFields),
+    mutationFn: async (draft: Draft): Promise<SaveOutcome> => versionedSaveOutcome('transaction', linesRefusedAsOne(await save(draft)), transactionFields),
     onMutate: async (draft) => {
       // A list still loading would otherwise overwrite the optimistic one when it lands.
       await queryClient.cancelQueries(list)
       const before = queryClient.getQueryData<LoadedPages>(list.queryKey)
       const { fields, currency } = draft
+      const lines = fields.lines?.map((line) => ({ ...line, note: line.note?.trim() || null })) ?? [
+        { categoryId: fields.categoryId ?? '', amount: fields.amount, note: null },
+      ]
       const shown: ListedTransaction = {
         ...identify(draft),
         ...fields,
+        // Of a split, the first line's: what the API answers too.
+        categoryId: lines[0]?.categoryId ?? '',
+        lines,
         currency,
         payee: fields.payee?.trim() || null,
         note: fields.note?.trim() || null,
@@ -142,6 +152,16 @@ function useSaveTransaction<Draft extends TransactionDraft>(
       return refresh(queryClient)
     },
   })
+}
+
+/**
+ * The API names what it refuses about one line by where the line is (`lines[1].categoryId`). The form shows
+ * one message for the lines, so any such field counts as `lines` refused.
+ */
+function linesRefusedAsOne<Answer extends VersionedSaveResponse<Transaction>>(answer: Answer): Answer {
+  const errors = (answer.error as { errors?: Record<string, string[]> } | undefined)?.errors
+  if (!errors || !Object.keys(errors).some((field) => field.startsWith('lines['))) return answer
+  return { ...answer, error: { errors: { ...errors, lines: [] } } }
 }
 
 function refresh(queryClient: QueryClient) {

@@ -26,7 +26,11 @@ type Options = {
  * as the real API (see the API's TransactionTests): the list is newest date first and, within a date, last
  * recorded first, a page at a time; the currency is the account's; the amount is above zero with no more
  * decimals than the currency has; the date is not in the future; income takes an income category and an
- * expense an expense category; archived accounts and categories take no new transactions; a POST sent
+ * expense an expense category; only an expense can be a refund, which raises the balance; archived accounts
+ * and categories take no new transactions; a transaction has one line with its category and whole amount, or
+ * is split across the `lines` sent in place of `categoryId` (at least two, each held to the rules of a
+ * category and an amount, and together exactly the amount; what is wrong with one is refused as
+ * `lines[1].categoryId`); a POST sent
  * again with the same `Idempotency-Key` records nothing, and one with that key and a different body is a 422; an edit must name the row version in `If-Match`
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
  * account a transaction is on follows it.
@@ -36,6 +40,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   const state = {
     transactions: transactions.map((transaction, index): Transaction => {
       const account = accounts.find((candidate) => candidate.id === transaction.accountId) ?? accounts[0]
+      const categoryId =
+        transaction.categoryId ?? transaction.lines?.[0]?.categoryId ?? categories.find((category) => category.kind === (transaction.type ?? 'expense'))?.id ?? ''
       return {
         id: `01970000-0000-7000-8000-3000000000${String(index).padStart(2, '0')}`,
         type: 'expense',
@@ -43,11 +49,14 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         amount: '1.00',
         currency: account?.currency ?? 'VND',
         date: '2026-11-02',
-        categoryId: categories.find((category) => category.kind === (transaction.type ?? 'expense'))?.id ?? '',
         payee: null,
         note: null,
         rowVersion: '1',
+        // One line with the whole amount, unless the test seeds a split.
+        lines: [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
+        isRefund: false,
         ...transaction,
+        categoryId,
       }
     }),
     /** The `Idempotency-Key` header of every POST, in the order they arrived. */
@@ -78,7 +87,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   const order = new Map(state.transactions.map((transaction, index) => [transaction.id, index - state.transactions.length]))
 
   const find = (id: unknown) => state.transactions.find((transaction) => transaction.id === id)
-  const signed = (transaction: Transaction) => (transaction.type === 'income' ? 1 : -1) * Number(transaction.amount)
+  // The type gives the sign, except that a refund raises the balance.
+  const signed = (transaction: Transaction) => (transaction.type === 'income' || transaction.isRefund ? 1 : -1) * Number(transaction.amount)
   const move = (transaction: Transaction, direction: 1 | -1) => {
     const account = accounts.find((candidate) => candidate.id === transaction.accountId)
     if (account) account.balance = text(Number(account.balance) + direction * signed(transaction))
@@ -92,7 +102,14 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (!body.accountId) errors.accountId = ['This field is required.']
     if (!/^\d+(\.\d+)?$/.test(body.amount ?? '') || Number(body.amount) <= 0) errors.amount = ['Enter an amount greater than zero.']
     if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date ?? '')) errors.date = ['Enter a date as YYYY-MM-DD.']
-    if (!body.categoryId) errors.categoryId = ['This field is required.']
+    const split = body.lines ?? null
+    if (split ? body.categoryId : !body.categoryId) errors.categoryId = [split ? 'Leave out the category of a split.' : 'This field is required.']
+    if (split && split.length < 2) errors.lines = ['Split a transaction across 2 to 50 lines.']
+    split?.forEach((line, index) => {
+      if (!line.categoryId) errors[`lines[${index}].categoryId`] = ['This field is required.']
+      if (!/^\d+(\.\d+)?$/.test(line.amount ?? '') || Number(line.amount) <= 0) errors[`lines[${index}].amount`] = ['Enter an amount greater than zero.']
+      if ((line.note?.trim().length ?? 0) > 1000) errors[`lines[${index}].note`] = ['Enter a note of at most 1000 characters.']
+    })
     if ((body.payee?.trim().length ?? 0) > 200) errors.payee = ['Enter a payee of at most 200 characters.']
     if ((body.note?.trim().length ?? 0) > 1000) errors.note = ['Enter a note of at most 1000 characters.']
     if (Object.keys(errors).length > 0) return { refused: problem(400, { errors }) }
@@ -102,14 +119,26 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (!account || (account.isArchived && account.id !== current?.accountId)) {
       return invalid('accountId', 'Choose one of your accounts that is not archived.')
     }
-    const category = categories.find((candidate) => candidate.id === body.categoryId)
-    if (!category || (category.isArchived && category.id !== current?.categoryId)) {
-      return invalid('categoryId', 'Choose one of your categories that is not archived.')
-    }
-    const fraction = (body.amount!.split('.')[1] ?? '').replace(/0+$/, '')
-    if (fraction.length > decimals[account.currency]!) return invalid('amount', 'The amount has more decimals than its currency.')
+    const fits = (amount: string) => (amount.split('.')[1] ?? '').replace(/0+$/, '').length <= decimals[account.currency]!
+    if (!fits(body.amount!)) return invalid('amount', 'The amount has more decimals than its currency.')
     if (body.date! > today) return invalid('date', "A transaction's date cannot be in the future.")
-    if (category.kind !== body.type) return invalid('categoryId', 'An income transaction takes an income category.')
+    // A transaction that is not split is held to the same rules as one line with its category and whole amount.
+    const entered = split ?? [{ categoryId: body.categoryId!, amount: body.amount!, note: null }]
+    for (const [index, line] of entered.entries()) {
+      const at = split ? `lines[${index}].` : ''
+      const category = categories.find((candidate) => candidate.id === line.categoryId)
+      if (!category || (category.isArchived && !current?.lines.some((has) => has.categoryId === category.id))) {
+        return invalid(`${at}categoryId`, 'Choose one of your categories that is not archived.')
+      }
+      if (category.kind !== body.type) return invalid(`${at}categoryId`, 'An income transaction takes an income category.')
+      if (!fits(line.amount)) return invalid(`${at}amount`, 'The amount has more decimals than its currency.')
+    }
+    // Test amounts are small, so numbers add them up exactly enough: to the cent.
+    const cents = (amount: string) => Math.round(Number(amount) * 100)
+    if (entered.reduce((left, line) => left - cents(line.amount), cents(body.amount!)) !== 0) {
+      return invalid('lines', "The lines of a split sum to the transaction's amount.")
+    }
+    if (body.isRefund && body.type !== 'expense') return invalid('isRefund', 'Only an expense can be a refund.')
 
     return {
       fields: {
@@ -118,9 +147,11 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         amount: text(Number(body.amount)),
         currency: account.currency,
         date: body.date!,
-        categoryId: category.id,
+        categoryId: entered[0]!.categoryId,
         payee: body.payee?.trim() || null,
         note: body.note?.trim() || null,
+        lines: entered.map((line) => ({ categoryId: line.categoryId, amount: text(Number(line.amount)), note: line.note?.trim() || null })),
+        isRefund: body.isRefund ?? false,
       },
     }
   }
