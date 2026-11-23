@@ -15,11 +15,11 @@ describe('navigation on a phone', () => {
 
   it('is a bottom tab bar of the main screens, with the rest under More', async () => {
     setScreenWidth(360)
-    const { user, router } = renderApp('/budgets')
+    const { user, router } = renderApp('/reports')
 
     const tabs = await screen.findByRole('navigation', { name: 'Main' })
     expect(within(tabs).getAllByRole('link').map((link) => link.textContent)).toEqual(['Dashboard', 'Transactions', 'Budgets', 'Reports'])
-    expect(within(tabs).getByRole('link', { name: 'Budgets' })).toHaveAttribute('aria-current', 'page')
+    expect(within(tabs).getByRole('link', { name: 'Reports' })).toHaveAttribute('aria-current', 'page')
 
     await user.click(within(tabs).getByRole('button', { name: 'More' }))
 
@@ -38,7 +38,7 @@ describe('navigation on a phone', () => {
 
   it('closes More with Escape and puts focus back on the More button', async () => {
     setScreenWidth(360)
-    const { user } = renderApp('/budgets')
+    const { user } = renderApp('/reports')
     const moreButton = within(await screen.findByRole('navigation', { name: 'Main' })).getByRole('button', { name: 'More' })
 
     moreButton.focus()
@@ -62,7 +62,7 @@ describe('navigation on a phone', () => {
 
   it('does not mark More as current on a screen with a tab of its own', async () => {
     setScreenWidth(360)
-    renderApp('/budgets')
+    renderApp('/reports')
     const tabs = await screen.findByRole('navigation', { name: 'Main' })
 
     expect(within(tabs).getByRole('button', { name: 'More' })).not.toHaveAttribute('aria-current')
@@ -70,18 +70,18 @@ describe('navigation on a phone', () => {
 
   it('keeps the open screen as it was when the screen widens, as when a phone is turned', async () => {
     setScreenWidth(360)
-    renderApp('/budgets')
-    const screenHeading = await screen.findByRole('heading', { level: 1, name: 'Budgets' })
+    renderApp('/reports')
+    const screenHeading = await screen.findByRole('heading', { level: 1, name: 'Reports' })
 
     setScreenWidth(1024)
 
     // The very same element: the screen was not thrown away and rendered afresh.
-    expect(screen.getByRole('heading', { level: 1, name: 'Budgets' })).toBe(screenHeading)
+    expect(screen.getByRole('heading', { level: 1, name: 'Reports' })).toBe(screenHeading)
   })
 
   it('becomes the sidebar again when the screen widens', async () => {
     setScreenWidth(360)
-    renderApp('/budgets')
+    renderApp('/reports')
     expect(within(await screen.findByRole('navigation', { name: 'Main' })).queryByRole('link', { name: 'Accounts' })).not.toBeInTheDocument()
 
     setScreenWidth(1024)

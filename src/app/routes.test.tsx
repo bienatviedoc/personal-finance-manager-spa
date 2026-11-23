@@ -2,14 +2,18 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { data, Outlet } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
+import { fakeBudgetsApi } from '@/test/fakeBudgetsApi'
+import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { failingScreen, renderApp } from '@/test/renderApp'
 
 describe('app navigation', () => {
-  // The Accounts screen loads these.
+  // The Accounts and Budgets screens load these.
   beforeEach(() => {
     fakeAccountsApi()
     fakeInstitutionsApi()
+    fakeCategoriesApi()
+    fakeBudgetsApi()
   })
 
   it.each([
@@ -50,8 +54,8 @@ describe('a screen that fails', () => {
     expect(screen.queryByText('render failed')).not.toBeInTheDocument()
 
     const nav = await screen.findByRole('navigation', { name: 'Main' })
-    await user.click(within(nav).getByRole('link', { name: 'Budgets' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+    await user.click(within(nav).getByRole('link', { name: 'Reports' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Reports' })).toBeInTheDocument()
   })
 
   it('shows the error in its own part of the screen when it is a section of a screen', async () => {
