@@ -14,7 +14,7 @@ import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
-import { Money, type Currency } from '@/shared/money'
+import { Money, withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { ArrowRightLeft, X } from 'lucide-react'
@@ -60,6 +60,7 @@ export function TransactionsPage() {
   const [drawer, setDrawer] = useState<Drawer>(null)
   const addTransaction = useQuickAdd()
   const { baseCurrency } = useUserSettings()
+  const locale = useLocale()
   const { view, isFiltered, change, clear } = useTransactionFilters()
   const transactions = useInfiniteQuery(transactionsQuery(view))
   // Archived accounts and categories are loaded too: the transactions on them still show their names.
@@ -131,7 +132,8 @@ export function TransactionsPage() {
           onClear={clear}
           accounts={accounts.data.accounts}
           categories={categories.data}
-          fallbackCurrency={mostDecimals(accounts.data.accounts.map((account) => account.currency)) ?? baseCurrency}
+          // The range of amounts is compared with every transaction, whatever currency it is in.
+          fallbackCurrency={withMostDecimals(accounts.data.accounts.map((account) => account.currency), locale) ?? baseCurrency}
         />
       )}
 
@@ -388,15 +390,6 @@ const separator = ' · '
 
 function findCategory(tree: Category[], id: string | null): Category | undefined {
   return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
-}
-
-/**
- * The currency with the most decimals, so that an amount in any of them can be typed: the range of amounts
- * is compared with every transaction, whatever currency it is in.
- */
-function mostDecimals(currencies: Currency[]): Currency | undefined {
-  const decimals = (currency: Currency) => new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 0
-  return currencies.toSorted((a, b) => decimals(b) - decimals(a))[0]
 }
 
 /** Rows standing in for the list while it loads, or for its next page under the rows already there. */

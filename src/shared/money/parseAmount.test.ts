@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatAmountForInput, parseAmount } from './parseAmount'
+import { formatAmountForInput, parseAmount, withMostDecimals } from './parseAmount'
 
 describe('parseAmount', () => {
   describe.each([
@@ -99,5 +99,13 @@ describe('formatAmountForInput', () => {
   ] as const)('writes %s in %s for %s as %s, leaving out zeros the currency does not have', (amount, locale, currency, expected, readBack) => {
     expect(formatAmountForInput(amount, locale, currency)).toBe(expected)
     expect(parseAmount(expected, locale, currency)).toBe(readBack)
+  })
+})
+
+describe('withMostDecimals', () => {
+  it.each(['en', 'vi'] as const)('picks the currency an amount in any of them can be typed in, in %s', (locale) => {
+    expect(withMostDecimals(['VND', 'USD', 'VND'], locale)).toBe('USD')
+    expect(withMostDecimals(['VND'], locale)).toBe('VND')
+    expect(withMostDecimals([], locale)).toBeUndefined()
   })
 })
