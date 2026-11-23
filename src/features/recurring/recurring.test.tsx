@@ -115,6 +115,19 @@ describe('the recurring screen', () => {
     expect(listed()).toEqual([['Landlord', 'Transport · Everyday · Every month', 'Next on Jan 31, 2027', '-₫9,000,000']])
   })
 
+  it('closes the category picker on Escape before the drawer', async () => {
+    fakeApis()
+    const { user } = renderApp('/recurring')
+
+    const drawer = await openNewRule(user)
+    await user.type(drawer.getByLabelText('Category'), 'tra')
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'New recurring rule' })).toBeInTheDocument()
+  })
+
   it('sets up recurring income every N days, in the currency of its account, offering only income categories', async () => {
     const { rulesApi } = fakeApis()
     const { user } = renderApp('/recurring')
