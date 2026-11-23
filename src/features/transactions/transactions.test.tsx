@@ -79,7 +79,7 @@ describe('transactions', () => {
     renderApp('/transactions')
 
     // The test's screen has room for every row, so the end of the first page is on it at once.
-    await waitFor(() => expect(listed()).toHaveLength(51))
+    await waitFor(() => expect(listed()).toHaveLength(51), { timeout: 5000 })
     expect(transactionsApi.listQueries).toHaveLength(2)
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
   })

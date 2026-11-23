@@ -35,15 +35,22 @@ type SortOrder = keyof typeof sortOrders
 /**
  * The filters and sort order of the transaction list (spec TXN-2, TXN-3). It shows what the address holds and
  * changes it; the list follows the address. A choice applies at once, something typed once the typing pauses.
+ * Each control shows what the user last did with it straight away: the address follows a moment later, and
+ * a control drawn from the address alone would jump back to the old value until it had.
  */
 export function TransactionFilterBar({ view, isFiltered, onChange, onClear, accounts, categories, fallbackCurrency }: Props) {
   const { t } = useTranslation()
   // An account's amounts are in its currency, so that decides the decimals a range can be typed with.
   const currency = accounts.find((account) => account.id === view.accountId)?.currency ?? fallbackCurrency
   const [search, setSearch] = useTyped<string>(view.q ?? '', (q) => onChange({ q }), (text) => text.trim())
-  const sortOrder = (Object.keys(sortOrders) as SortOrder[]).find(
-    (name) => sortOrders[name].sort === view.sort && sortOrders[name].order === view.order,
-  )
+  const [from, setFrom] = useChosen(view.from, (chosen) => onChange({ from: chosen }))
+  const [to, setTo] = useChosen(view.to, (chosen) => onChange({ to: chosen }))
+  const [accountId, setAccountId] = useChosen(view.accountId, (chosen) => onChange({ accountId: chosen }))
+  const [categoryId, setCategoryId] = useChosen(view.categoryId, (chosen) => onChange({ categoryId: chosen }))
+  const [type, setType] = useChosen(view.type, (chosen) => onChange({ type: chosen }))
+  const sortOrderOf = ({ sort, order }: Pick<TransactionFilters, 'sort' | 'order'>) =>
+    (Object.keys(sortOrders) as SortOrder[]).find((name) => sortOrders[name].sort === sort && sortOrders[name].order === order)
+  const [sortOrder, setSortOrder] = useChosen(sortOrderOf(view), (chosen) => onChange(sortOrders[chosen as SortOrder]))
 
   return (
     <form role="search" aria-label={t('transactions.filters.title')} className="grid grid-cols-2 gap-3 sm:grid-cols-4" onSubmit={(event) => event.preventDefault()}>
@@ -56,20 +63,20 @@ export function TransactionFilterBar({ view, isFiltered, onChange, onClear, acco
           onChange={(event) => setSearch(event.target.value)}
         />
       </div>
-      <TextField type="date" label={t('transactions.filters.from')} value={view.from ?? ''} max={view.to} onChange={(event) => onChange({ from: event.target.value })} />
-      <TextField type="date" label={t('transactions.filters.to')} value={view.to ?? ''} min={view.from} onChange={(event) => onChange({ to: event.target.value })} />
+      <TextField type="date" label={t('transactions.filters.from')} value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} />
+      <TextField type="date" label={t('transactions.filters.to')} value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} />
       <AmountFilter label={t('transactions.filters.min')} amount={view.min} currency={currency} onChange={(min) => onChange({ min })} />
       <AmountFilter label={t('transactions.filters.max')} amount={view.max} currency={currency} onChange={(max) => onChange({ max })} />
       <SelectField
         label={t('transactions.account')}
-        value={view.accountId ?? ''}
-        onChange={(event) => onChange({ accountId: event.target.value })}
+        value={accountId}
+        onChange={(event) => setAccountId(event.target.value)}
         options={[{ value: '', label: t('transactions.filters.allAccounts') }, ...accounts.map((account) => ({ value: account.id, label: account.name }))]}
       />
       <SelectField
         label={t('transactions.category')}
-        value={view.categoryId ?? ''}
-        onChange={(event) => onChange({ categoryId: event.target.value })}
+        value={categoryId}
+        onChange={(event) => setCategoryId(event.target.value)}
         options={[
           { value: '', label: t('transactions.filters.allCategories') },
           ...categories.flatMap((category) => [
@@ -83,14 +90,14 @@ export function TransactionFilterBar({ view, isFiltered, onChange, onClear, acco
       />
       <SelectField
         label={t('transactions.type')}
-        value={view.type ?? ''}
-        onChange={(event) => onChange({ type: event.target.value })}
+        value={type}
+        onChange={(event) => setType(event.target.value)}
         options={[{ value: '', label: t('transactions.filters.allTypes') }, ...transactionTypes.map((type) => ({ value: type, label: t(`transactions.types.${type}`) }))]}
       />
       <SelectField
         label={t('transactions.filters.sortBy')}
         value={sortOrder}
-        onChange={(event) => onChange(sortOrders[event.target.value as SortOrder])}
+        onChange={(event) => setSortOrder(event.target.value)}
         options={(Object.keys(sortOrders) as SortOrder[]).map((name) => ({ value: name, label: t(`transactions.filters.sort.${name}`) }))}
       />
       {isFiltered && (
@@ -137,22 +144,43 @@ const typingPause = 300
  *
  * @param asFilter What the text typed so far filters by: a search without the spaces around it, nothing for text that is not an amount.
  */
-function useTyped<Typed extends string | null>(filter: string, onPause: (filter: string) => void, asFilter: (typed: Typed) => string) {
+function useTyped<Typed extends string | null>(
+  filter: string,
+  onPause: (filter: string) => void,
+  asFilter: (typed: Typed) => string,
+  pause = typingPause,
+) {
   const [typed, setTyped] = useState(filter as Typed)
   const [followed, setFollowed] = useState(filter)
+  // What was handed on and the filter has not shown yet: the address follows a moment later, and by then the
+  // user may have typed more. The filter becoming one of these is this control's own doing, not a change from
+  // anywhere else, so what is typed stays.
+  const [handedOn, setHandedOn] = useState<string[]>([])
   if (followed !== filter) {
     setFollowed(filter)
-    if (asFilter(typed) !== filter) setTyped(filter as Typed)
+    const own = handedOn.lastIndexOf(filter)
+    setHandedOn(own === -1 ? [] : handedOn.slice(own + 1))
+    if (own === -1 && asFilter(typed) !== filter) setTyped(filter as Typed)
   }
 
   const waiting = asFilter(typed)
+  // Handed on already, and on its way to the filter: nothing to wait for.
+  const latest = handedOn.at(-1) ?? filter
   useEffect(() => {
-    if (waiting === filter) return undefined
-    const pause = setTimeout(() => onPause(waiting), typingPause)
-    return () => clearTimeout(pause)
-    // Only the filter and what is waiting to become it restart the wait; `onPause` is new at every render.
+    if (waiting === latest) return undefined
+    const paused = setTimeout(() => {
+      setHandedOn((sent) => [...sent, waiting])
+      onPause(waiting)
+    }, pause)
+    return () => clearTimeout(paused)
+    // Only what is waiting and what it would replace restart the wait; `onPause` is new at every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waiting, filter])
+  }, [waiting, latest])
 
   return [typed, setTyped] as const
+}
+
+/** What the user chose in a filter (a date, an option), made the filter at once; it follows the filter like something typed. */
+function useChosen(filter: string | undefined, onChoose: (filter: string) => void) {
+  return useTyped<string>(filter ?? '', onChoose, (chosen) => chosen, 0)
 }
