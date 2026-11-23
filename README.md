@@ -58,6 +58,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
   request fails, and load the list again once the API has answered. One not yet answered is a
   `PendingTransaction`: it has no id or row version, so it offers nothing to edit or delete (`isPending`).
+- **A refund is an expense with `isRefund` set** (see the glossary), never a type of its own: the form offers the
+  flag to an expense only, and the list marks a refund and shows its amount coming back (`+`), since it raises
+  the balance.
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.

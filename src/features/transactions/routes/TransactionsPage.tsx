@@ -39,9 +39,10 @@ import { TransferForm } from '../components/TransferForm'
 type Drawer = { adding: true } | { editing: Transaction } | { transferring: true } | { transferId: string } | null
 
 /**
- * The user's income, expenses and transfers, newest first. Recording and editing happen in a side drawer
- * (spec section 12); the list shows a change to income or an expense as soon as it is sent. A transfer is
- * listed as its two legs, each on its own account and marked as a transfer; either opens the transfer form.
+ * The user's income, expenses and transfers, newest first, refunds marked as such. Recording and editing
+ * happen in a side drawer (spec section 12); the list shows a change to income or an expense as soon as it is
+ * sent. A transfer is listed as its two legs, each on its own account and marked as a transfer; either opens
+ * the transfer form.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
@@ -304,13 +305,19 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
         )}
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
+          {transaction.isRefund && (
+            <span className="inline-block rounded-full border border-emerald-600/40 bg-emerald-600/10 px-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              {t('transactions.refund')}
+            </span>
+          )}
           <p data-testid="details" className="text-sm text-muted-foreground">
             {[leg ? t('transfers.mark') : category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
           </p>
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
-          {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
+          {/* The type gives the sign, except that a refund is an expense coming back. Putting it in front of the digits is not arithmetic. */}
+          {transaction.isRefund && '+'}
           <Money amount={takesFromBalance(transaction) ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
         </span>
         {saved && !confirming && (

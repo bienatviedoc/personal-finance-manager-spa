@@ -21,7 +21,7 @@ type MissingType = Exclude<TransactionType, (typeof transactionTypes)[number] | 
 export const everyTransactionTypeListed: MissingType extends never ? true : MissingType = true
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note'] as const
+const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note', 'isRefund'] as const
 export type TransactionField = (typeof transactionFields)[number]
 
 export type SaveOutcome = VersionedSaveOutcome<'transaction', Transaction, TransactionField>
@@ -48,8 +48,9 @@ export const listKey = (transaction: ListedTransaction) => (isPending(transactio
 /** One of the two legs of a transfer: it carries the id of its transfer, which is what edits and deletes it. */
 export type TransferLeg = Transaction & { transferId: string }
 export const isTransferLeg = (transaction: ListedTransaction): transaction is TransferLeg => transaction.transferId !== null
-/** Whether the transaction takes its amount off its account's balance: its type gives the sign. */
-export const takesFromBalance = (transaction: ListedTransaction) => transaction.type === 'expense' || transaction.type === 'transferOut'
+/** Whether the transaction takes its amount off its account's balance: its type gives the sign, except that a refund is an expense coming back. */
+export const takesFromBalance = (transaction: ListedTransaction) =>
+  (transaction.type === 'expense' && !transaction.isRefund) || transaction.type === 'transferOut'
 
 /**
  * The user's transactions, newest date first and, within a date, last recorded first. A user has

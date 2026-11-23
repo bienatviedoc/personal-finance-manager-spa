@@ -225,6 +225,9 @@
       "transferOut": "Transfer out",
       "transferIn": "Transfer in"
     },
+    "isRefund": "This is a refund",
+    "refundHint": "Money coming back from a purchase. It raises the balance and lowers what you spent in the category.",
+    "refund": "Refund",
     "account": "Account",
     "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Amount ({{currency}})",
@@ -256,6 +259,7 @@
       "category": "Choose a category.",
       "payeeTooLong": "Use at most 200 characters.",
       "noteTooLong": "Use at most 1000 characters.",
+      "refundNotExpense": "Only an expense can be a refund.",
       "stale": "This transaction was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "generic": "Something went wrong. Try again.",
       "notSaved": "The transaction was not saved.",
