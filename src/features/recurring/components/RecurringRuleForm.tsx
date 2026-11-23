@@ -9,9 +9,9 @@ import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
+import { ToggleField } from '@/shared/components/ToggleField'
 import { calendarDate, todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { AmountField, amountExample, formatAmountForInput, isZeroAmount, parseAmount, requiredAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
@@ -187,24 +187,12 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
 
   return (
     <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
-      <fieldset>
-        <legend className="sr-only">{t('recurring.type')}</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          {recurringRuleTypes.map((value) => (
-            <label
-              key={value}
-              className={cn(
-                'cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-muted-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
-                focusRingWithin,
-              )}
-            >
-              <input type="radio" value={value} className="sr-only" {...typeToggle} />
-              {t(`recurring.types.${value}`)}
-            </label>
-          ))}
-        </div>
-        {errors.type?.message && <p className="text-sm text-destructive">{t(errors.type.message as ParseKeys)}</p>}
-      </fieldset>
+      <ToggleField
+        legend={t('recurring.type')}
+        options={recurringRuleTypes.map((value) => ({ value, label: t(`recurring.types.${value}`) }))}
+        registration={typeToggle}
+        error={errors.type?.message && t(errors.type.message as ParseKeys)}
+      />
 
       <SelectField
         label={t('recurring.account')}

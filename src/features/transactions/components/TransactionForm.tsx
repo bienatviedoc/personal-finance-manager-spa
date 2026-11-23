@@ -11,10 +11,11 @@ import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
+import { ToggleField } from '@/shared/components/ToggleField'
 import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDebounced } from '@/shared/lib/useDebounced'
-import { cn, focusRingWithin } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
 import {
   AmountField,
   amountExample,
@@ -277,23 +278,11 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
 
   return (
     <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
-      <fieldset>
-        <legend className="sr-only">{t('transactions.type')}</legend>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          {transactionTypes.map((value) => (
-            <label
-              key={value}
-              className={cn(
-                'cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-muted-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
-                focusRingWithin,
-              )}
-            >
-              <input type="radio" value={value} className="sr-only" {...typeToggle} />
-              {t(`transactions.types.${value}`)}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <ToggleField
+        legend={t('transactions.type')}
+        options={transactionTypes.map((value) => ({ value, label: t(`transactions.types.${value}`) }))}
+        registration={typeToggle}
+      />
 
       {type === 'expense' && (
         <div className="space-y-1.5">
