@@ -500,6 +500,67 @@
       "notRemoved": "Không thể xóa ngân sách."
     }
   },
+  "reports": {
+    "choose": "Chọn báo cáo",
+    "notFound": "Không có báo cáo này.",
+    "filters": {
+      "title": "Bộ lọc báo cáo",
+      "period": "Khoảng thời gian",
+      "from": "Từ ngày",
+      "to": "Đến ngày",
+      "account": "Tài khoản",
+      "allAccounts": "Tất cả tài khoản",
+      "category": "Danh mục",
+      "allCategories": "Tất cả danh mục",
+      "compare": "So sánh với kỳ trước"
+    },
+    "periods": {
+      "thisMonth": "Tháng này",
+      "lastMonth": "Tháng trước",
+      "last3Months": "3 tháng gần nhất",
+      "last6Months": "6 tháng gần nhất",
+      "last12Months": "12 tháng gần nhất",
+      "thisYear": "Năm nay",
+      "lastYear": "Năm trước",
+      "custom": "Tự chọn ngày"
+    },
+    "view": {
+      "legend": "Hiển thị dạng",
+      "chart": "Biểu đồ",
+      "table": "Bảng"
+    },
+    "previousPeriod": "Kỳ trước, {{from}} đến {{to}}",
+    "notConverted_one": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
+    "notConverted_other": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
+    "notConvertedShort_one": "{{count}} chưa quy đổi",
+    "notConvertedShort_other": "{{count}} chưa quy đổi",
+    "errors": {
+      "notLoaded": "Không tải được báo cáo. Hãy thử lại sau ít phút."
+    },
+    "spending": {
+      "title": "Chi tiêu theo danh mục",
+      "total": "Tổng chi",
+      "empty": "Không có khoản chi nào trong kỳ này.",
+      "allCategories": "Tất cả danh mục",
+      "drillDown": "Xem chi tiết",
+      "directly": "{{name}} (không thuộc danh mục con)",
+      "chart": "Chi tiêu theo danh mục: {{name}}",
+      "legend": "Danh mục",
+      "table": "Chi tiêu theo danh mục",
+      "category": "Danh mục",
+      "spent": "Đã chi",
+      "share": "Tỷ lệ",
+      "previousSpent": "Kỳ trước",
+      "transactionsIn": "Giao dịch trong {{name}}",
+      "noTransactions": "Không có giao dịch nào trong danh mục này trong kỳ này.",
+      "date": "Ngày",
+      "payee": "Bên nhận / bên trả",
+      "account": "Tài khoản",
+      "amount": "Số tiền",
+      "refund": "Hoàn tiền",
+      "split": "Chia nhiều danh mục"
+    }
+  },
   "institutions": {
     "backToAccounts": "Quay lại tài khoản",
     "intro": "Các ngân hàng và ví điện tử bạn đang giữ tiền.",

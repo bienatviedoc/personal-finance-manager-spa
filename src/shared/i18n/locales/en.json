@@ -500,6 +500,67 @@
       "notRemoved": "The budget could not be removed."
     }
   },
+  "reports": {
+    "choose": "Choose a report",
+    "notFound": "There is no such report.",
+    "filters": {
+      "title": "Report filters",
+      "period": "Period",
+      "from": "From",
+      "to": "To",
+      "account": "Account",
+      "allAccounts": "All accounts",
+      "category": "Category",
+      "allCategories": "All categories",
+      "compare": "Compare with the previous period"
+    },
+    "periods": {
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "last3Months": "Last 3 months",
+      "last6Months": "Last 6 months",
+      "last12Months": "Last 12 months",
+      "thisYear": "This year",
+      "lastYear": "Last year",
+      "custom": "Custom dates"
+    },
+    "view": {
+      "legend": "Show as",
+      "chart": "Chart",
+      "table": "Table"
+    },
+    "previousPeriod": "Previous period, {{from}} to {{to}}",
+    "notConverted_one": "{{count}} amount is not converted into your base currency yet and is left out.",
+    "notConverted_other": "{{count}} amounts are not converted into your base currency yet and are left out.",
+    "notConvertedShort_one": "{{count}} not converted",
+    "notConvertedShort_other": "{{count}} not converted",
+    "errors": {
+      "notLoaded": "The report could not be loaded. Try again in a moment."
+    },
+    "spending": {
+      "title": "Spending by category",
+      "total": "Total spent",
+      "empty": "Nothing was spent in this period.",
+      "allCategories": "All categories",
+      "drillDown": "Drill-down",
+      "directly": "{{name}} (no subcategory)",
+      "chart": "Spending by category: {{name}}",
+      "legend": "Categories",
+      "table": "Spending by category",
+      "category": "Category",
+      "spent": "Spent",
+      "share": "Share",
+      "previousSpent": "Previous period",
+      "transactionsIn": "Transactions in {{name}}",
+      "noTransactions": "No transactions in this category in this period.",
+      "date": "Date",
+      "payee": "Payee",
+      "account": "Account",
+      "amount": "Amount",
+      "refund": "Refund",
+      "split": "Split transaction"
+    }
+  },
   "institutions": {
     "backToAccounts": "Back to accounts",
     "intro": "The banks and wallet providers you hold money with.",

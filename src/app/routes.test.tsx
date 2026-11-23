@@ -5,15 +5,17 @@ import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeBudgetsApi } from '@/test/fakeBudgetsApi'
 import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
+import { fakeReportsApi } from '@/test/fakeReportsApi'
 import { failingScreen, renderApp } from '@/test/renderApp'
 
 describe('app navigation', () => {
-  // The Accounts and Budgets screens load these.
+  // The Accounts, Budgets and Reports screens load these.
   beforeEach(() => {
     fakeAccountsApi()
     fakeInstitutionsApi()
     fakeCategoriesApi()
     fakeBudgetsApi()
+    fakeReportsApi()
   })
 
   it.each([

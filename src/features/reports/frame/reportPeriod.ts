@@ -8,6 +8,9 @@ export type PeriodPreset = (typeof periodPresets)[number]
 /** A preset, or dates the user chose themselves. */
 export type PeriodChoice = PeriodPreset | 'custom'
 
+/** Every choice of period, in the order the filter offers them. */
+export const periodChoices: readonly PeriodChoice[] = [...periodPresets, 'custom']
+
 /** The dates a report covers, both included, as the API's `from` and `to` take them. */
 export type ReportPeriod = { from: CalendarDate; to: CalendarDate }
 
@@ -41,7 +44,7 @@ export function periodOf(preset: PeriodPreset, today: CalendarDate): ReportPerio
 }
 
 function lastDayOf(month: CalendarMonth): CalendarDate {
-  const [year, monthOfYear] = month.split('-').map(Number)
+  const [year, monthOfYear] = [Number(month.slice(0, 4)), Number(month.slice(5, 7))]
   // Day 0 of the month after is the last day of this one; read in UTC, so no time zone moves it.
   const day = new Date(Date.UTC(year, monthOfYear, 0)).getUTCDate()
   return `${month}-${String(day).padStart(2, '0')}`
