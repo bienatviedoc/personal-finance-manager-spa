@@ -5,6 +5,7 @@ import type { FakeCategory } from './fakeCategoriesApi'
 import { apiUrl, problem, refuseWithoutToken, server } from './server'
 
 type Transaction = components['schemas']['TransactionResponse']
+type TransactionList = components['schemas']['TransactionListResponse']
 type TransactionRequest = components['schemas']['TransactionRequest']
 type Transfer = components['schemas']['TransferResponse']
 type TransferRequest = components['schemas']['TransferRequest']
@@ -26,8 +27,9 @@ type Options = {
 
 /**
  * A stand-in for the API's transaction endpoints, keeping state across requests and following the same rules
- * as the real API (see the API's TransactionTests): the list is newest date first and, within a date, last
- * recorded first, a page at a time; the currency is the account's; the amount is above zero with no more
+ * as the real API (see the API's TransactionTests and TransactionListTests): the list holds the transactions
+ * that pass every filter sent, newest date first and, within a date, last recorded first unless `sort` and
+ * `order` say otherwise, a page at a time, with the total of all that pass; the currency is the account's; the amount is above zero with no more
  * decimals than the currency has; the date is not in the future; income takes an income category and an
  * expense an expense category; only an expense can be a refund, which raises the balance; archived accounts
  * and categories take no new transactions; a transaction has one line with its category and whole amount, or
@@ -77,6 +79,17 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     idempotencyKeys: [] as (string | null)[],
     /** The `If-Match` header of every edit, in the order they arrived. */
     ifMatches: [] as (string | null)[],
+    /** The query of every request for the list, in the order they arrived. */
+    listQueries: [] as Record<string, string>[],
+    /** Holds every answer to a request for the list until the returned function is called, so a test can look at the screen while it loads. */
+    holdLists() {
+      let release!: () => void
+      heldLists = new Promise<void>((resolve) => (release = resolve))
+      return () => {
+        heldLists = undefined
+        release()
+      }
+    },
     /** Every POST and PUT body, in the order they arrived. */
     requests: [] as { method: string; body: Partial<TransactionRequest> }[],
     /** Every POST and PUT body sent to the transfer endpoints, in the order they arrived. */
@@ -96,6 +109,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     },
   }
   let held: Promise<void> | undefined
+  let heldLists: Promise<void> | undefined
   let failing = false
   /** What each `Idempotency-Key` recorded, and the body it came with. */
   const byKey = new Map<string, { recorded: Transaction; body: string }>()
@@ -109,6 +123,61 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   const move = (transaction: Transaction, direction: 1 | -1) => {
     const account = accounts.find((candidate) => candidate.id === transaction.accountId)
     if (account) account.balance = text(Number(account.balance) + direction * signed(transaction))
+  }
+
+  /** The filters and sort order the API would refuse, each with a message under its name. */
+  function unreadable(query: URLSearchParams) {
+    const errors: Record<string, string[]> = {}
+    const check = (name: string, readable: (value: string) => boolean, message: string) => {
+      const value = query.get(name)
+      if (value !== null && !readable(value)) errors[name] = [message]
+    }
+    const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+    const isAmount = (value: string) => /^\d+(\.\d+)?$/.test(value)
+    check('from', isDate, 'Enter a date as YYYY-MM-DD.')
+    check('to', isDate, 'Enter a date as YYYY-MM-DD.')
+    check('type', (value) => ['income', 'expense', 'transferOut', 'transferIn'].includes(value), 'Choose one of: income, expense, transferOut, transferIn.')
+    check('min', isAmount, 'Enter an amount that is not negative, such as 125000.00.')
+    check('max', isAmount, 'Enter an amount that is not negative, such as 125000.00.')
+    check('q', (value) => value.trim().length <= 200, 'Search for at most 200 characters.')
+    check('sort', (value) => value === 'date' || value === 'amount', 'Choose one of: date, amount.')
+    check('order', (value) => value === 'asc' || value === 'desc', 'Choose one of: asc, desc.')
+    return errors
+  }
+
+  /** Whether a transaction passes every filter sent: both ends of a range included, a category with its subcategories through any line of a split, the search anywhere in the payee or note. */
+  function passes(query: URLSearchParams) {
+    const filter = (name: string) => query.get(name) ?? undefined
+    const search = filter('q')?.trim().toLowerCase()
+    const inCategory = (transaction: Transaction, id: string) =>
+      transaction.lines.some((line) => line.categoryId === id || categories.find((category) => category.id === line.categoryId)?.parentId === id)
+    return (transaction: Transaction) =>
+      (filter('from') === undefined || transaction.date >= filter('from')!) &&
+      (filter('to') === undefined || transaction.date <= filter('to')!) &&
+      (filter('accountId') === undefined || transaction.accountId === filter('accountId')) &&
+      (filter('categoryId') === undefined || inCategory(transaction, filter('categoryId')!)) &&
+      (filter('type') === undefined || transaction.type === filter('type')) &&
+      (filter('min') === undefined || Number(transaction.amount) >= Number(filter('min'))) &&
+      (filter('max') === undefined || Number(transaction.amount) <= Number(filter('max'))) &&
+      (!search || [transaction.payee, transaction.note].some((field) => field?.toLowerCase().includes(search)))
+  }
+
+  /** What the transactions come to: how many, and income, expenses (minus refunds) and net in each currency, never added across currencies. */
+  function totalOf(passing: Transaction[]): TransactionList['total'] {
+    const sum = (of: Transaction[]) => text(of.reduce((total, transaction) => total + Number(transaction.amount), 0))
+    return {
+      count: passing.length,
+      currencies: (Object.keys(decimals) as Transaction['currency'][])
+        // A leg of a transfer is counted, and is neither income nor an expense.
+        .map((currency) => passing.filter((transaction) => transaction.currency === currency && !transaction.transferId))
+        .filter((inCurrency) => inCurrency.length > 0)
+        .map((inCurrency) => ({
+          currency: inCurrency[0]!.currency,
+          income: sum(inCurrency.filter((transaction) => transaction.type === 'income')),
+          expenses: text(inCurrency.filter((transaction) => transaction.type === 'expense').reduce((total, transaction) => total - signed(transaction), 0)),
+          net: text(inCurrency.reduce((total, transaction) => total + signed(transaction), 0)),
+        })),
+    }
   }
 
   async function validated(request: Request, current?: Transaction) {
@@ -255,17 +324,28 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   }
 
   server.use(
-    http.get(apiUrl('/api/v1/transactions'), ({ request }) => {
+    http.get(apiUrl('/api/v1/transactions'), async ({ request }) => {
       const query = new URL(request.url).searchParams
+      state.listQueries.push(Object.fromEntries(query))
+      await heldLists
       const limit = Number(query.get('limit') ?? 50)
       if (!Number.isInteger(limit) || limit < 1 || limit > 100) return problem(400, { errors: { limit: ['Ask for 1 to 100 at a time.'] } })
-      const sorted = state.transactions.toSorted((a, b) => b.date.localeCompare(a.date) || order.get(b.id)! - order.get(a.id)!)
+      const errors = unreadable(query)
+      if (Object.keys(errors).length > 0) return problem(400, { errors })
+
+      const passing = state.transactions.filter(passes(query))
+      const by = query.get('sort') ?? 'date'
+      const direction = query.get('order') === 'asc' ? 1 : -1
+      const sorted = passing.toSorted(
+        (a, b) =>
+          direction * ((by === 'amount' ? Number(a.amount) - Number(b.amount) : a.date.localeCompare(b.date)) || order.get(a.id)! - order.get(b.id)!),
+      )
       // The real cursor is opaque; this one is the id of the page's last transaction.
       const cursor = query.get('cursor')
       const start = cursor === null ? 0 : sorted.findIndex((transaction) => transaction.id === cursor) + 1
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
-      return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null })
+      return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null, total: totalOf(passing) })
     }),
     // Before the handler for one transaction, which would take "quick-add" for an id.
     http.get(apiUrl('/api/v1/transactions/quick-add'), ({ request }) => {

@@ -214,7 +214,7 @@
     }
   },
   "transactions": {
-    "intro": "Các khoản thu và chi của bạn, mới nhất ở trên.",
+    "intro": "Các khoản thu và chi của bạn. Lọc, tìm và sắp xếp để tìm bất kỳ giao dịch nào.",
     "add": "Thêm giao dịch",
     "new": "Giao dịch mới",
     "editTitle": "Sửa giao dịch",
@@ -224,6 +224,35 @@
     "loading": "Đang tải giao dịch",
     "loadingForm": "Đang tải…",
     "loadMore": "Tải thêm",
+    "loadingMore": "Đang tải thêm giao dịch",
+    "filters": {
+      "title": "Lọc giao dịch",
+      "search": "Tìm theo bên nhận, bên trả và ghi chú",
+      "from": "Từ ngày",
+      "to": "Đến ngày",
+      "min": "Số tiền tối thiểu",
+      "max": "Số tiền tối đa",
+      "allAccounts": "Tất cả tài khoản",
+      "allCategories": "Tất cả danh mục",
+      "allTypes": "Tất cả loại",
+      "sortBy": "Sắp xếp theo",
+      "sort": {
+        "dateDesc": "Mới nhất trước",
+        "dateAsc": "Cũ nhất trước",
+        "amountDesc": "Số tiền lớn nhất trước",
+        "amountAsc": "Số tiền nhỏ nhất trước"
+      },
+      "clear": "Xóa bộ lọc",
+      "noMatch": "Không có giao dịch nào khớp với bộ lọc này."
+    },
+    "total": {
+      "title": "Tổng của các giao dịch này",
+      "count_one": "{{count}} giao dịch",
+      "count_other": "{{count}} giao dịch",
+      "income": "Khoản thu",
+      "expenses": "Khoản chi",
+      "net": "Chênh lệch"
+    },
     "type": "Loại",
     "types": {
       "expense": "Khoản chi",
@@ -638,7 +667,7 @@
     "kind": "Loại",
     "kinds": {
       "expense": "Chi tiêu",
-      "income": "Thu nhập"
+      "income": "Khoản thu"
     },
     "kindHint": "Các danh mục con đổi loại theo.",
     "icon": "Biểu tượng",

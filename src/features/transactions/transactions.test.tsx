@@ -75,15 +75,13 @@ describe('transactions', () => {
     expect(screen.queryByRole('button', { name: 'Add transaction' })).not.toBeInTheDocument()
   })
 
-  it('are loaded a page at a time', async () => {
-    fakeApis(Array.from({ length: 51 }, (_, index) => ({ payee: `Shop ${String(index + 1).padStart(2, '0')}`, amount: '1.00' })))
-    const { user } = renderApp('/transactions')
+  it('are loaded a page at a time, the next as the end of the one before comes on screen', async () => {
+    const { transactionsApi } = fakeApis(Array.from({ length: 51 }, (_, index) => ({ payee: `Shop ${String(index + 1).padStart(2, '0')}`, amount: '1.00' })))
+    renderApp('/transactions')
 
-    await screen.findByRole('list', { name: 'Transactions' })
-    expect(listed()).toHaveLength(50)
-    await user.click(screen.getByRole('button', { name: 'Load more' }))
-
-    await waitFor(() => expect(listed()).toHaveLength(51))
+    // The test's screen has room for every row, so the end of the first page is on it at once.
+    await waitFor(() => expect(listed()).toHaveLength(51), { timeout: 5000 })
+    expect(transactionsApi.listQueries).toHaveLength(2)
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
   })
 
@@ -401,7 +399,8 @@ describe('transactions', () => {
   })
 
   it('keep the edit open when it moves the transaction past the part of the list loaded so far, so a failure can be tried again', async () => {
-    // More than one page: the list has loaded only the newest.
+    // More than one page, on a screen with no room for all of the first: the list has loaded only the newest.
+    window.innerHeight = 768
     const older = Array.from({ length: 50 }, () => ({ date: '2026-11-02' }))
     const { transactionsApi } = fakeApis([{ payee: 'Co.opmart', date: '2026-11-05' }, ...older])
     const { user } = renderApp('/transactions')

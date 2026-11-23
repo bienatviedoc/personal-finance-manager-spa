@@ -1,10 +1,11 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
 import { RecurringRuleLink } from '@/features/recurring'
+import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
 import { FailureToast } from '@/shared/components/FailureToast'
@@ -13,7 +14,7 @@ import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
-import { Money } from '@/shared/money'
+import { Money, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { ArrowRightLeft, X } from 'lucide-react'
@@ -31,9 +32,13 @@ import {
 } from '../api/transactions'
 import { transferQuery, useCreateTransfer, useDeleteTransfer, useEditTransfer, type Transfer, type TransferFields } from '../api/transfers'
 import { Attachments } from '../components/Attachments'
+import { TransactionFilterBar } from '../components/TransactionFilterBar'
 import { useQuickAdd } from '../components/quickAddContext'
 import { TransactionForm } from '../components/TransactionForm'
+import { TransactionTotal } from '../components/TransactionTotal'
 import { TransferForm } from '../components/TransferForm'
+import { VirtualRows, type VirtualRow } from '../components/VirtualRows'
+import { useTransactionFilters } from '../hooks/useTransactionFilters'
 
 /**
  * What the drawer is open for: editing this transaction, as it was when the drawer opened, recording a
@@ -42,18 +47,21 @@ import { TransferForm } from '../components/TransferForm'
 type Drawer = { editing: Transaction } | { transferring: true } | { transferId: string } | null
 
 /**
- * The user's income, expenses and transfers, newest first, refunds marked as such. Recording and editing
- * happen in a side drawer (spec section 12): editing and transfers in this screen's own, recording a
- * transaction in the one quick add opens on every screen. The list shows a change to income or an expense as
- * soon as it is sent. A transfer is listed as its two legs, each on its own account and marked as a transfer;
- * either opens the transfer form.
+ * The user's income, expenses and transfers, narrowed and sorted by the filters in the address, with what they
+ * come to, refunds marked as such. Only the rows near the screen are in the page, and the next page is loaded
+ * as the last row comes near. Recording and editing happen in a side drawer (spec section 12): editing and
+ * transfers in this screen's own, recording a transaction in the one quick add opens on every screen. The list
+ * shows a change to income or an expense as soon as it is sent. A transfer is listed as its two legs, each on
+ * its own account and marked as a transfer; either opens the transfer form.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.transactions'))
   const [drawer, setDrawer] = useState<Drawer>(null)
   const addTransaction = useQuickAdd()
-  const transactions = useInfiniteQuery(transactionsQuery)
+  const { baseCurrency } = useUserSettings()
+  const { view, isFiltered, change, clear } = useTransactionFilters()
+  const transactions = useInfiniteQuery(transactionsQuery(view))
   // Archived accounts and categories are loaded too: the transactions on them still show their names.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
@@ -77,6 +85,15 @@ export function TransactionsPage() {
         ? t('transfers.new')
         : t('transactions.editTitle')
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
+  const canOpenDrawer = accounts.data !== undefined && categories.data !== undefined
+  // Every page carries the total of everything that passes the filters; the last one loaded is the latest word.
+  const total = transactions.data?.pages.at(-1)?.total
+
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = transactions
+  // A page that failed to load is asked for again by the user, not by the list at every render.
+  const loadNextPage = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage()
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
 
   return (
     <section className="max-w-2xl space-y-6">
@@ -94,11 +111,11 @@ export function TransactionsPage() {
         </p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button disabled={!loaded} aria-keyshortcuts="N" onClick={addTransaction}>
+          <Button disabled={!canOpenDrawer} aria-keyshortcuts="N" onClick={addTransaction}>
             {t('transactions.add')}
           </Button>
           {canTransfer && (
-            <Button variant="outline" disabled={!loaded} onClick={() => setDrawer({ transferring: true })}>
+            <Button variant="outline" disabled={!canOpenDrawer} onClick={() => setDrawer({ transferring: true })}>
               <ArrowRightLeft aria-hidden />
               {t('transfers.add')}
             </Button>
@@ -106,25 +123,41 @@ export function TransactionsPage() {
         </div>
       )}
 
+      {accounts.data && categories.data && (
+        <TransactionFilterBar
+          view={view}
+          isFiltered={isFiltered}
+          onChange={change}
+          onClear={clear}
+          accounts={accounts.data.accounts}
+          categories={categories.data}
+          fallbackCurrency={mostDecimals(accounts.data.accounts.map((account) => account.currency)) ?? baseCurrency}
+        />
+      )}
+
       {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('transactions.errors.generic')}</ErrorMessage>}
-      {!loaded && !transactions.isError && <ListSkeleton />}
-      {loaded && items.length === 0 && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
+      {!loaded && !transactions.isError && <ListSkeleton label={t('transactions.loading')} />}
+      {loaded && total && items.length > 0 && <TransactionTotal total={total} />}
+      {loaded && items.length === 0 && isFiltered && <p className="text-muted-foreground">{t('transactions.filters.noMatch')}</p>}
+      {loaded && items.length === 0 && !isFiltered && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
       {loaded && items.length > 0 && (
-        <ul aria-label={t('screens.transactions')} className="divide-y rounded-lg border">
-          {items.map((transaction) => (
+        <VirtualRows items={items} itemKey={listKey} label={t('screens.transactions')} onEndReached={loadNextPage}>
+          {(transaction, row) => (
             <TransactionRow
               key={listKey(transaction)}
+              row={row}
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
               categories={categories.data}
               onEdit={(editing) => setDrawer(isTransferLeg(editing) ? { transferId: editing.transferId } : { editing })}
             />
-          ))}
-        </ul>
+          )}
+        </VirtualRows>
       )}
-      {transactions.hasNextPage && (
-        <Button variant="outline" disabled={transactions.isFetchingNextPage} onClick={() => void transactions.fetchNextPage()}>
+      {loaded && isFetchingNextPage && <ListSkeleton label={t('transactions.loadingMore')} />}
+      {hasNextPage && isFetchNextPageError && (
+        <Button variant="outline" onClick={() => void fetchNextPage()}>
           {t('transactions.loadMore')}
         </Button>
       )}
@@ -143,11 +176,11 @@ export function TransactionsPage() {
               <X aria-hidden className="size-5" />
             </SheetClose>
           </div>
-          {loaded && editing && (
+          {canOpenDrawer && editing && (
             <EditTransaction transaction={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
-          {loaded && drawer && 'transferring' in drawer && <AddTransfer accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />}
-          {loaded && drawer && 'transferId' in drawer && (
+          {canOpenDrawer && drawer && 'transferring' in drawer && <AddTransfer accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />}
+          {canOpenDrawer && drawer && 'transferId' in drawer && (
             <OpenTransfer id={drawer.transferId} accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />
           )}
         </SheetContent>
@@ -253,9 +286,11 @@ type RowProps = {
   /** The user's category tree, to name the category of each line of a split. */
   categories: Category[]
   onEdit: (transaction: Transaction) => void
+  /** Where the list has the row, and how it measures it. */
+  row: VirtualRow
 }
 
-function TransactionRow({ transaction, account, category, categories, onEdit }: RowProps) {
+function TransactionRow({ transaction, account, category, categories, onEdit, row }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const removeTransaction = useDeleteTransaction()
@@ -273,7 +308,7 @@ function TransactionRow({ transaction, account, category, categories, onEdit }: 
   const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
 
   return (
-    <li className="space-y-2 p-3" aria-busy={pending || undefined}>
+    <li {...row} className="space-y-2 border-b p-3 last:border-b-0" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
         {category && !split && <CategoryBadge icon={category.icon} color={category.color} />}
         {leg && (
@@ -355,11 +390,19 @@ function findCategory(tree: Category[], id: string | null): Category | undefined
   return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
 }
 
-/** Rows standing in for the list while it loads. */
-function ListSkeleton() {
-  const { t } = useTranslation()
+/**
+ * The currency with the most decimals, so that an amount in any of them can be typed: the range of amounts
+ * is compared with every transaction, whatever currency it is in.
+ */
+function mostDecimals(currencies: Currency[]): Currency | undefined {
+  const decimals = (currency: Currency) => new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 0
+  return currencies.toSorted((a, b) => decimals(b) - decimals(a))[0]
+}
+
+/** Rows standing in for the list while it loads, or for its next page under the rows already there. */
+function ListSkeleton({ label }: { label: string }) {
   return (
-    <ul aria-busy aria-label={t('transactions.loading')} className="divide-y rounded-lg border">
+    <ul aria-busy aria-label={label} className="divide-y rounded-lg border">
       {[0, 1, 2].map((row) => (
         <li key={row} className="flex items-center gap-3 p-3">
           <span className="size-7 animate-pulse rounded-full bg-muted" />

@@ -11,6 +11,9 @@ Element.prototype.hasPointerCapture ??= () => false
 Element.prototype.setPointerCapture ??= () => undefined
 Element.prototype.releasePointerCapture ??= () => undefined
 
+// jsdom has no scrolling, and says so each time the virtualised transaction list puts the page where it has it.
+window.scrollTo = () => undefined
+
 // An upload leaves a test through Node's fetch and is read back by Node's form parser; neither can read a form
 // or a file made by jsdom, so the upload would arrive broken. Forms and files are Node's own here: the form as
 // its Response hands one out, the File from node:buffer.
@@ -23,6 +26,9 @@ beforeAll(() => {
 
 beforeEach(() => {
   installFakeMatchMedia()
+  // jsdom lays nothing out, so a virtualised list cannot tell which rows are on screen. The pretend screen is
+  // tall enough for every row a test lists; a test of virtualisation itself makes it a real height.
+  window.innerHeight = 100_000
 })
 
 afterEach(() => {

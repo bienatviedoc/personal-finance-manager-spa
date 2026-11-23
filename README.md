@@ -53,10 +53,23 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the API's answer (`versionedSaveOutcome`), the header (`ifMatch`) and `isStale` for the screen.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
   such as institutions, loads every page. One for something they have thousands of, transactions, is an
-  infinite query (`transactionsQuery`) that loads the next page when the screen asks for more.
+  infinite query (`transactionsQuery(filters)`) that loads the next page when the screen asks for more.
+- **The transaction list's filters and sort order live in the address** (spec section 12): `from`, `to`,
+  `accountId`, `categoryId`, `type`, `min`, `max`, `q`, `sort` and `order`, named as the API's query names them,
+  so a view can be bookmarked and opened in another session. `useTransactionFilters` reads them (leaving out
+  what the API could not read) and changes them; the list is a query per view. The filter bar applies a choice
+  at once and something typed once the typing pauses. Never keep a filter in component state alone.
+- **The total of a filtered list is the API's** (`total` on every page: a count, and income, expenses and net in
+  each currency; the legs of a transfer are counted and are in neither). `TransactionTotal` shows it; the SPA never adds up the rows it has loaded.
+- **The transaction list is virtualised** (spec section 8): `VirtualRows` keeps only the rows near the screen in
+  the page, over [TanStack Virtual](https://tanstack.com/virtual), with the page itself scrolling. The next page
+  is loaded as the last loaded row comes near the screen; skeletons stand in for a view, or a next page, that
+  is loading.
 - **Adding and editing a transaction is optimistic**, and nothing else is (spec section 12). The save hooks put
   the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
-  request fails, and load the list again once the API has answered. One not yet answered is a
+  request fails, and load the list again once the API has answered. That list is the one of everything, newest
+  first: only the API knows whether a transaction passes a filter or where another sort order has it, so a
+  filtered or re-sorted view shows the change once the API has answered. One not yet answered is a
   `PendingTransaction`: it has no id or row version, so it offers nothing to edit or delete (`isPending`).
 - **Quick add** (spec TXN-8 and section 12). `<QuickAdd>` from `@/features/transactions` wraps every screen in
   the shell: pressing N anywhere opens the drawer that records a transaction (not while typing, and not over
@@ -206,6 +219,12 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, and locks the base currency `fakeProfileApi` holds |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
+
+jsdom lays nothing out, so the virtualised transaction list cannot tell which rows are on screen: every test
+starts on a pretend screen tall enough for every row it lists (`src/test/setup.ts`), and a row counts as tall as
+its estimate. A test of the virtualisation itself gives the screen and the rows a height and scrolls
+(`transactionList.test.tsx`); one that needs a list with a page still to load makes the screen short
+(`window.innerHeight = 768`).
 
 To upload in a test, hand `user.upload` a `new File([...])` whose first bytes are a real JPEG, PNG or PDF
 signature. `src/test/setup.ts` makes `File` and `FormData` Node's own, because the request leaves through
