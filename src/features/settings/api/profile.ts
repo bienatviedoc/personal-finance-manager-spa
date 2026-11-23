@@ -1,4 +1,4 @@
-import { hashKey, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { hashKey, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { signedInUserQuery } from '@/features/auth'
@@ -11,7 +11,7 @@ export type Profile = components['schemas']['ProfileResponse']
 export type ProfileChange = components['schemas']['UpdateProfileRequest']
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-const profileFields = ['baseCurrency', 'timeZone', 'locale'] as const
+const profileFields = ['baseCurrency', 'timeZone', 'locale', 'budgetWarningPercent'] as const
 export type ProfileField = (typeof profileFields)[number]
 
 export type SaveOutcome = { saved: true; profile: Profile } | { saved: false; fields: ProfileField[] }
@@ -44,13 +44,27 @@ export function useUpdateProfile() {
 }
 
 /**
- * The signed-in user's base currency and time zone, for screens inside the shell (whose loader has
- * already loaded the user).
+ * Loads the profile again, for a change made elsewhere that it reports: the first budget locks the base
+ * currency, and removing the last one unlocks it.
+ */
+export function refreshProfile(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: signedInUserQuery.queryKey, exact: true })
+}
+
+/**
+ * The signed-in user's settings, for screens inside the shell (whose loader has already loaded the user):
+ * their base currency and whether it is locked, time zone, locale and budget warning threshold.
  */
 export function useUserSettings() {
   const { data: user } = useQuery(signedInUserQuery)
   if (!user) throw new Error('useUserSettings needs a signed-in user.')
-  return { baseCurrency: user.baseCurrency, timeZone: user.timeZone, locale: user.locale }
+  return {
+    baseCurrency: user.baseCurrency,
+    baseCurrencyLocked: user.baseCurrencyLocked,
+    timeZone: user.timeZone,
+    locale: user.locale,
+    budgetWarningPercent: Number(user.budgetWarningPercent),
+  }
 }
 
 /**

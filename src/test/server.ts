@@ -12,6 +12,8 @@ export const testUser: ProfileResponse = {
   baseCurrency: 'VND',
   timeZone: 'Asia/Ho_Chi_Minh',
   locale: null,
+  budgetWarningPercent: 80,
+  baseCurrencyLocked: false,
 }
 export const antiforgeryToken = 'test-antiforgery-token'
 

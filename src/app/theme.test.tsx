@@ -31,8 +31,8 @@ afterEach(() => {
 describe('theme', () => {
   it('follows the system theme, including when it changes', async () => {
     setSystemTheme('dark')
-    renderApp('/budgets')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+    renderApp('/reports')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Reports' })).toBeInTheDocument()
     expect(isDark()).toBe(true)
 
     setSystemTheme('light')
@@ -42,7 +42,7 @@ describe('theme', () => {
 
   it('can be set to light or dark whatever the system says, which is remembered, and set back to follow the system', async () => {
     setSystemTheme('light')
-    const first = renderApp('/budgets')
+    const first = renderApp('/reports')
 
     await first.user.selectOptions(await screen.findByRole('combobox', { name: 'Theme' }), 'Dark')
     expect(isDark()).toBe(true)
@@ -51,7 +51,7 @@ describe('theme', () => {
     expect(isDark()).toBe(true)
     first.unmount()
 
-    const second = renderApp('/budgets')
+    const second = renderApp('/reports')
     expect(await screen.findByRole('combobox', { name: 'Theme' })).toHaveDisplayValue('Dark')
     expect(isDark()).toBe(true)
 
@@ -77,7 +77,7 @@ describe('theme', () => {
     const barColors = addBarColors()
     const system = barColors()
     expect(system.light).not.toBe(system.dark)
-    const { user } = renderApp('/budgets')
+    const { user } = renderApp('/reports')
 
     await user.selectOptions(await screen.findByRole('combobox', { name: 'Theme' }), 'Dark')
     expect(barColors()).toEqual({ light: system.dark, dark: system.dark })
@@ -91,7 +91,7 @@ describe('theme', () => {
 
   it('is already the chosen theme before the app loads on a reload', async () => {
     setSystemTheme('light')
-    const { user, unmount } = renderApp('/budgets')
+    const { user, unmount } = renderApp('/reports')
     await user.selectOptions(await screen.findByRole('combobox', { name: 'Theme' }), 'Dark')
     unmount()
     document.documentElement.classList.remove('dark')
@@ -114,7 +114,7 @@ describe('theme', () => {
 
   it('keeps a choice the browser could not store until one it can, then goes by what is stored', async () => {
     setSystemTheme('light')
-    const { user } = renderApp('/budgets')
+    const { user } = renderApp('/reports')
     const theme = await screen.findByRole('combobox', { name: 'Theme' })
     vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
       throw new DOMException('full', 'QuotaExceededError')

@@ -1,5 +1,6 @@
 import { infiniteQueryOptions, queryOptions, useMutation, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { refreshAccountBalances } from '@/features/accounts'
+import { refreshBudgets } from '@/features/budgets'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
 import { ifMatch, isStale, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
@@ -193,7 +194,7 @@ function linesRefusedAsOne<Answer extends VersionedSaveResponse<Transaction>>(an
 }
 
 function refresh(queryClient: QueryClient) {
-  return Promise.all([queryClient.invalidateQueries({ queryKey: transactionsKey }), refreshAccountBalances(queryClient)])
+  return Promise.all([queryClient.invalidateQueries({ queryKey: transactionsKey }), refreshAccountBalances(queryClient), refreshBudgets(queryClient)])
 }
 
 /** Newest date first; within a date, the last recorded first: ids are in the order of recording, and a pending one is the latest. */

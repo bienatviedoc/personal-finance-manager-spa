@@ -7,7 +7,7 @@ import { testUser } from '@/test/server'
 describe('signing out', () => {
   it('is offered in the shell, ends the session, and screens then ask to sign in again', async () => {
     const api = fakeAuthApi({ signedIn: true })
-    const { user, router } = renderApp('/budgets')
+    const { user, router } = renderApp('/reports')
 
     expect(await screen.findByText(`Signed in as ${testUser.email}`)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Sign out' }))
@@ -15,7 +15,7 @@ describe('signing out', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
     expect(api.signedInAs).toBeNull()
 
-    await act(() => router.navigate('/budgets'))
+    await act(() => router.navigate('/reports'))
     expect(await screen.findByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
   })
