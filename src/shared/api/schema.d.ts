@@ -392,7 +392,7 @@ export interface paths {
         /** @description The user's transactions, newest date first and, within a date, last recorded first. A deleted transaction is never listed. */
         get: operations["ListTransactions"];
         put?: never;
-        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
+        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. An expense flagged isRefund is a refund and raises the balance. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
         post: operations["CreateTransaction"];
         delete?: never;
         options?: never;
@@ -627,6 +627,8 @@ export interface components {
             categoryId: string;
             payee?: null | string;
             note?: null | string;
+            /** @default false */
+            isRefund: boolean;
         };
         TransactionResponse: {
             /** Format: uuid */
@@ -643,6 +645,7 @@ export interface components {
             payee: null | string;
             note: null | string;
             rowVersion: string;
+            isRefund: boolean;
         };
         /** @enum {unknown} */
         TransactionType: "income" | "expense";
