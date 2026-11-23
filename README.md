@@ -53,23 +53,84 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the API's answer (`versionedSaveOutcome`), the header (`ifMatch`) and `isStale` for the screen.
 - **Lists come a page at a time** (`limit`, `cursor`, `nextCursor`). A query for something a user has dozens of,
   such as institutions, loads every page. One for something they have thousands of, transactions, is an
-  infinite query (`transactionsQuery`) that loads the next page when the screen asks for more.
+  infinite query (`transactionsQuery(filters)`) that loads the next page when the screen asks for more.
+- **The transaction list's filters and sort order live in the address** (spec section 12): `from`, `to`,
+  `accountId`, `categoryId`, `type`, `min`, `max`, `q`, `sort` and `order`, named as the API's query names them,
+  so a view can be bookmarked and opened in another session. `useTransactionFilters` reads them (leaving out
+  what the API could not read) and changes them; the list is a query per view. The filter bar applies a choice
+  at once and something typed once the typing pauses. Never keep a filter in component state alone.
+- **The total of a filtered list is the API's** (`total` on every page: a count, and income, expenses and net in
+  each currency; the legs of a transfer are counted and are in neither). `TransactionTotal` shows it; the SPA never adds up the rows it has loaded.
+- **The transaction list is virtualised** (spec section 8): `VirtualRows` keeps only the rows near the screen in
+  the page, over [TanStack Virtual](https://tanstack.com/virtual), with the page itself scrolling. The next page
+  is loaded as the last loaded row comes near the screen; skeletons stand in for a view, or a next page, that
+  is loading.
 - **Adding and editing a transaction is optimistic**, and nothing else is (spec section 12). The save hooks put
   the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
-  request fails, and load the list again once the API has answered. One not yet answered is a
+  request fails, and load the list again once the API has answered. That list is the one of everything, newest
+  first: only the API knows whether a transaction passes a filter or where another sort order has it, so a
+  filtered or re-sorted view shows the change once the API has answered. One not yet answered is a
   `PendingTransaction`: it has no id or row version, so it offers nothing to edit or delete (`isPending`).
+- **Quick add** (spec TXN-8 and section 12). `<QuickAdd>` from `@/features/transactions` wraps every screen in
+  the shell: pressing N anywhere opens the drawer that records a transaction (not while typing, and not over
+  another drawer or dialog), and nothing is loaded until it first opens. The transactions screen's own button
+  opens the same drawer through `useQuickAdd()`. The form starts on the account the API says was used last
+  (`lastAccountQuery`), and a new transaction takes the category its payee most often had
+  (`suggestedCategoryQuery`, asked once the payee has been left alone for a moment) until the user picks one
+  themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
+- **A type-ahead picker** is `<ComboboxField>` from `@/shared/components`: typing narrows the options, whatever
+  the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
+  the form's. In a `Drawer`, Escape closes its list before the drawer (`escapeClosesPickerFirst`). Tests choose from
+  one with `choose` and read what it offers with `offeredBy` (`src/test/combobox.ts`).
+- **A split transaction sends `lines` in place of `categoryId`** (see the glossary: split transaction, line), and
+  every transaction answers its `lines`, one when it is not split (`isSplit`). The form shows what remains of the
+  amount to split and sends nothing until that is nothing; the API checks the sum again. What remains is worked
+  out by `remainingAmount` in `src/shared/money`, on the digits of the decimal strings: the one place amounts are
+  subtracted, and still never through a JavaScript `number`. The API names what it refuses about one line by
+  where it is (`lines[1].categoryId`); the form says it once, for all the lines.
+- **A refund is an expense with `isRefund` set** (see the glossary), never a type of its own: the form offers the
+  flag to an expense only, and the list marks a refund and shows its amount coming back (`+`), since it raises
+  the balance.
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.
+- **A transfer is two transactions in the list.** The API lists a transfer as its two legs (`transferOut`,
+  `transferIn`), each on its own account and carrying the `transferId` they share; the list marks them as a
+  transfer. A leg is never edited or deleted as a transaction: either leg opens the transfer form, which loads
+  the transfer by that id (`transferQuery`) and saves both legs through `/transfers` (`features/transactions/api/transfers.ts`).
+  Between accounts in different currencies the form asks for both amounts; nothing converts one into the other.
+  Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
 - **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
   `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
   the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change
   again; fields the API refused stay under their inputs. The toast is the Radix primitive in
   `src/shared/ui/toast.tsx`, and stays until the user answers it.
 - **A new transaction carries an `Idempotency-Key`**, made up once for each request the user means to make
-  (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
+  (`useIdempotencyKey` in `src/shared/api`, as a new transfer does). Saving the same values again after a failure sends the same key, so the API cannot record
   the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
   used key that comes with a different body), and so is the next transaction.
+- **Attachments** (receipts) live in the drawer of a transaction the API has recorded (`Attachments` in
+  `features/transactions`): attach one, open one, remove one. A file is a JPEG, PNG or PDF of at most 5 MB; the
+  screen says so before sending what the browser can already tell is not (`whyNotAttachable`), and the API has
+  the last word, reading the file itself. The upload is the one request that is a form, not JSON
+  (`useAddAttachment`).
+- **An attached file is opened through a signed URL**, which the API hands out for a few minutes and which
+  needs no sign-in. Ask for one each time the user opens the file (`useOpenAttachment`, a mutation), put it
+  nowhere but the tab it opens in, and never in the query cache, a link or a log. The tab is opened in the click
+  itself and sent to the URL once the API answers, or browsers would block it as a pop-up. The file is served
+  by the storage, another origin, so nothing in the content security policy changes; showing a file inside the
+  app (a thumbnail) would mean adding the storage's address to the policy on purpose.
+- **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
+  edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
+  date, and works out every date (`nextRunDate`). The SPA never computes a due date. A transaction a rule posted
+  carries `recurringRuleId`, and its row links to `/recurring?rule=<id>` (`RecurringRuleLink`), where that rule is
+  pointed out. A rule is income or an expense, never a transfer; use the glossary's term, recurring rule.
+- **A change to a transaction moves what was spent,** too, so the same hooks load the budgets again through
+  `refreshBudgets` from `@/features/budgets`. Setting the first budget locks the base currency and removing the
+  last one unlocks it, so the budget hooks load the profile again (`refreshProfile` from `@/features/settings`).
+- **A budget is set, not created or edited:** `useSetBudget(month)` sends `PUT /budgets/{month}/{categoryId}`
+  with the budget's `rowVersion` as `If-Match` when the category already has one that month and without it when
+  it has none; `useRemoveBudget(month)` removes it.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
@@ -78,6 +139,13 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   (a QR code drawn in the page from the API's `otpauth://` link, confirmed with a code), shows the recovery codes
   the one time the API hands them over, and changes the password. Use the glossary's words: two-factor sign-in,
   recovery code.
+- **Export and deleting the user** are in Settings > Your data. Each asks first. The export is fetched through
+  the client and handed to the browser to save (`saveFile`), under the name the API gives it. Deleting takes the
+  password (`ConfirmWithPassword`, shared with the two-factor settings), forgets everything of the user the way
+  signing out does (`forgetSignedInUser`) and lands on the sign-in screen, which says they have 30 days to
+  cancel by signing in again. When a sign-in does cancel a deletion the API says so, and the shell shows a
+  notice until the user dismisses it. The interface says "delete your profile", never "account": an account is
+  where money sits (see the glossary), and a test checks both languages.
 - **Lockout and rate limiting are the API's.** A locked user is answered like a wrong password, so the sign-in
   screen warns about the lock beside that message; a 429 becomes "too many attempts".
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -138,15 +206,30 @@ in its own file under `src/test/`, keeping state across requests and following t
 
 | Fake | Stands in for |
 | --- | --- |
-| `fakeAuthApi` | Registering, verifying, signing in (with two factors, lockout and the rate limit) and out, password reset (`/api/v1/auth/...`) |
+| `fakeAuthApi` | Registering, verifying, signing in (with two factors, lockout, the rate limit and a deletion to cancel) and out, password reset (`/api/v1/auth/...`) |
 | `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
 | `fakeSecurityApi` | Changing the password and two-factor sign-in (`/api/v1/me/password`, `/api/v1/me/two-factor/...`) |
+| `fakeDataApi` | The full export and deleting the user (`/api/v1/export/all.zip`, `/api/v1/me/deletion`) |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
 | `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
+| `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
+| `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, and locks the base currency `fakeProfileApi` holds |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
+
+jsdom lays nothing out, so the virtualised transaction list cannot tell which rows are on screen: every test
+starts on a pretend screen tall enough for every row it lists (`src/test/setup.ts`), and a row counts as tall as
+its estimate. A test of the virtualisation itself gives the screen and the rows a height and scrolls
+(`transactionList.test.tsx`); one that needs a list with a page still to load makes the screen short
+(`window.innerHeight = 768`).
+
+To upload in a test, hand `user.upload` a `new File([...])` whose first bytes are a real JPEG, PNG or PDF
+signature. `src/test/setup.ts` makes `File` and `FormData` Node's own, because the request leaves through
+Node's `fetch`, which cannot read jsdom's. `window.open` is not implemented in jsdom: spy on it and answer a
+stand-in tab (see `attachments.test.tsx`).
 
 jsdom has no `matchMedia`, so `src/test/mediaQueries.ts` stands in for it: every test starts on a light-themed
 desktop, and `setScreenWidth(360)` or `setSystemTheme('dark')` changes the pretend device mid-test.
@@ -170,6 +253,7 @@ src/
   navigation in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
   shell and the other screens working; so does each section nested in a screen (Settings > Profile).
 - **Shared components** (`src/shared/components`): `TextField` and `SelectField` for labelled inputs,
+  `ToggleField` for a choice of a few values side by side, `Drawer` for a form in a side drawer,
   `ErrorMessage` for an alert that something went wrong, `FailureToast` for a change that failed.
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
@@ -226,14 +310,25 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   the amount input takes the decimals of the chosen account's currency.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
-  (from `useUserSettings()` in `@/features/settings`), not the browser's.
+  (from `useUserSettings()` in `@/features/settings`), not the browser's. A month (`2026-11`, such as a budget month) is a
+  `CalendarMonth`, made only by `isCalendarMonth`, `monthOf` or `shiftMonth` and written with `formatMonth`.
 - The user's base currency and time zone come from `useUserSettings()`.
 - **Not converted.** An amount the API could not convert, for want of an exchange rate, comes back under
   `notConverted` in its own currency and is left out of the total next to it. Always show that flag with the
   total (`NotConverted` on the accounts screen); never hide it or estimate the amount. Nobody enters a rate: the
   API fetches them.
 - **Changing the base currency** loads everything again (`useUpdateProfile`), because what the API converted into
-  the old one no longer holds.
+  the old one no longer holds. Once the user has a budget it is locked (`baseCurrencyLocked` from
+  `useUserSettings()`): the profile screen disables it, says why, and no longer sends it.
+- **Budgets.** `/budgets/:month?` shows one budget month (`2026-11`; without one, or with something that is not
+  a month, the month it is now in the user's time zone). Budgeted, spent, remaining, the percentage spent, the
+  state and the totals are the API's (`budgetsQuery(month)`); the SPA adds nothing up. Every expense category
+  has a row with its amount edited in place (Enter or Save; an emptied amount removes the budget). A category
+  whose parent or subcategory is budgeted that month offers no amount and says whose budget its spending counts
+  toward. Expenses that are not converted are left out of spent and counted in a note, on the row and the totals.
+- **A budget's state is never colour alone** (spec section 8): on track, warning and over budget are each said
+  in words beside an icon of their own shape, and the progress bar names its percentage; colour only adds to that.
+  The warning threshold is the user's (`budgetWarningPercent`, Settings > Profile).
 
 ## Phones, themes and installing
 
@@ -244,7 +339,8 @@ next to a currency code; the SPA keeps it a string from the response to the scre
 - **Themes.** Light and dark follow the system unless the viewer picks one (Theme, in the sidebar, under More, or on
   the signed-out screens),
   which is remembered in the browser (`src/shared/theme`). Dark mode is the `dark` class on `<html>`; style with
-  the colour tokens in `src/index.css` and Tailwind's `dark:` variant. A script in `index.html` sets the class
+  the colour tokens in `src/index.css` and Tailwind's `dark:` variant; `success`, `warning` and `destructive` colour
+  a good, a needs-attention and a bad state, never alone: words or an icon say it too. A script in `index.html` sets the class
   before the first paint, so keep its storage key in step with `src/shared/theme`; a test runs the script
   against a stored choice. A chosen theme also recolours the browser bar (`theme-color`); the installed app's
   splash screen comes from the manifest and stays light.

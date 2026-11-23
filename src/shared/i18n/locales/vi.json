@@ -134,9 +134,15 @@
     "userMenu": {
       "signedInAs": "Đã đăng nhập: {{email}}",
       "signOut": "Đăng xuất"
+    },
+    "deletion": {
+      "requested": "Bạn đã đăng xuất, và hồ sơ của bạn sẽ bị xóa sau 30 ngày. Để giữ lại, hãy đăng nhập lại trước lúc đó.",
+      "cancelled": "Chào mừng bạn trở lại. Việc đăng nhập đã hủy yêu cầu xóa hồ sơ của bạn, và không có gì bị xóa.",
+      "dismiss": "OK"
     }
   },
   "accounts": {
+    "option": "{{name}} ({{currency}})",
     "intro": "Những nơi bạn giữ tiền, nhóm theo tổ chức tài chính.",
     "add": "Thêm tài khoản",
     "new": "Tài khoản mới",
@@ -209,7 +215,7 @@
     }
   },
   "transactions": {
-    "intro": "Các khoản thu và chi của bạn, mới nhất ở trên.",
+    "intro": "Các khoản thu và chi của bạn. Lọc, tìm và sắp xếp để tìm bất kỳ giao dịch nào.",
     "add": "Thêm giao dịch",
     "new": "Giao dịch mới",
     "editTitle": "Sửa giao dịch",
@@ -217,19 +223,54 @@
     "noAccounts": "Giao dịch được ghi vào một tài khoản, và bạn chưa có tài khoản nào.",
     "toAccounts": "Thêm tài khoản",
     "loading": "Đang tải giao dịch",
+    "loadingForm": "Đang tải…",
     "loadMore": "Tải thêm",
+    "loadingMore": "Đang tải thêm giao dịch",
+    "filters": {
+      "title": "Lọc giao dịch",
+      "search": "Tìm theo bên nhận, bên trả và ghi chú",
+      "from": "Từ ngày",
+      "to": "Đến ngày",
+      "min": "Số tiền tối thiểu",
+      "max": "Số tiền tối đa",
+      "allAccounts": "Tất cả tài khoản",
+      "allCategories": "Tất cả danh mục",
+      "allTypes": "Tất cả loại",
+      "sortBy": "Sắp xếp theo",
+      "sort": {
+        "dateDesc": "Mới nhất trước",
+        "dateAsc": "Cũ nhất trước",
+        "amountDesc": "Số tiền lớn nhất trước",
+        "amountAsc": "Số tiền nhỏ nhất trước"
+      },
+      "clear": "Xóa bộ lọc",
+      "noMatch": "Không có giao dịch nào khớp với bộ lọc này."
+    },
+    "total": {
+      "title": "Tổng của các giao dịch này",
+      "count_one": "{{count}} giao dịch",
+      "count_other": "{{count}} giao dịch",
+      "income": "Khoản thu",
+      "expenses": "Khoản chi",
+      "net": "Chênh lệch"
+    },
     "type": "Loại",
     "types": {
       "expense": "Khoản chi",
-      "income": "Khoản thu"
+      "income": "Khoản thu",
+      "transferOut": "Chuyển đi",
+      "transferIn": "Chuyển đến"
     },
+    "isRefund": "Đây là khoản hoàn tiền",
+    "refundHint": "Tiền được trả lại từ một lần mua. Khoản này làm tăng số dư và giảm số đã chi trong danh mục.",
+    "refund": "Hoàn tiền",
     "account": "Tài khoản",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Số tiền ({{currency}})",
     "date": "Ngày",
     "category": "Danh mục",
-    "chooseCategory": "Chọn danh mục",
-    "subcategory": "{{parent}} › {{name}}",
+    "chooseCategory": "Gõ để tìm danh mục",
+    "noCategoryMatches": "Không có danh mục nào khớp.",
+    "categorySuggested": "Gợi ý từ các giao dịch trước đây của bạn với bên này.",
     "payee": "Bên nhận / bên trả",
     "note": "Ghi chú",
     "save": "Lưu",
@@ -243,6 +284,23 @@
     "deleteNamed": "Xóa {{name}}",
     "deleteExplained": "Xóa {{name}}? Giao dịch sẽ không còn trong danh sách này và số dư tài khoản.",
     "deleteConfirm": "Xóa",
+    "split": {
+      "start": "Chia nhiều danh mục",
+      "useOneCategory": "Dùng một danh mục",
+      "lines": "Các dòng",
+      "line": "Dòng {{number}}",
+      "lineCategory": "Danh mục dòng {{number}}",
+      "lineAmount": "Số tiền dòng {{number}} ({{currency}})",
+      "lineNote": "Ghi chú dòng {{number}}",
+      "addLine": "Thêm dòng",
+      "removeLine": "Xóa dòng {{number}}",
+      "left": "Còn {{amount}} chưa chia",
+      "over": "Vượt số tiền {{amount}}",
+      "nothingLeft": "Đã chia hết",
+      "label": "Chia nhiều danh mục",
+      "transaction": "Giao dịch chia nhiều danh mục",
+      "linesOf": "Các dòng của {{name}}"
+    },
     "errors": {
       "type": "Chọn khoản thu hoặc khoản chi.",
       "account": "Chọn một tài khoản của bạn chưa bị lưu trữ.",
@@ -254,10 +312,192 @@
       "category": "Chọn danh mục.",
       "payeeTooLong": "Dùng tối đa 200 ký tự.",
       "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "linesLeft": "Tổng các dòng phải bằng số tiền: còn {{amount}} chưa chia.",
+      "linesOver": "Tổng các dòng phải bằng số tiền: đang vượt {{amount}}.",
+      "lines": "Kiểm tra các dòng: mỗi dòng cần một danh mục của bạn chưa lưu trữ và một số tiền, và tổng các dòng phải bằng số tiền.",
+      "refundNotExpense": "Chỉ khoản chi mới có thể là khoản hoàn tiền.",
       "stale": "Giao dịch này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được giao dịch.",
       "notDeleted": "Chưa xóa được giao dịch."
+    }
+  },
+  "transfers": {
+    "add": "Chuyển giữa các tài khoản",
+    "new": "Chuyển khoản mới",
+    "editTitle": "Sửa chuyển khoản",
+    "mark": "Chuyển khoản",
+    "loading": "Đang tải chuyển khoản",
+    "from": "Từ tài khoản",
+    "to": "Đến tài khoản",
+    "amountIn": "Số tiền ({{currency}})",
+    "toAmountIn": "Số tiền nhận được ({{currency}})",
+    "bothAmounts": "Hai tài khoản này dùng hai loại tiền khác nhau, nên hãy nhập cả hai số tiền. Ứng dụng không tra tỷ giá.",
+    "date": "Ngày",
+    "note": "Ghi chú",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "deleteExplained": "Xóa chuyển khoản này? Cả hai vế sẽ không còn trong danh sách này, và số dư của hai tài khoản trở lại như trước.",
+    "errors": {
+      "account": "Chọn một tài khoản của bạn chưa bị lưu trữ.",
+      "sameAccount": "Chọn một tài khoản khác với tài khoản chuyển tiền đi.",
+      "amountRequired": "Nhập số tiền.",
+      "amountZero": "Nhập số tiền lớn hơn 0.",
+      "amountInvalid": "Nhập số tiền, ví dụ {{example}}.",
+      "toAmountRequired": "Nhập số tiền nhận được.",
+      "date": "Nhập ngày.",
+      "dateInFuture": "Ngày không được ở tương lai.",
+      "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "stale": "Chuyển khoản này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "notLoaded": "Chưa tải được chuyển khoản. Hãy thử lại.",
+      "notSaved": "Chưa lưu được chuyển khoản.",
+      "notDeleted": "Chưa xóa được chuyển khoản."
+    }
+  },
+  "attachments": {
+    "title": "Tệp đính kèm",
+    "loading": "Đang tải tệp đính kèm",
+    "none": "Chưa có tệp đính kèm nào.",
+    "attach": "Đính kèm hóa đơn",
+    "hint": "JPEG, PNG hoặc PDF, mỗi tệp tối đa 5 MB.",
+    "attaching": "Đang đính kèm {{name}}…",
+    "openNamed": "Mở {{name}}",
+    "remove": "Gỡ",
+    "removeNamed": "Gỡ {{name}}",
+    "removeExplained": "Gỡ {{name}}? Tệp sẽ bị xóa.",
+    "removeConfirm": "Gỡ",
+    "cancel": "Hủy",
+    "errors": {
+      "type": "{{name}} không phải là tệp JPEG, PNG hoặc PDF.",
+      "tooLarge": "{{name}} lớn hơn 5 MB.",
+      "empty": "{{name}} là tệp trống.",
+      "refused": "Không đính kèm được {{name}}. Hãy đính kèm tệp JPEG, PNG hoặc PDF tối đa 5 MB.",
+      "notLoaded": "Không tải được tệp đính kèm.",
+      "notAttached": "Chưa đính kèm được hóa đơn.",
+      "notOpened": "Không mở được tệp đính kèm.",
+      "notRemoved": "Chưa gỡ được tệp đính kèm."
+    }
+  },
+  "recurring": {
+    "intro": "Các khoản thu và chi lặp lại, như lương, tiền thuê nhà và các gói đăng ký. Mỗi khoản được tự động ghi vào ngày đến hạn.",
+    "list": "Quy tắc định kỳ",
+    "add": "Thêm quy tắc định kỳ",
+    "new": "Quy tắc định kỳ mới",
+    "editTitle": "Sửa quy tắc định kỳ",
+    "empty": "Chưa có quy tắc định kỳ nào. Hãy thêm một quy tắc cho lương, tiền thuê nhà hoặc bất cứ khoản nào lặp lại.",
+    "noAccounts": "Quy tắc định kỳ ghi vào một tài khoản, và bạn chưa có tài khoản nào.",
+    "toAccounts": "Thêm tài khoản",
+    "loading": "Đang tải quy tắc định kỳ",
+    "type": "Loại",
+    "types": {
+      "expense": "Khoản chi",
+      "income": "Khoản thu"
+    },
+    "account": "Tài khoản",
+    "amountIn": "Số tiền ({{currency}})",
+    "category": "Danh mục",
+    "chooseCategory": "Chọn danh mục",
+    "noCategoryMatches": "Không có danh mục nào khớp.",
+    "frequency": "Tần suất",
+    "frequencyOptions": {
+      "weekly": "Hằng tuần",
+      "monthly": "Hằng tháng",
+      "yearly": "Hằng năm",
+      "everyNDays": "Mỗi N ngày"
+    },
+    "frequencies": {
+      "weekly": "Hằng tuần",
+      "monthly": "Hằng tháng",
+      "yearly": "Hằng năm"
+    },
+    "everyDays_one": "Mỗi ngày",
+    "everyDays_other": "Mỗi {{count}} ngày",
+    "interval": "Số ngày giữa hai lần",
+    "monthEndHint": "Trong tháng không có ngày bắt đầu, khoản này đến hạn vào ngày cuối cùng của tháng đó.",
+    "startDate": "Bắt đầu từ",
+    "startInPastHint": "Bắt đầu trong quá khứ: mọi lần đến hạn từ ngày đó đều được ghi, mỗi lần vào đúng ngày đến hạn của nó.",
+    "endDate": "Kết thúc vào (không bắt buộc)",
+    "payee": "Bên nhận / bên trả",
+    "note": "Ghi chú",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "nextOn": "Lần tới vào {{date}}",
+    "paused": "Đang tạm dừng",
+    "ended": "Đã kết thúc",
+    "endedOn": "Đã kết thúc vào {{date}}",
+    "edit": "Sửa",
+    "editNamed": "Sửa {{name}}",
+    "pause": "Tạm dừng",
+    "pauseNamed": "Tạm dừng {{name}}",
+    "resume": "Tiếp tục",
+    "resumeNamed": "Tiếp tục {{name}}",
+    "delete": "Xóa",
+    "deleteNamed": "Xóa {{name}}",
+    "deleteExplained": "Xóa {{name}}? Quy tắc sẽ không ghi thêm gì nữa. Các giao dịch đã ghi vẫn được giữ lại.",
+    "deleteConfirm": "Xóa",
+    "postedByRule": "Được ghi bởi quy tắc định kỳ",
+    "errors": {
+      "type": "Chọn khoản thu hoặc khoản chi.",
+      "account": "Chọn một tài khoản của bạn chưa được lưu trữ.",
+      "amountRequired": "Nhập số tiền.",
+      "amountZero": "Nhập số tiền lớn hơn không.",
+      "amountInvalid": "Nhập số tiền, ví dụ {{example}}.",
+      "category": "Chọn danh mục.",
+      "frequency": "Chọn tần suất.",
+      "interval": "Nhập số ngày nguyên, từ 1 đến 365.",
+      "startDate": "Nhập ngày bắt đầu.",
+      "endDate": "Nhập ngày kết thúc, hoặc để trống.",
+      "endBeforeStart": "Ngày kết thúc không thể trước ngày bắt đầu.",
+      "payeeTooLong": "Dùng tối đa 200 ký tự.",
+      "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "stale": "Quy tắc định kỳ này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "notSaved": "Quy tắc định kỳ chưa được lưu.",
+      "notChanged": "Quy tắc định kỳ chưa được thay đổi.",
+      "notDeleted": "Quy tắc định kỳ chưa được xóa."
+    }
+  },
+  "budgets": {
+    "intro": "Số tiền bạn dự định chi cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
+    "byCategory": "Ngân sách theo danh mục",
+    "subcategoriesOf": "Danh mục con của {{name}}",
+    "empty": "Tháng này chưa có ngân sách nào. Nhập số tiền bên cạnh một danh mục để đặt ngân sách.",
+    "totals": "Tổng cộng {{month}}",
+    "budgeted": "Ngân sách",
+    "spent": "Đã chi",
+    "remaining": "Còn lại",
+    "amountFor": "Ngân sách cho {{name}}",
+    "noBudget": "Chưa có ngân sách",
+    "save": "Lưu",
+    "saveFor": "Lưu ngân sách cho {{name}}",
+    "remove": "Xóa",
+    "removeFor": "Xóa ngân sách cho {{name}}",
+    "archived": "Đã lưu trữ",
+    "countsTowardParent": "Được tính vào ngân sách của {{name}}.",
+    "subcategoriesBudgeted": "Các danh mục con đã có ngân sách riêng trong tháng này.",
+    "progress": "{{name}}: đã chi {{percent}}% ngân sách",
+    "progressOfZero": "{{name}}: chi tiêu so với ngân sách bằng không",
+    "percent": "{{percent}}%",
+    "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+    "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+    "states": {
+      "onTrack": "Đúng kế hoạch",
+      "warning": "Cảnh báo",
+      "over": "Vượt ngân sách"
+    },
+    "month": {
+      "switcher": "Tháng ngân sách",
+      "previous": "Tháng trước: {{month}}",
+      "next": "Tháng sau: {{month}}",
+      "current": "Tháng này"
+    },
+    "errors": {
+      "notLoaded": "Không thể tải ngân sách.",
+      "amount": "Nhập số tiền từ không trở lên, ví dụ {{example}}.",
+      "category": "Danh mục này không thể có ngân sách trong tháng này: một danh mục và danh mục con của nó không thể cùng có ngân sách.",
+      "stale": "Ngân sách này đã được thay đổi ở nơi khác. Số tiền mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "notSaved": "Không thể lưu ngân sách.",
+      "notRemoved": "Không thể xóa ngân sách."
     }
   },
   "institutions": {
@@ -300,9 +540,12 @@
       "title": "Hồ sơ",
       "baseCurrency": "Tiền tệ cơ sở",
       "baseCurrencyHint": "Tổng số, ngân sách và báo cáo được hiển thị bằng tiền tệ này.",
+      "baseCurrencyLocked": "Tiền tệ cơ sở đã bị khóa vì bạn có ngân sách: ngân sách là số tiền bạn đã nhập bằng tiền tệ này.",
       "timeZone": "Múi giờ",
       "timeZoneHint": "Quyết định “hôm nay” là ngày nào, và tháng ngân sách bắt đầu, kết thúc khi nào.",
       "language": "Ngôn ngữ",
+      "budgetWarning": "Ngưỡng cảnh báo ngân sách (%)",
+      "budgetWarningHint": "Ngân sách chuyển sang trạng thái cảnh báo khi đã chi đến tỷ lệ này.",
       "amountExample": "Số tiền sẽ hiển thị như sau:",
       "save": "Lưu",
       "saved": "Đã lưu cài đặt của bạn.",
@@ -310,7 +553,9 @@
       "errors": {
         "baseCurrency": "Không thể chọn tiền tệ cơ sở này.",
         "timeZone": "Không thể chọn múi giờ này.",
-        "locale": "Không thể chọn ngôn ngữ này."
+        "locale": "Không thể chọn ngôn ngữ này.",
+        "baseCurrencyLocked": "Không thể đổi tiền tệ cơ sở khi bạn đang có ngân sách.",
+        "budgetWarningPercent": "Nhập một tỷ lệ phần trăm nguyên từ 1 đến 100."
       }
     },
     "categories": "Danh mục",
@@ -357,17 +602,44 @@
         "turnOff": "Tắt đăng nhập hai lớp",
         "turnOffBody": "Việc đăng nhập sẽ chỉ cần mật khẩu. Nhập mật khẩu để tắt đăng nhập hai lớp.",
         "turnOffSubmit": "Tắt",
-        "password": "Mật khẩu",
         "errors": {
           "codeInvalid": "Nhập mã gồm 6 chữ số.",
-          "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực.",
-          "passwordRequired": "Nhập mật khẩu.",
-          "passwordIncorrect": "Đó không phải mật khẩu của bạn."
+          "codeIncorrect": "Mã không đúng. Hãy nhập mã mới nhất từ ứng dụng xác thực."
         }
+      }
+    },
+    "confirmWithPassword": {
+      "password": "Mật khẩu",
+      "cancel": "Hủy",
+      "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút.",
+      "errors": {
+        "required": "Nhập mật khẩu.",
+        "incorrect": "Đó không phải mật khẩu của bạn."
+      }
+    },
+    "data": {
+      "title": "Dữ liệu của bạn",
+      "export": {
+        "title": "Xuất dữ liệu của bạn",
+        "body": "Tải về mọi thứ ứng dụng lưu về bạn trong một tệp ZIP: hồ sơ của bạn ở dạng JSON, còn giao dịch và mọi thứ khác bạn đã nhập ở dạng tệp CSV, mở được bằng bất kỳ phần mềm bảng tính nào.",
+        "start": "Xuất dữ liệu của tôi",
+        "confirmBody": "Tệp này chứa toàn bộ dữ liệu tài chính của bạn, và ai có tệp cũng đọc được. Hãy cất nó ở nơi an toàn.",
+        "submit": "Tải về",
+        "downloaded": "Dữ liệu của bạn đã được tải về.",
+        "cancel": "Hủy",
+        "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút."
+      },
+      "delete": {
+        "title": "Xóa hồ sơ của bạn",
+        "body": "Khi xóa hồ sơ, bạn bị đăng xuất ngay ở mọi nơi. Trong 30 ngày bạn có thể đổi ý: chỉ cần đăng nhập lại là việc xóa bị hủy. Sau 30 ngày, mọi thứ bạn đã nhập bị xóa vĩnh viễn và không ai khôi phục được.",
+        "start": "Xóa hồ sơ của tôi",
+        "confirmBody": "Bạn sẽ bị đăng xuất ngay bây giờ. Sau 30 ngày, hồ sơ của bạn và mọi thứ trong đó sẽ bị xóa, trừ khi bạn đăng nhập lại trước lúc đó. Nhập mật khẩu để tiếp tục.",
+        "submit": "Xóa hồ sơ của tôi"
       }
     }
   },
   "categories": {
+    "option": "{{parent}} › {{name}}",
     "title": "Danh mục",
     "showArchived": "Hiện danh mục đã lưu trữ",
     "sections": {
@@ -398,7 +670,7 @@
     "kind": "Loại",
     "kinds": {
       "expense": "Chi tiêu",
-      "income": "Thu nhập"
+      "income": "Khoản thu"
     },
     "kindHint": "Các danh mục con đổi loại theo.",
     "icon": "Biểu tượng",

@@ -24,7 +24,25 @@ export function inCurrencyOrder(a: { currency: Currency }, b: { currency: Curren
 /** A decimal string, optionally negative: digits, and a point followed by more digits if there is a fraction. */
 export const decimalPattern = /^-?\d+(\.\d+)?$/
 
+/**
+ * The amount with a minus in front when it takes money away: amounts are positive and what they are for gives the
+ * sign (spec section 3, rule 2). Putting a minus in front of the digits is not arithmetic.
+ */
+export function signedAmount(amount: DecimalString, takesAway: boolean): DecimalString {
+  return takesAway ? `-${amount}` : amount
+}
+
 /** Whether an amount is zero, read from its digits: an amount is never turned into a number, even to compare. */
 export function isZeroAmount(amount: DecimalString): boolean {
   return /^-?0+(\.0+)?$/.test(amount)
+}
+
+/** Whether an amount is below zero, read from its sign: `"-0"` is not. */
+export function isNegativeAmount(amount: DecimalString): boolean {
+  return amount.startsWith('-') && !isZeroAmount(amount)
+}
+
+/** The amount without its sign, for showing how far off something is when the words around it say which way. */
+export function unsignedAmount(amount: DecimalString): DecimalString {
+  return amount.replace(/^-/, '')
 }

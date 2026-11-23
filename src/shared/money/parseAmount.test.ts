@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatAmountForInput, parseAmount } from './parseAmount'
+import { fitsCurrency, formatAmountForInput, parseAmount, withMostDecimals } from './parseAmount'
 
 describe('parseAmount', () => {
   describe.each([
@@ -99,5 +99,24 @@ describe('formatAmountForInput', () => {
   ] as const)('writes %s in %s for %s as %s, leaving out zeros the currency does not have', (amount, locale, currency, expected, readBack) => {
     expect(formatAmountForInput(amount, locale, currency)).toBe(expected)
     expect(parseAmount(expected, locale, currency)).toBe(readBack)
+  })
+})
+
+describe('withMostDecimals', () => {
+  it.each(['en', 'vi'] as const)('picks the currency an amount in any of them can be typed in, in %s', (locale) => {
+    expect(withMostDecimals(['VND', 'USD', 'VND'], locale)).toBe('USD')
+    expect(withMostDecimals(['VND'], locale)).toBe('VND')
+    expect(withMostDecimals([], locale)).toBeUndefined()
+  })
+})
+
+describe('fitsCurrency', () => {
+  it('takes an amount with no more decimals than the currency has, however many zeros the API sent', () => {
+    expect(fitsCurrency('12.5', 'USD', 'en')).toBe(true)
+    expect(fitsCurrency('125000.00', 'VND', 'vi')).toBe(true)
+  })
+
+  it('refuses decimals the currency lacks: an amount typed in USD, then moved to a VND account', () => {
+    expect(fitsCurrency('12.5', 'VND', 'en')).toBe(false)
   })
 })

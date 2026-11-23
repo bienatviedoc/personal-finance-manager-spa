@@ -27,8 +27,56 @@ describe('profile settings', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
-    expect(api.changes).toEqual([{ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en' }])
+    expect(api.changes).toEqual([{ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en', budgetWarningPercent: 80 }])
     expect(api.profile).toMatchObject({ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en' })
+  })
+
+  it('show the budget warning threshold, and save another', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user } = renderApp('/settings/profile')
+
+    const threshold = await screen.findByRole('spinbutton', { name: 'Budget warning threshold (%)' })
+    expect(threshold).toHaveValue(80)
+    expect(threshold).toHaveAccessibleDescription('A budget’s state becomes a warning once this share of it is spent.')
+
+    await user.clear(threshold)
+    await user.type(threshold, '90')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
+    expect(api.profile.budgetWarningPercent).toBe(90)
+    expect(threshold).toHaveValue(90)
+  })
+
+  it.each(['0', '101', '12.5', ''])('refuse a budget warning threshold of "%s": it is a whole percentage from 1 to 100', async (percent) => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user } = renderApp('/settings/profile')
+
+    const threshold = await screen.findByRole('spinbutton', { name: 'Budget warning threshold (%)' })
+    await user.clear(threshold)
+    if (percent) await user.type(threshold, percent)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(threshold).toHaveAccessibleDescription(expect.stringContaining('Enter a whole percentage from 1 to 100.')))
+    expect(threshold).toBeInvalid()
+    expect(api.changes).toEqual([])
+  })
+
+  it('lock the base currency once the user has a budget, say why, and still save the other settings', async () => {
+    const api = fakeProfileApi({ locale: 'en', baseCurrencyLocked: true })
+    const { user } = renderApp('/settings/profile')
+
+    const currency = await screen.findByRole('combobox', { name: 'Base currency' })
+    expect(currency).toBeDisabled()
+    expect(currency).toHaveDisplayValue('Vietnamese Dong (VND)')
+    expect(currency).toHaveAccessibleDescription(expect.stringContaining('The base currency is locked because you have a budget'))
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Time zone' }), 'Europe/Berlin')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
+    expect(api.changes).toEqual([{ timeZone: 'Europe/Berlin', locale: 'en', budgetWarningPercent: 80 }])
+    expect(api.profile).toMatchObject({ baseCurrency: 'VND', timeZone: 'Europe/Berlin' })
   })
 
   it('are not asked for again after a new base currency is saved: the answer to the save is the profile', async () => {
@@ -73,21 +121,21 @@ describe('profile settings', () => {
   it('a language saved in the profile takes over from the browser’s', async () => {
     fakeProfileApi({ locale: 'vi' })
 
-    renderApp('/budgets')
+    renderApp('/reports')
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Báo cáo' })).toBeInTheDocument()
   })
 
   it('a language picked in the sidebar is saved to the profile', async () => {
     const api = fakeProfileApi({ locale: 'en' })
-    const { user } = renderApp('/budgets')
+    const { user } = renderApp('/reports')
 
     const nav = await screen.findByRole('navigation', { name: 'Main' })
     const sidebar = nav.parentElement!
     await user.selectOptions(within(sidebar).getByRole('combobox', { name: 'Language' }), 'Tiếng Việt')
 
     await waitFor(() => expect(api.profile.locale).toBe('vi'))
-    expect(screen.getByRole('heading', { level: 1, name: 'Ngân sách' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Báo cáo' })).toBeInTheDocument()
   })
 
   it('keep a language picked in the sidebar when the profile is saved afterwards', async () => {

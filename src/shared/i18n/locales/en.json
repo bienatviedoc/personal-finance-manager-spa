@@ -134,9 +134,15 @@
     "userMenu": {
       "signedInAs": "Signed in as {{email}}",
       "signOut": "Sign out"
+    },
+    "deletion": {
+      "requested": "You are signed out, and your profile will be deleted in 30 days. To keep it, sign in again before then.",
+      "cancelled": "Welcome back. Signing in cancelled the deletion of your profile, and nothing was erased.",
+      "dismiss": "OK"
     }
   },
   "accounts": {
+    "option": "{{name}} ({{currency}})",
     "intro": "The places your money sits, grouped by institution.",
     "add": "Add account",
     "new": "New account",
@@ -209,7 +215,7 @@
     }
   },
   "transactions": {
-    "intro": "Your income and expenses, newest first.",
+    "intro": "Your income and expenses. Filter, search and sort them to find any one.",
     "add": "Add transaction",
     "new": "New transaction",
     "editTitle": "Edit transaction",
@@ -217,19 +223,54 @@
     "noAccounts": "A transaction is recorded on an account, and you have none yet.",
     "toAccounts": "Add an account",
     "loading": "Loading transactions",
+    "loadingForm": "Loading…",
     "loadMore": "Load more",
+    "loadingMore": "Loading more transactions",
+    "filters": {
+      "title": "Filter transactions",
+      "search": "Search payee and note",
+      "from": "From",
+      "to": "To",
+      "min": "Minimum amount",
+      "max": "Maximum amount",
+      "allAccounts": "All accounts",
+      "allCategories": "All categories",
+      "allTypes": "All types",
+      "sortBy": "Sort by",
+      "sort": {
+        "dateDesc": "Newest first",
+        "dateAsc": "Oldest first",
+        "amountDesc": "Largest amount first",
+        "amountAsc": "Smallest amount first"
+      },
+      "clear": "Clear filters",
+      "noMatch": "No transactions match these filters."
+    },
+    "total": {
+      "title": "Total of these transactions",
+      "count_one": "{{count}} transaction",
+      "count_other": "{{count}} transactions",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net"
+    },
     "type": "Type",
     "types": {
       "expense": "Expense",
-      "income": "Income"
+      "income": "Income",
+      "transferOut": "Transfer out",
+      "transferIn": "Transfer in"
     },
+    "isRefund": "This is a refund",
+    "refundHint": "Money coming back from a purchase. It raises the balance and lowers what you spent in the category.",
+    "refund": "Refund",
     "account": "Account",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Amount ({{currency}})",
     "date": "Date",
     "category": "Category",
-    "chooseCategory": "Choose a category",
-    "subcategory": "{{parent}} › {{name}}",
+    "chooseCategory": "Type to find a category",
+    "noCategoryMatches": "No category matches.",
+    "categorySuggested": "Suggested from your earlier transactions with this payee.",
     "payee": "Payee",
     "note": "Note",
     "save": "Save",
@@ -243,6 +284,23 @@
     "deleteNamed": "Delete {{name}}",
     "deleteExplained": "Delete {{name}}? It leaves this list and its account's balance.",
     "deleteConfirm": "Delete",
+    "split": {
+      "start": "Split across categories",
+      "useOneCategory": "Use one category",
+      "lines": "Lines",
+      "line": "Line {{number}}",
+      "lineCategory": "Line {{number}} category",
+      "lineAmount": "Line {{number}} amount ({{currency}})",
+      "lineNote": "Line {{number}} note",
+      "addLine": "Add a line",
+      "removeLine": "Remove line {{number}}",
+      "left": "{{amount}} left to split",
+      "over": "{{amount}} more than the amount",
+      "nothingLeft": "Nothing left to split",
+      "label": "Split",
+      "transaction": "Split transaction",
+      "linesOf": "Lines of {{name}}"
+    },
     "errors": {
       "type": "Choose income or expense.",
       "account": "Choose one of your accounts that is not archived.",
@@ -254,10 +312,192 @@
       "category": "Choose a category.",
       "payeeTooLong": "Use at most 200 characters.",
       "noteTooLong": "Use at most 1000 characters.",
+      "linesLeft": "The lines must add up to the amount: {{amount}} left to split.",
+      "linesOver": "The lines must add up to the amount: they come to {{amount}} more.",
+      "lines": "Check the lines: each needs one of your categories that is not archived and an amount, and together they must add up to the amount.",
+      "refundNotExpense": "Only an expense can be a refund.",
       "stale": "This transaction was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "generic": "Something went wrong. Try again.",
       "notSaved": "The transaction was not saved.",
       "notDeleted": "The transaction was not deleted."
+    }
+  },
+  "transfers": {
+    "add": "Transfer between accounts",
+    "new": "New transfer",
+    "editTitle": "Edit transfer",
+    "mark": "Transfer",
+    "loading": "Loading the transfer",
+    "from": "From account",
+    "to": "To account",
+    "amountIn": "Amount ({{currency}})",
+    "toAmountIn": "Amount that arrives ({{currency}})",
+    "bothAmounts": "These accounts are in different currencies, so enter both amounts. No exchange rate is looked up.",
+    "date": "Date",
+    "note": "Note",
+    "save": "Save",
+    "cancel": "Cancel",
+    "deleteExplained": "Delete this transfer? Both of its legs leave this list, and both accounts get their balance back.",
+    "errors": {
+      "account": "Choose one of your accounts that is not archived.",
+      "sameAccount": "Choose a different account from the one the money leaves.",
+      "amountRequired": "Enter an amount.",
+      "amountZero": "Enter an amount greater than zero.",
+      "amountInvalid": "Enter an amount, such as {{example}}.",
+      "toAmountRequired": "Enter the amount that arrives.",
+      "date": "Enter a date.",
+      "dateInFuture": "The date cannot be in the future.",
+      "noteTooLong": "Use at most 1000 characters.",
+      "stale": "This transfer was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "notLoaded": "The transfer could not be loaded. Try again.",
+      "notSaved": "The transfer was not saved.",
+      "notDeleted": "The transfer was not deleted."
+    }
+  },
+  "attachments": {
+    "title": "Attachments",
+    "loading": "Loading attachments",
+    "none": "No attachments yet.",
+    "attach": "Attach a receipt",
+    "hint": "JPEG, PNG or PDF, up to 5 MB each.",
+    "attaching": "Attaching {{name}}…",
+    "openNamed": "Open {{name}}",
+    "remove": "Remove",
+    "removeNamed": "Remove {{name}}",
+    "removeExplained": "Remove {{name}}? Its file is deleted.",
+    "removeConfirm": "Remove",
+    "cancel": "Cancel",
+    "errors": {
+      "type": "{{name}} is not a JPEG, PNG or PDF file.",
+      "tooLarge": "{{name}} is larger than 5 MB.",
+      "empty": "{{name}} is empty.",
+      "refused": "{{name}} could not be attached. Attach a JPEG, PNG or PDF file of at most 5 MB.",
+      "notLoaded": "The attachments could not be loaded.",
+      "notAttached": "The receipt was not attached.",
+      "notOpened": "The attachment could not be opened.",
+      "notRemoved": "The attachment was not removed."
+    }
+  },
+  "recurring": {
+    "intro": "Income and expenses that repeat, such as salary, rent and subscriptions. Each is recorded for you on its due date.",
+    "list": "Recurring rules",
+    "add": "Add recurring rule",
+    "new": "New recurring rule",
+    "editTitle": "Edit recurring rule",
+    "empty": "No recurring rules yet. Add one for your salary, rent or anything else that repeats.",
+    "noAccounts": "A recurring rule records on an account, and you have none yet.",
+    "toAccounts": "Add an account",
+    "loading": "Loading recurring rules",
+    "type": "Type",
+    "types": {
+      "expense": "Expense",
+      "income": "Income"
+    },
+    "account": "Account",
+    "amountIn": "Amount ({{currency}})",
+    "category": "Category",
+    "chooseCategory": "Choose a category",
+    "noCategoryMatches": "No category matches.",
+    "frequency": "How often",
+    "frequencyOptions": {
+      "weekly": "Every week",
+      "monthly": "Every month",
+      "yearly": "Every year",
+      "everyNDays": "Every N days"
+    },
+    "frequencies": {
+      "weekly": "Every week",
+      "monthly": "Every month",
+      "yearly": "Every year"
+    },
+    "everyDays_one": "Every day",
+    "everyDays_other": "Every {{count}} days",
+    "interval": "Days between",
+    "monthEndHint": "In a month too short for the day it starts on, it is due on the last day of that month.",
+    "startDate": "Starts on",
+    "startInPastHint": "Starts in the past: every occurrence since then is recorded, each on its own due date.",
+    "endDate": "Ends on (optional)",
+    "payee": "Payee",
+    "note": "Note",
+    "save": "Save",
+    "cancel": "Cancel",
+    "nextOn": "Next on {{date}}",
+    "paused": "Paused",
+    "ended": "Ended",
+    "endedOn": "Ended on {{date}}",
+    "edit": "Edit",
+    "editNamed": "Edit {{name}}",
+    "pause": "Pause",
+    "pauseNamed": "Pause {{name}}",
+    "resume": "Resume",
+    "resumeNamed": "Resume {{name}}",
+    "delete": "Delete",
+    "deleteNamed": "Delete {{name}}",
+    "deleteExplained": "Delete {{name}}? It records nothing more. The transactions it already recorded stay.",
+    "deleteConfirm": "Delete",
+    "postedByRule": "Recorded by a recurring rule",
+    "errors": {
+      "type": "Choose income or expense.",
+      "account": "Choose one of your accounts that is not archived.",
+      "amountRequired": "Enter an amount.",
+      "amountZero": "Enter an amount greater than zero.",
+      "amountInvalid": "Enter an amount, such as {{example}}.",
+      "category": "Choose a category.",
+      "frequency": "Choose how often.",
+      "interval": "Enter a whole number of days, from 1 to 365.",
+      "startDate": "Enter a start date.",
+      "endDate": "Enter an end date, or leave it empty.",
+      "endBeforeStart": "The end date cannot be before the start date.",
+      "payeeTooLong": "Use at most 200 characters.",
+      "noteTooLong": "Use at most 1000 characters.",
+      "generic": "Something went wrong. Try again.",
+      "stale": "This recurring rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "notSaved": "The recurring rule was not saved.",
+      "notChanged": "The recurring rule was not changed.",
+      "notDeleted": "The recurring rule was not deleted."
+    }
+  },
+  "budgets": {
+    "intro": "How much you plan to spend in each expense category, month by month, against what you have spent.",
+    "byCategory": "Budgets by category",
+    "subcategoriesOf": "Subcategories of {{name}}",
+    "empty": "No budgets for this month yet. Enter an amount next to a category to set one.",
+    "totals": "Totals for {{month}}",
+    "budgeted": "Budgeted",
+    "spent": "Spent",
+    "remaining": "Remaining",
+    "amountFor": "Budget for {{name}}",
+    "noBudget": "No budget",
+    "save": "Save",
+    "saveFor": "Save the budget for {{name}}",
+    "remove": "Remove",
+    "removeFor": "Remove the budget for {{name}}",
+    "archived": "Archived",
+    "countsTowardParent": "Counts toward the budget for {{name}}.",
+    "subcategoriesBudgeted": "Its subcategories have budgets of their own this month.",
+    "progress": "{{name}}: {{percent}}% of the budget spent",
+    "progressOfZero": "{{name}}: spent against a budget of zero",
+    "percent": "{{percent}}%",
+    "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
+    "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
+    "states": {
+      "onTrack": "On track",
+      "warning": "Warning",
+      "over": "Over budget"
+    },
+    "month": {
+      "switcher": "Budget month",
+      "previous": "Previous month: {{month}}",
+      "next": "Next month: {{month}}",
+      "current": "This month"
+    },
+    "errors": {
+      "notLoaded": "The budgets could not be loaded.",
+      "amount": "Enter an amount of zero or more, such as {{example}}.",
+      "category": "This category cannot take a budget this month: a category and its subcategory cannot both have one.",
+      "stale": "This budget was changed somewhere else. The latest amount is shown; check it and save again.",
+      "notSaved": "The budget could not be saved.",
+      "notRemoved": "The budget could not be removed."
     }
   },
   "institutions": {
@@ -300,9 +540,12 @@
       "title": "Profile",
       "baseCurrency": "Base currency",
       "baseCurrencyHint": "Totals, budgets and reports are shown in this currency.",
+      "baseCurrencyLocked": "The base currency is locked because you have a budget: budgets are amounts you entered in it.",
       "timeZone": "Time zone",
       "timeZoneHint": "Decides which day “today” is, and where a budget month starts and ends.",
       "language": "Language",
+      "budgetWarning": "Budget warning threshold (%)",
+      "budgetWarningHint": "A budget’s state becomes a warning once this share of it is spent.",
       "amountExample": "Amounts will look like this:",
       "save": "Save",
       "saved": "Your settings are saved.",
@@ -310,7 +553,9 @@
       "errors": {
         "baseCurrency": "This base currency cannot be chosen.",
         "timeZone": "This time zone cannot be chosen.",
-        "locale": "This language cannot be chosen."
+        "locale": "This language cannot be chosen.",
+        "baseCurrencyLocked": "The base currency cannot change while you have a budget.",
+        "budgetWarningPercent": "Enter a whole percentage from 1 to 100."
       }
     },
     "categories": "Categories",
@@ -357,17 +602,44 @@
         "turnOff": "Turn off two-factor sign-in",
         "turnOffBody": "Signing in will take only your password. Enter it to turn off two-factor sign-in.",
         "turnOffSubmit": "Turn off",
-        "password": "Password",
         "errors": {
           "codeInvalid": "Enter the 6-digit code.",
-          "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app.",
-          "passwordRequired": "Enter your password.",
-          "passwordIncorrect": "That is not your password."
+          "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app."
         }
+      }
+    },
+    "confirmWithPassword": {
+      "password": "Password",
+      "cancel": "Cancel",
+      "failed": "Something went wrong. Try again in a little while.",
+      "errors": {
+        "required": "Enter your password.",
+        "incorrect": "That is not your password."
+      }
+    },
+    "data": {
+      "title": "Your data",
+      "export": {
+        "title": "Export your data",
+        "body": "Download everything the app holds about you as one ZIP file: your profile as JSON, and your transactions and everything else you have entered as CSV files, which any spreadsheet opens.",
+        "start": "Export my data",
+        "confirmBody": "The file holds all your financial data, and anyone who has the file can read it. Keep it somewhere safe.",
+        "submit": "Download",
+        "downloaded": "Your data is downloaded.",
+        "cancel": "Cancel",
+        "failed": "Something went wrong. Try again in a little while."
+      },
+      "delete": {
+        "title": "Delete your profile",
+        "body": "Deleting your profile signs you out everywhere at once. For 30 days you can change your mind: sign in again and the deletion is cancelled. After 30 days everything you have entered is erased for good, and nobody can bring it back.",
+        "start": "Delete my profile",
+        "confirmBody": "You will be signed out now. In 30 days your profile and everything in it is erased, unless you sign in again before then. Enter your password to go ahead.",
+        "submit": "Delete my profile"
       }
     }
   },
   "categories": {
+    "option": "{{parent}} › {{name}}",
     "title": "Categories",
     "showArchived": "Show archived categories",
     "sections": {
