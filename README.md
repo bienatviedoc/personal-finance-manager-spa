@@ -101,6 +101,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   itself and sent to the URL once the API answers, or browsers would block it as a pop-up. The file is served
   by the storage, another origin, so nothing in the content security policy changes; showing a file inside the
   app (a thumbnail) would mean adding the storage's address to the policy on purpose.
+- **A change to a transaction moves what was spent,** too, so the same hooks load the budgets again through
+  `refreshBudgets` from `@/features/budgets`. Setting the first budget locks the base currency and removing the
+  last one unlocks it, so the budget hooks load the profile again (`refreshProfile` from `@/features/settings`).
+- **A budget is set, not created or edited:** `useSetBudget(month)` sends `PUT /budgets/{month}/{categoryId}`
+  with the budget's `rowVersion` as `If-Match` when the category already has one that month and without it when
+  it has none; `useRemoveBudget(month)` removes it.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
@@ -177,6 +183,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeCategoriesApi` | `/api/v1/categories` |
 | `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
+| `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, and locks the base currency `fakeProfileApi` holds |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
@@ -270,7 +277,17 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   total (`NotConverted` on the accounts screen); never hide it or estimate the amount. Nobody enters a rate: the
   API fetches them.
 - **Changing the base currency** loads everything again (`useUpdateProfile`), because what the API converted into
-  the old one no longer holds.
+  the old one no longer holds. Once the user has a budget it is locked (`baseCurrencyLocked` from
+  `useUserSettings()`): the profile screen disables it, says why, and no longer sends it.
+- **Budgets.** `/budgets/:month?` shows one budget month (`2026-11`; without one, or with something that is not
+  a month, the month it is now in the user's time zone). Budgeted, spent, remaining, the percentage spent, the
+  state and the totals are the API's (`budgetsQuery(month)`); the SPA adds nothing up. Every expense category
+  has a row with its amount edited in place (Enter or Save; an emptied amount removes the budget). A category
+  whose parent or subcategory is budgeted that month offers no amount and says whose budget its spending counts
+  toward. Expenses that are not converted are left out of spent and counted in a note, on the row and the totals.
+- **A budget's state is never colour alone** (spec section 8): on track, warning and over budget are each said
+  in words beside an icon of their own shape, and the progress bar names its percentage; colour only adds to that.
+  The warning threshold is the user's (`budgetWarningPercent`, Settings > Profile).
 
 ## Phones, themes and installing
 
