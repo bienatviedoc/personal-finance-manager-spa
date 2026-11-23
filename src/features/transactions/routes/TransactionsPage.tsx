@@ -13,6 +13,7 @@ import { formatDate } from '@/shared/dates'
 import { useIdempotencyKey } from '@/shared/api/useIdempotencyKey'
 import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
+import { detailSeparator, joinDetails } from '@/shared/lib/details'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn } from '@/shared/lib/utils'
 import { Money, signedAmount, withMostDecimals } from '@/shared/money'
@@ -305,9 +306,7 @@ function TransactionRow({ transaction, account, category, categories, onEdit, ro
             </span>
           )}
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {[leg ? t('transfers.mark') : split ? t('transactions.split.label') : category?.name, account?.name, formatDate(transaction.date, locale)]
-              .filter(Boolean)
-              .join(' · ')}
+            {joinDetails([leg ? t('transfers.mark') : split ? t('transactions.split.label') : category?.name, account?.name, formatDate(transaction.date, locale)])}
           </p>
           {split && (
             <ul aria-label={t('transactions.split.linesOf', { name: title })} className="text-sm text-muted-foreground">
@@ -315,9 +314,9 @@ function TransactionRow({ transaction, account, category, categories, onEdit, ro
                 // Lines have no id of their own; their order is theirs.
                 <li key={index} className="break-words">
                   {findCategory(categories, line.categoryId)?.name}
-                  {separator}
+                  {detailSeparator}
                   <Money amount={line.amount} currency={transaction.currency} />
-                  {line.note && separator + line.note}
+                  {line.note && detailSeparator + line.note}
                 </li>
               ))}
             </ul>
@@ -363,9 +362,6 @@ function TransactionRow({ transaction, account, category, categories, onEdit, ro
     </li>
   )
 }
-
-/** What stands between the parts of one line of details. */
-const separator = ' · '
 
 /** Rows standing in for the list while it loads, or for its next page under the rows already there. */
 function ListSkeleton({ label }: { label: string }) {

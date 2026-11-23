@@ -9,6 +9,7 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
+import { joinDetails } from '@/shared/lib/details'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn } from '@/shared/lib/utils'
 import { Money, signedAmount } from '@/shared/money'
@@ -154,7 +155,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {[category?.name, account?.name, frequency].filter(Boolean).join(' · ')}
+            {joinDetails([category?.name, account?.name, frequency])}
           </p>
           <p data-testid="next" className="text-sm text-muted-foreground">
             {nextText(rule, t, (date) => formatDate(date, locale))}
