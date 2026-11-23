@@ -108,6 +108,39 @@ describe('signing in', () => {
   })
 })
 
+describe('signing in as a user who asked to be deleted', () => {
+  const deactivated = () => fakeAuthApi({ users: [{ ...testUser, password: testPassword, verified: true, deactivated: true }] })
+
+  it('cancels the deletion and says so on the screen they land on, until they dismiss it', async () => {
+    const api = deactivated()
+    const { user } = renderApp('/budgets')
+
+    await user.type(await screen.findByLabelText('Email'), testUser.email)
+    await user.type(screen.getByLabelText('Password'), testPassword)
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+    expect(api.users[0]?.deactivated).toBe(false)
+    expect(screen.getByRole('status')).toHaveTextContent('Welcome back. Signing in cancelled the deletion of your profile, and nothing was erased.')
+
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('says nothing of the kind to a user who never asked', async () => {
+    fakeAuthApi()
+    const { user } = renderApp('/budgets')
+
+    await user.type(await screen.findByLabelText('Email'), testUser.email)
+    await user.type(screen.getByLabelText('Password'), testPassword)
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Budgets' })).toBeInTheDocument()
+    expect(screen.queryByText(/cancelled the deletion/)).not.toBeInTheDocument()
+  })
+})
+
 describe('signing in with two factors', () => {
   const twoFactor = () => ({ code: '123456', recoveryCodes: ['AAAAA-BBBBB', 'CCCCC-DDDDD'] })
   const withTwoFactor = () => fakeAuthApi({ users: [{ ...testUser, password: testPassword, verified: true, twoFactor: twoFactor() }] })

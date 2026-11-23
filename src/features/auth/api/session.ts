@@ -1,6 +1,6 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query'
 import { redirect, type LoaderFunctionArgs } from 'react-router'
-import { api } from '@/shared/api/client'
+import { api, forgetAntiforgeryToken } from '@/shared/api/client'
 
 /** The signed-in user, or null when nobody is signed in. */
 export const signedInUserQuery = queryOptions({
@@ -12,6 +12,16 @@ export const signedInUserQuery = queryOptions({
     return data
   },
 })
+
+/**
+ * For when the session has ended on purpose (signing out, or deleting the user): nothing of the user may
+ * linger in the cache, and the anti-forgery token that went with their session is dropped.
+ */
+export function forgetSignedInUser(queryClient: QueryClient) {
+  forgetAntiforgeryToken()
+  queryClient.clear()
+  queryClient.setQueryData(signedInUserQuery.queryKey, null)
+}
 
 /**
  * A loader for screens that need a signed-in user. Anyone else is sent to sign in, which brings

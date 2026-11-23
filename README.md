@@ -78,6 +78,13 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   (a QR code drawn in the page from the API's `otpauth://` link, confirmed with a code), shows the recovery codes
   the one time the API hands them over, and changes the password. Use the glossary's words: two-factor sign-in,
   recovery code.
+- **Export and deleting the user** are in Settings > Your data. Each asks first. The export is fetched through
+  the client and handed to the browser to save (`saveFile`), under the name the API gives it. Deleting takes the
+  password (`ConfirmWithPassword`, shared with the two-factor settings), forgets everything of the user the way
+  signing out does (`forgetSignedInUser`) and lands on the sign-in screen, which says they have 30 days to
+  cancel by signing in again. When a sign-in does cancel a deletion the API says so, and the shell shows a
+  notice until the user dismisses it. The interface says "delete your profile", never "account": an account is
+  where money sits (see the glossary), and a test checks both languages.
 - **Lockout and rate limiting are the API's.** A locked user is answered like a wrong password, so the sign-in
   screen warns about the lock beside that message; a 429 becomes "too many attempts".
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -138,9 +145,10 @@ in its own file under `src/test/`, keeping state across requests and following t
 
 | Fake | Stands in for |
 | --- | --- |
-| `fakeAuthApi` | Registering, verifying, signing in (with two factors, lockout and the rate limit) and out, password reset (`/api/v1/auth/...`) |
+| `fakeAuthApi` | Registering, verifying, signing in (with two factors, lockout, the rate limit and a deletion to cancel) and out, password reset (`/api/v1/auth/...`) |
 | `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
 | `fakeSecurityApi` | Changing the password and two-factor sign-in (`/api/v1/me/password`, `/api/v1/me/two-factor/...`) |
+| `fakeDataApi` | The full export and deleting the user (`/api/v1/export/all.zip`, `/api/v1/me/deletion`) |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
