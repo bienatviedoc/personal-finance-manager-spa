@@ -3,11 +3,12 @@ import type { ParseKeys } from 'i18next'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { TextField } from '@/shared/components/TextField'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
+import { isDeletionRequested } from '../api/deletion'
 import { type SignInOutcome, useSignIn } from '../api/signIn'
 import { NotVerifiedNotice } from '../components/NotVerifiedNotice'
 import { TwoFactorStep } from '../components/TwoFactorStep'
@@ -26,6 +27,8 @@ export function SignInPage() {
   useDocumentTitle(t('screens.signIn'))
   const navigate = useNavigate()
   const [search] = useSearchParams()
+  // Arriving from deleting their user: said until they try to sign in.
+  const justDeleted = isDeletionRequested(useLocation().state)
   const signIn = useSignIn()
   const [outcome, setOutcome] = useState<{ result: SignInOutcome; email: string }>()
   // Kept in memory only while the code is asked for: the API takes the email, password and code together.
@@ -77,6 +80,11 @@ export function SignInPage() {
     <section className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('screens.signIn')}</h1>
 
+      {justDeleted && !outcome && (
+        <p role="status" className="rounded-md border p-3 text-sm">
+          {t('auth.deletion.requested')}
+        </p>
+      )}
       {outcome?.result === 'email-not-verified' && <NotVerifiedNotice email={outcome.email} />}
       {outcome?.result === 'wrong-credentials' && <ErrorMessage>{t('auth.errors.wrongCredentials')} {t('auth.errors.lockWarning')}</ErrorMessage>}
       {failures}

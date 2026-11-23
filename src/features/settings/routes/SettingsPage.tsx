@@ -7,6 +7,7 @@ const sections: { to: string; label: ParseKeys }[] = [
   { to: 'profile', label: 'settings.profile.title' },
   { to: 'categories', label: 'settings.categories' },
   { to: 'security', label: 'settings.security.title' },
+  { to: 'data', label: 'settings.data.title' },
 ]
 
 /** The settings screen: its sections, and the one open below them. */
