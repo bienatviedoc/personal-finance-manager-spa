@@ -26,6 +26,7 @@ import {
   type Transaction,
   type TransactionDraft,
 } from '../api/transactions'
+import { Attachments } from '../components/Attachments'
 import { TransactionForm } from '../components/TransactionForm'
 
 /** What the drawer is open for: recording a transaction, or editing this one, as it was when the drawer opened. */
@@ -178,6 +179,7 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
         onSaved={onClose}
         onCancel={onClose}
       />
+      <Attachments transactionId={transaction.id} />
       <FailureToast failed={edit.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={edit.reset} />
     </>
   )

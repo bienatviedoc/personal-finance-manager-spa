@@ -260,6 +260,30 @@
       "notDeleted": "The transaction was not deleted."
     }
   },
+  "attachments": {
+    "title": "Attachments",
+    "loading": "Loading attachments",
+    "none": "No attachments yet.",
+    "attach": "Attach a receipt",
+    "hint": "JPEG, PNG or PDF, up to 5 MB each.",
+    "attaching": "Attaching {{name}}…",
+    "openNamed": "Open {{name}}",
+    "remove": "Remove",
+    "removeNamed": "Remove {{name}}",
+    "removeExplained": "Remove {{name}}? Its file is deleted.",
+    "removeConfirm": "Remove",
+    "cancel": "Cancel",
+    "errors": {
+      "type": "{{name}} is not a JPEG, PNG or PDF file.",
+      "tooLarge": "{{name}} is larger than 5 MB.",
+      "empty": "{{name}} is empty.",
+      "refused": "{{name}} could not be attached. Attach a JPEG, PNG or PDF file of at most 5 MB.",
+      "notLoaded": "The attachments could not be loaded.",
+      "notAttached": "The receipt was not attached.",
+      "notOpened": "The attachment could not be opened.",
+      "notRemoved": "The attachment was not removed."
+    }
+  },
   "institutions": {
     "backToAccounts": "Back to accounts",
     "intro": "The banks and wallet providers you hold money with.",
