@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { choose, offeredBy } from '@/test/combobox'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { defaultTestCategories, fakeCategoriesApi, type FakeCategory } from '@/test/fakeCategoriesApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
@@ -99,7 +100,7 @@ describe('transactions', () => {
     await user.type(drawer.getByLabelText('Amount (VND)'), '125,000')
     await user.clear(drawer.getByLabelText('Date'))
     await user.type(drawer.getByLabelText('Date'), '2026-11-02')
-    await user.selectOptions(drawer.getByLabelText('Category'), drawer.getByRole('option', { name: 'Food & drink › Groceries' }))
+    await choose(user, drawer.getByLabelText('Category'), 'Food & drink › Groceries')
     await user.type(drawer.getByLabelText('Payee'), 'Co.opmart')
     await user.type(drawer.getByLabelText('Note'), 'weekly shop')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
@@ -120,14 +121,14 @@ describe('transactions', () => {
     const { user } = renderApp('/transactions')
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
     const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
-    const offered = () => within(drawer.getByLabelText('Category')).getAllByRole('option').map((option) => option.textContent)
+    const offered = () => offeredBy(user, drawer.getByLabelText('Category'))
 
-    expect(offered()).toEqual(['Choose a category', 'Food & drink', 'Food & drink › Groceries', 'Food & drink › Eating out', 'Transport'])
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    expect(await offered()).toEqual(['Food & drink', 'Food & drink › Groceries', 'Food & drink › Eating out', 'Transport'])
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     await user.click(drawer.getByRole('radio', { name: 'Income' }))
 
-    expect(offered()).toEqual(['Choose a category', 'Salary', 'Investments', 'Investments › Interest'])
-    expect(drawer.getByLabelText('Category')).toHaveDisplayValue('Choose a category')
+    expect(drawer.getByLabelText('Category')).toHaveValue('')
+    expect(await offered()).toEqual(['Salary', 'Investments', 'Investments › Interest'])
   })
 
   it('can only be recorded on accounts and categories that are not archived', async () => {
@@ -141,7 +142,7 @@ describe('transactions', () => {
     const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
 
     expect(within(drawer.getByLabelText('Account')).getAllByRole('option').map((option) => option.textContent)).toEqual(['Everyday (VND)'])
-    expect(within(drawer.getByLabelText('Category')).queryByRole('option', { name: 'Old habit' })).not.toBeInTheDocument()
+    expect(await offeredBy(user, drawer.getByLabelText('Category'))).not.toContain('Old habit')
   })
 
   it('take their amount in the currency of the chosen account', async () => {
@@ -152,7 +153,7 @@ describe('transactions', () => {
 
     await user.selectOptions(drawer.getByLabelText('Account'), 'Savings in dollars (USD)')
     await user.type(drawer.getByLabelText('Amount (USD)'), '12.5')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     // Dollars and cents do not fit an account in đồng, which has no decimals.
     await user.selectOptions(drawer.getByLabelText('Account'), 'Everyday (VND)')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
@@ -189,7 +190,7 @@ describe('transactions', () => {
 
     await user.clear(drawer.getByLabelText('Amount (VND)'))
     await user.type(drawer.getByLabelText('Amount (VND)'), '5')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     await user.clear(drawer.getByLabelText('Date'))
     await user.type(drawer.getByLabelText('Date'), '2999-01-01')
     await user.type(drawer.getByLabelText('Payee'), 'p'.repeat(201))
@@ -207,7 +208,7 @@ describe('transactions', () => {
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
     const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
     await user.type(drawer.getByLabelText('Amount (VND)'), '5')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     // Archived on another device while this drawer is open.
     categoriesApi.categories.find((category) => category.id === 'c-transport')!.isArchived = true
 
@@ -225,7 +226,7 @@ describe('transactions', () => {
     const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
     await user.click(drawer.getByRole('radio', { name: 'Income' }))
     await user.type(drawer.getByLabelText('Amount (VND)'), '15,000,000')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Salary')
+    await choose(user, drawer.getByLabelText('Category'), 'Salary')
     await user.type(drawer.getByLabelText('Payee'), 'Acme')
     const answer = transactionsApi.hold()
 
@@ -248,7 +249,7 @@ describe('transactions', () => {
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
     const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
     await user.type(drawer.getByLabelText('Amount (VND)'), '5')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     transactionsApi.failNext()
 
     await user.click(drawer.getByRole('button', { name: 'Save' }))
@@ -261,7 +262,7 @@ describe('transactions', () => {
     await waitFor(() => expect(transactionsApi.transactions).toHaveLength(1))
     expect(drawer.queryByText('The transaction was not saved.')).not.toBeInTheDocument()
     await user.type(drawer.getByLabelText('Amount (VND)'), '7')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(transactionsApi.transactions).toHaveLength(2))
 
@@ -278,7 +279,7 @@ describe('transactions', () => {
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
     const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
     await user.type(drawer.getByLabelText('Amount (VND)'), '5')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     transactionsApi.failNext()
     await user.click(drawer.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(transactionsApi.idempotencyKeys).toHaveLength(1))
@@ -302,7 +303,7 @@ describe('transactions', () => {
     await user.type(drawer.getByLabelText('Amount (USD)'), '12.5')
     await user.clear(drawer.getByLabelText('Date'))
     await user.type(drawer.getByLabelText('Date'), '2026-11-02')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     await user.type(drawer.getByLabelText('Payee'), 'Grab{Enter}')
 
     expect(await drawer.findByText('Saved. Add another, or close when you are done.')).toBeInTheDocument()
@@ -475,7 +476,7 @@ describe('transactions', () => {
     await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
     const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
     await user.type(drawer.getByLabelText('Amount (VND)'), '250,000')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
     await drawer.findByText('Saved. Add another, or close when you are done.')
     await user.click(drawer.getByRole('button', { name: 'Done' }))
