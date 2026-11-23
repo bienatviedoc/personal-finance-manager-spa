@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { X } from 'lucide-react'
 import { useCallback, useEffect, useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -7,10 +6,8 @@ import { accountsQuery, type Account } from '@/features/accounts'
 import { categoriesQuery, type Category } from '@/features/categories'
 import { useIdempotencyKey } from '@/shared/api/useIdempotencyKey'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
+import { Drawer } from '@/shared/components/Drawer'
 import { FailureToast } from '@/shared/components/FailureToast'
-import { cn, focusRing } from '@/shared/lib/utils'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { lastAccountQuery, useCreateTransaction, type TransactionDraft } from '../api/transactions'
 import { QuickAddContext } from './quickAddContext'
 import { TransactionForm } from './TransactionForm'
@@ -29,23 +26,9 @@ export function QuickAdd({ children }: { children: ReactNode }) {
   return (
     <QuickAddContext value={show}>
       {children}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent
-          // The sheet's own close button has no translated name; ours does.
-          showCloseButton={false}
-          aria-describedby={undefined}
-          onEscapeKeyDown={escapeClosesPickerFirst}
-          className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
-        >
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">{t('transactions.new')}</SheetTitle>
-            <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
-              <X aria-hidden className="size-5" />
-            </SheetClose>
-          </div>
-          <NewTransaction onClose={() => setOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      <Drawer open={open} onOpenChange={setOpen} title={t('transactions.new')}>
+        <NewTransaction onClose={() => setOpen(false)} />
+      </Drawer>
     </QuickAddContext>
   )
 }

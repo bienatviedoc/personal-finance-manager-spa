@@ -1,19 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
-import { X } from 'lucide-react'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, findCategory, type Category } from '@/features/categories'
+import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { cn, focusRing } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import {
   recurringRulesQuery,
   useCreateRecurringRule,
@@ -87,25 +86,12 @@ export function RecurringPage() {
         </ul>
       )}
 
-      <Sheet open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)}>
-        <SheetContent
-          // The sheet's own close button has no translated name; ours does.
-          showCloseButton={false}
-          aria-describedby={undefined}
-          className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
-        >
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">{editing ? t('recurring.editTitle') : t('recurring.new')}</SheetTitle>
-            <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
-              <X aria-hidden className="size-5" />
-            </SheetClose>
-          </div>
+      <Drawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} title={editing ? t('recurring.editTitle') : t('recurring.new')}>
           {loaded && drawer && 'adding' in drawer && (
             <AddRule accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
           {loaded && editing && <EditRule rule={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />}
-        </SheetContent>
-      </Sheet>
+      </Drawer>
     </section>
   )
 }

@@ -7,18 +7,17 @@ import { CategoryBadge, categoriesQuery, findCategory, type Category } from '@/f
 import { RecurringRuleLink } from '@/features/recurring'
 import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
+import { Drawer } from '@/shared/components/Drawer'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { useIdempotencyKey } from '@/shared/api/useIdempotencyKey'
 import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { cn, focusRing } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
 import { Money, withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
-import { ArrowRightLeft, X } from 'lucide-react'
+import { ArrowRightLeft } from 'lucide-react'
 import {
   isPending,
   isTransferLeg,
@@ -165,20 +164,7 @@ export function TransactionsPage() {
         </Button>
       )}
 
-      <Sheet open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)}>
-        <SheetContent
-          // The sheet's own close button has no translated name; ours does.
-          showCloseButton={false}
-          aria-describedby={undefined}
-          onEscapeKeyDown={escapeClosesPickerFirst}
-          className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
-        >
-          <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">{drawerTitle}</SheetTitle>
-            <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
-              <X aria-hidden className="size-5" />
-            </SheetClose>
-          </div>
+      <Drawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} title={drawerTitle}>
           {canOpenDrawer && editing && (
             <EditTransaction transaction={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
@@ -186,8 +172,7 @@ export function TransactionsPage() {
           {canOpenDrawer && drawer && 'transferId' in drawer && (
             <OpenTransfer id={drawer.transferId} accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />
           )}
-        </SheetContent>
-      </Sheet>
+      </Drawer>
     </section>
   )
 }
