@@ -28,16 +28,23 @@ type Options = {
  * that pass every filter sent, newest date first and, within a date, last recorded first unless `sort` and
  * `order` say otherwise, a page at a time, with the total of all that pass; the currency is the account's; the amount is above zero with no more
  * decimals than the currency has; the date is not in the future; income takes an income category and an
- * expense an expense category; archived accounts and categories take no new transactions; a POST sent
+ * expense an expense category; only an expense can be a refund, which raises the balance; archived accounts
+ * and categories take no new transactions; a transaction has one line with its category and whole amount, or
+ * is split across the `lines` sent in place of `categoryId` (at least two, each held to the rules of a
+ * category and an amount, and together exactly the amount; what is wrong with one is refused as
+ * `lines[1].categoryId`); a POST sent
  * again with the same `Idempotency-Key` records nothing, and one with that key and a different body is a 422; an edit must name the row version in `If-Match`
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
- * account a transaction is on follows it.
+ * account a transaction is on follows it. Quick add answers the account, not archived, recorded on last, and the
+ * category, not archived, most often used for a payee (see the API's QuickAddTests).
  */
 export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
   let recorded = 0
   const state = {
     transactions: transactions.map((transaction, index): Transaction => {
       const account = accounts.find((candidate) => candidate.id === transaction.accountId) ?? accounts[0]
+      const categoryId =
+        transaction.categoryId ?? transaction.lines?.[0]?.categoryId ?? categories.find((category) => category.kind === (transaction.type ?? 'expense'))?.id ?? ''
       return {
         id: `01970000-0000-7000-8000-3000000000${String(index).padStart(2, '0')}`,
         type: 'expense',
@@ -45,11 +52,14 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         amount: '1.00',
         currency: account?.currency ?? 'VND',
         date: '2026-11-02',
-        categoryId: categories.find((category) => category.kind === (transaction.type ?? 'expense'))?.id ?? '',
         payee: null,
         note: null,
         rowVersion: '1',
+        // One line with the whole amount, unless the test seeds a split.
+        lines: [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
+        isRefund: false,
         ...transaction,
+        categoryId,
       }
     }),
     /** The `Idempotency-Key` header of every POST, in the order they arrived. */
@@ -92,7 +102,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   const order = new Map(state.transactions.map((transaction, index) => [transaction.id, index - state.transactions.length]))
 
   const find = (id: unknown) => state.transactions.find((transaction) => transaction.id === id)
-  const signed = (transaction: Transaction) => (transaction.type === 'income' ? 1 : -1) * Number(transaction.amount)
+  // The type gives the sign, except that a refund raises the balance.
+  const signed = (transaction: Transaction) => (transaction.type === 'income' || transaction.isRefund ? 1 : -1) * Number(transaction.amount)
   const move = (transaction: Transaction, direction: 1 | -1) => {
     const account = accounts.find((candidate) => candidate.id === transaction.accountId)
     if (account) account.balance = text(Number(account.balance) + direction * signed(transaction))
@@ -118,12 +129,12 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     return errors
   }
 
-  /** Whether a transaction passes every filter sent: both ends of a range included, a category with its subcategories, the search anywhere in the payee or note. */
+  /** Whether a transaction passes every filter sent: both ends of a range included, a category with its subcategories through any line of a split, the search anywhere in the payee or note. */
   function passes(query: URLSearchParams) {
     const filter = (name: string) => query.get(name) ?? undefined
     const search = filter('q')?.trim().toLowerCase()
     const inCategory = (transaction: Transaction, id: string) =>
-      transaction.categoryId === id || categories.find((category) => category.id === transaction.categoryId)?.parentId === id
+      transaction.lines.some((line) => line.categoryId === id || categories.find((category) => category.id === line.categoryId)?.parentId === id)
     return (transaction: Transaction) =>
       (filter('from') === undefined || transaction.date >= filter('from')!) &&
       (filter('to') === undefined || transaction.date <= filter('to')!) &&
@@ -135,7 +146,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       (!search || [transaction.payee, transaction.note].some((field) => field?.toLowerCase().includes(search)))
   }
 
-  /** What the transactions come to: how many, and income, expenses and net in each currency, never added across currencies. */
+  /** What the transactions come to: how many, and income, expenses (minus refunds) and net in each currency, never added across currencies. */
   function totalOf(passing: Transaction[]): TransactionList['total'] {
     const sum = (of: Transaction[]) => text(of.reduce((total, transaction) => total + Number(transaction.amount), 0))
     return {
@@ -146,7 +157,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         .map((inCurrency) => ({
           currency: inCurrency[0]!.currency,
           income: sum(inCurrency.filter((transaction) => transaction.type === 'income')),
-          expenses: sum(inCurrency.filter((transaction) => transaction.type === 'expense')),
+          expenses: text(inCurrency.filter((transaction) => transaction.type === 'expense').reduce((total, transaction) => total - signed(transaction), 0)),
           net: text(inCurrency.reduce((total, transaction) => total + signed(transaction), 0)),
         })),
     }
@@ -160,7 +171,14 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (!body.accountId) errors.accountId = ['This field is required.']
     if (!/^\d+(\.\d+)?$/.test(body.amount ?? '') || Number(body.amount) <= 0) errors.amount = ['Enter an amount greater than zero.']
     if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date ?? '')) errors.date = ['Enter a date as YYYY-MM-DD.']
-    if (!body.categoryId) errors.categoryId = ['This field is required.']
+    const split = body.lines ?? null
+    if (split ? body.categoryId : !body.categoryId) errors.categoryId = [split ? 'Leave out the category of a split.' : 'This field is required.']
+    if (split && split.length < 2) errors.lines = ['Split a transaction across 2 to 50 lines.']
+    split?.forEach((line, index) => {
+      if (!line.categoryId) errors[`lines[${index}].categoryId`] = ['This field is required.']
+      if (!/^\d+(\.\d+)?$/.test(line.amount ?? '') || Number(line.amount) <= 0) errors[`lines[${index}].amount`] = ['Enter an amount greater than zero.']
+      if ((line.note?.trim().length ?? 0) > 1000) errors[`lines[${index}].note`] = ['Enter a note of at most 1000 characters.']
+    })
     if ((body.payee?.trim().length ?? 0) > 200) errors.payee = ['Enter a payee of at most 200 characters.']
     if ((body.note?.trim().length ?? 0) > 1000) errors.note = ['Enter a note of at most 1000 characters.']
     if (Object.keys(errors).length > 0) return { refused: problem(400, { errors }) }
@@ -170,14 +188,26 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (!account || (account.isArchived && account.id !== current?.accountId)) {
       return invalid('accountId', 'Choose one of your accounts that is not archived.')
     }
-    const category = categories.find((candidate) => candidate.id === body.categoryId)
-    if (!category || (category.isArchived && category.id !== current?.categoryId)) {
-      return invalid('categoryId', 'Choose one of your categories that is not archived.')
-    }
-    const fraction = (body.amount!.split('.')[1] ?? '').replace(/0+$/, '')
-    if (fraction.length > decimals[account.currency]!) return invalid('amount', 'The amount has more decimals than its currency.')
+    const fits = (amount: string) => (amount.split('.')[1] ?? '').replace(/0+$/, '').length <= decimals[account.currency]!
+    if (!fits(body.amount!)) return invalid('amount', 'The amount has more decimals than its currency.')
     if (body.date! > today) return invalid('date', "A transaction's date cannot be in the future.")
-    if (category.kind !== body.type) return invalid('categoryId', 'An income transaction takes an income category.')
+    // A transaction that is not split is held to the same rules as one line with its category and whole amount.
+    const entered = split ?? [{ categoryId: body.categoryId!, amount: body.amount!, note: null }]
+    for (const [index, line] of entered.entries()) {
+      const at = split ? `lines[${index}].` : ''
+      const category = categories.find((candidate) => candidate.id === line.categoryId)
+      if (!category || (category.isArchived && !current?.lines.some((has) => has.categoryId === category.id))) {
+        return invalid(`${at}categoryId`, 'Choose one of your categories that is not archived.')
+      }
+      if (category.kind !== body.type) return invalid(`${at}categoryId`, 'An income transaction takes an income category.')
+      if (!fits(line.amount)) return invalid(`${at}amount`, 'The amount has more decimals than its currency.')
+    }
+    // Test amounts are small, so numbers add them up exactly enough: to the cent.
+    const cents = (amount: string) => Math.round(Number(amount) * 100)
+    if (entered.reduce((left, line) => left - cents(line.amount), cents(body.amount!)) !== 0) {
+      return invalid('lines', "The lines of a split sum to the transaction's amount.")
+    }
+    if (body.isRefund && body.type !== 'expense') return invalid('isRefund', 'Only an expense can be a refund.')
 
     return {
       fields: {
@@ -186,9 +216,11 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         amount: text(Number(body.amount)),
         currency: account.currency,
         date: body.date!,
-        categoryId: category.id,
+        categoryId: entered[0]!.categoryId,
         payee: body.payee?.trim() || null,
         note: body.note?.trim() || null,
+        lines: entered.map((line) => ({ categoryId: line.categoryId, amount: text(Number(line.amount)), note: line.note?.trim() || null })),
+        isRefund: body.isRefund ?? false,
       },
     }
   }
@@ -228,6 +260,26 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
       return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null, total: totalOf(passing) })
+    }),
+    // Before the handler for one transaction, which would take "quick-add" for an id.
+    http.get(apiUrl('/api/v1/transactions/quick-add'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const type = query.get('type')
+      const payee = query.get('payee')?.trim().toLowerCase()
+      const lastFirst = state.transactions.toSorted((a, b) => order.get(b.id)! - order.get(a.id)!)
+      const isArchived = (id: string) => accounts.find((account) => account.id === id)?.isArchived ?? true
+      // How often each category was used for the payee; the first counted is the one used last.
+      const times = new Map<string, number>()
+      for (const transaction of lastFirst) {
+        const category = categories.find((candidate) => candidate.id === transaction.categoryId)
+        if (!payee || transaction.payee?.toLowerCase() !== payee || (type && transaction.type !== type) || !category || category.isArchived) continue
+        times.set(transaction.categoryId, (times.get(transaction.categoryId) ?? 0) + 1)
+      }
+      const mostUsed = [...times].toSorted(([, a], [, b]) => b - a)[0]
+      return HttpResponse.json({
+        lastAccountId: lastFirst.find((transaction) => !isArchived(transaction.accountId))?.accountId ?? null,
+        suggestedCategoryId: mostUsed?.[0] ?? null,
+      })
     }),
     http.get(apiUrl('/api/v1/transactions/:id'), ({ params }) => {
       const found = find(params.id)

@@ -32,8 +32,11 @@ function fakeApis(transactions: Seeded = household) {
 
 /** Who each listed transaction was paid to or by, in the order the list shows them. */
 function payees() {
-  return within(screen.getByRole('list', { name: 'Transactions' }))
+  const list = screen.getByRole('list', { name: 'Transactions' })
+  return within(list)
     .getAllByRole('listitem')
+    // Its own rows, not the lines listed inside a split.
+    .filter((item) => item.parentElement === list)
     .map((item) => within(item).getByRole('heading').textContent)
 }
 
@@ -173,6 +176,31 @@ describe('the transaction list', () => {
 
     await user.selectOptions(filterBar().getByLabelText('Account'), 'Savings in dollars')
     await waitFor(() => expect(total()).toBe('1 transaction' + 'USD' + 'Income$0.00' + 'Expenses$39.50' + 'Net-$39.50'))
+  })
+
+  it('finds a split by the category of any of its lines, and takes a refund off the expenses in the total', async () => {
+    fakeApis([
+      {
+        accountId: everyday,
+        amount: '500000.00',
+        payee: 'Aeon',
+        lines: [
+          { categoryId: 'c-groceries', amount: '320000.00', note: null },
+          { categoryId: 'c-transport', amount: '180000.00', note: null },
+        ],
+      },
+      { accountId: everyday, amount: '90000.00', payee: 'Grab', categoryId: 'c-transport' },
+      { accountId: everyday, amount: '40000.00', payee: 'Grab refund', categoryId: 'c-transport', isRefund: true },
+      { accountId: everyday, amount: '70000.00', payee: 'Phở Thìn', categoryId: 'c-eating-out' },
+    ])
+    const { user } = renderApp('/transactions')
+    await listShown()
+
+    await user.selectOptions(filterBar().getByLabelText('Category'), filterBar().getByRole('option', { name: 'Transport' }))
+
+    await waitFor(() => expect(payees()).toEqual(['Grab refund', 'Grab', 'Aeon']))
+    // The split counts whole, and the refund is money back: 500,000 + 90,000 - 40,000.
+    expect(total()).toBe('3 transactions' + 'VND' + 'Income₫0' + 'Expenses₫550,000' + 'Net-₫550,000')
   })
 
   it('says so when nothing passes the filters, and clears them all at once', async () => {

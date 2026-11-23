@@ -1648,7 +1648,7 @@
         "tags": [
           "Transactions"
         ],
-        "description": "Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422.",
+        "description": "Records income or an expense on an account, in the account's currency; the account's balance follows at once. An expense flagged isRefund is a refund and raises the balance. Send lines in place of categoryId to split it across categories: lines that do not sum exactly to the amount are refused. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422.",
         "operationId": "CreateTransaction",
         "parameters": [
           {
@@ -1702,6 +1702,63 @@
           },
           "422": {
             "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/quick-add": {
+      "get": {
+        "tags": [
+          "Transactions"
+        ],
+        "description": "What quick add starts a new transaction from: the account, not archived, that the user recorded a transaction on last, and the category, not archived, they most often gave the payee. Send the payee as typed; it suggests a category once it is, in any case, a payee the user has used before.",
+        "operationId": "GetQuickAdd",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "payee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuickAddResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2620,6 +2677,29 @@
           }
         }
       },
+      "QuickAddResponse": {
+        "required": [
+          "lastAccountId",
+          "suggestedCategoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "lastAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "suggestedCategoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "RecoveryCodesResponse": {
         "required": [
           "recoveryCodes"
@@ -2724,6 +2804,51 @@
           }
         }
       },
+      "TransactionLineRequest": {
+        "required": [
+          "categoryId",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TransactionLineResponse": {
+        "required": [
+          "categoryId",
+          "amount",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TransactionListResponse": {
         "required": [
           "items",
@@ -2754,8 +2879,7 @@
           "type",
           "accountId",
           "amount",
-          "date",
-          "categoryId"
+          "date"
         ],
         "type": "object",
         "properties": {
@@ -2773,7 +2897,10 @@
             "type": "string"
           },
           "categoryId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "payee": {
@@ -2787,6 +2914,19 @@
               "null",
               "string"
             ]
+          },
+          "isRefund": {
+            "type": "boolean",
+            "default": false
+          },
+          "lines": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TransactionLineRequest"
+            }
           }
         }
       },
@@ -2801,7 +2941,9 @@
           "categoryId",
           "payee",
           "note",
-          "rowVersion"
+          "rowVersion",
+          "isRefund",
+          "lines"
         ],
         "type": "object",
         "properties": {
@@ -2844,6 +2986,15 @@
           },
           "rowVersion": {
             "type": "string"
+          },
+          "isRefund": {
+            "type": "boolean"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionLineResponse"
+            }
           }
         }
       },

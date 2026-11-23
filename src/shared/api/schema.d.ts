@@ -360,8 +360,25 @@ export interface paths {
         /** @description The user's transactions that pass every filter sent, a page at a time, with the total of all that pass, whichever page is asked for. Newest date first and, within a date, last recorded first, unless sort and order say otherwise. A deleted transaction is never listed or counted. */
         get: operations["ListTransactions"];
         put?: never;
-        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
+        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. An expense flagged isRefund is a refund and raises the balance. Send lines in place of categoryId to split it across categories: lines that do not sum exactly to the amount are refused. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
         post: operations["CreateTransaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transactions/quick-add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What quick add starts a new transaction from: the account, not archived, that the user recorded a transaction on last, and the category, not archived, they most often gave the payee. Send the payee as typed; it suggests a category once it is, in any case, a payee the user has used before. */
+        get: operations["GetQuickAdd"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -560,6 +577,12 @@ export interface components {
             timeZone: string;
             locale: null | components["schemas"]["Locale"];
         };
+        QuickAddResponse: {
+            /** Format: uuid */
+            lastAccountId: null | string;
+            /** Format: uuid */
+            suggestedCategoryId: null | string;
+        };
         RecoveryCodesResponse: {
             recoveryCodes: string[];
         };
@@ -586,6 +609,18 @@ export interface components {
             twoFactorCode?: null | string;
             recoveryCode?: null | string;
         };
+        TransactionLineRequest: {
+            /** Format: uuid */
+            categoryId: string;
+            amount: string;
+            note?: null | string;
+        };
+        TransactionLineResponse: {
+            /** Format: uuid */
+            categoryId: string;
+            amount: string;
+            note: null | string;
+        };
         TransactionListResponse: {
             items: components["schemas"]["TransactionResponse"][];
             nextCursor: null | string;
@@ -598,9 +633,12 @@ export interface components {
             amount: string;
             date: string;
             /** Format: uuid */
-            categoryId: string;
+            categoryId?: null | string;
             payee?: null | string;
             note?: null | string;
+            /** @default false */
+            isRefund: boolean;
+            lines?: null | components["schemas"]["TransactionLineRequest"][];
         };
         TransactionResponse: {
             /** Format: uuid */
@@ -617,6 +655,8 @@ export interface components {
             payee: null | string;
             note: null | string;
             rowVersion: string;
+            isRefund: boolean;
+            lines: components["schemas"]["TransactionLineResponse"][];
         };
         /** @enum {unknown} */
         TransactionType: "income" | "expense";
@@ -2053,6 +2093,47 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetQuickAdd: {
+        parameters: {
+            query?: {
+                type?: string;
+                payee?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickAddResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

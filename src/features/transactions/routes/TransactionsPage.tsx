@@ -1,11 +1,12 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { isStale } from '@/shared/api/versionedSave'
@@ -18,33 +19,35 @@ import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { X } from 'lucide-react'
 import {
   isPending,
+  isSplit,
   listKey,
   transactionsQuery,
-  useCreateTransaction,
   useDeleteTransaction,
   useEditTransaction,
   type ListedTransaction,
   type Transaction,
-  type TransactionDraft,
 } from '../api/transactions'
 import { TransactionFilterBar } from '../components/TransactionFilterBar'
+import { useQuickAdd } from '../components/quickAddContext'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransactionTotal } from '../components/TransactionTotal'
 import { VirtualRows, type VirtualRow } from '../components/VirtualRows'
 import { useTransactionFilters } from '../hooks/useTransactionFilters'
 
-/** What the drawer is open for: recording a transaction, or editing this one, as it was when the drawer opened. */
-type Drawer = { adding: true } | { editing: Transaction } | null
+/** What the drawer is open for: editing this transaction, as it was when the drawer opened. */
+type Drawer = { editing: Transaction } | null
 
 /**
- * The user's income and expenses, narrowed and sorted by the filters in the address, with what they come to.
- * Only the rows near the screen are in the page, and the next page is loaded as the last row comes near.
- * Recording and editing happen in a side drawer (spec section 12); the list shows a change as soon as it is sent.
+ * The user's income and expenses, narrowed and sorted by the filters in the address, with what they come to,
+ * refunds marked as such. Only the rows near the screen are in the page, and the next page is loaded as the
+ * last row comes near. Recording and editing happen in a side drawer (spec section 12): editing in this
+ * screen's own, recording in the one quick add opens on every screen. The list shows a change as soon as it is sent.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.transactions'))
   const [drawer, setDrawer] = useState<Drawer>(null)
+  const addTransaction = useQuickAdd()
   const { baseCurrency } = useUserSettings()
   const { view, isFiltered, change, clear } = useTransactionFilters()
   const transactions = useInfiniteQuery(transactionsQuery(view))
@@ -57,7 +60,7 @@ export function TransactionsPage() {
   // open. An edit shown ahead of the API's answer can move it past the pages loaded so far (an earlier date):
   // the drawer then keeps the one it was opened for, so the form and what its save answers are not lost.
   const editing =
-    drawer && 'editing' in drawer
+    drawer
       ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
       : undefined
   const canRecord = accounts.data?.accounts.some((account) => !account.isArchived) ?? false
@@ -71,8 +74,6 @@ export function TransactionsPage() {
   const loadNextPage = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage()
   }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
-
-  useShortcutToAdd(() => setDrawer((open) => open ?? { adding: true }), canRecord)
 
   return (
     <section className="max-w-2xl space-y-6">
@@ -89,7 +90,7 @@ export function TransactionsPage() {
           </Link>
         </p>
       ) : (
-        <Button disabled={!canOpenDrawer} aria-keyshortcuts="N" onClick={() => setDrawer({ adding: true })}>
+        <Button disabled={!canOpenDrawer} aria-keyshortcuts="N" onClick={addTransaction}>
           {t('transactions.add')}
         </Button>
       )}
@@ -120,6 +121,7 @@ export function TransactionsPage() {
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
+              categories={categories.data}
               onEdit={(editing) => setDrawer({ editing })}
             />
           )}
@@ -137,17 +139,15 @@ export function TransactionsPage() {
           // The sheet's own close button has no translated name; ours does.
           showCloseButton={false}
           aria-describedby={undefined}
+          onEscapeKeyDown={escapeClosesPickerFirst}
           className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
         >
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-lg font-semibold">{editing ? t('transactions.editTitle') : t('transactions.new')}</SheetTitle>
+            <SheetTitle className="text-lg font-semibold">{t('transactions.editTitle')}</SheetTitle>
             <SheetClose className={cn('rounded-md p-2 hover:bg-muted', focusRing)} aria-label={t('nav.close')}>
               <X aria-hidden className="size-5" />
             </SheetClose>
           </div>
-          {canOpenDrawer && drawer && 'adding' in drawer && (
-            <AddTransaction accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
-          )}
           {canOpenDrawer && editing && (
             <EditTransaction transaction={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
@@ -158,38 +158,6 @@ export function TransactionsPage() {
 }
 
 type FormProps = { accounts: Account[]; categories: Category[]; onClose: () => void }
-
-/** Records one transaction after another: the drawer stays open, ready for the next transaction (spec section 12). */
-function AddTransaction({ accounts, categories, onClose }: FormProps) {
-  const { t } = useTranslation()
-  const formId = useId()
-  const create = useCreateTransaction()
-  // One key per request the user means to make: saving the same values again after a failure sends the same
-  // one, so the API cannot record the transaction twice. Changed values are a new request, and so is the
-  // next transaction: each takes a new key.
-  const attempt = useRef<{ key: string; sent?: string }>({ key: crypto.randomUUID() })
-
-  return (
-    <>
-      <TransactionForm
-        id={formId}
-        accounts={accounts}
-        categories={categories}
-        onSave={(draft: TransactionDraft) => {
-          const sending = JSON.stringify(draft.fields)
-          if (attempt.current.sent !== undefined && attempt.current.sent !== sending) attempt.current.key = crypto.randomUUID()
-          attempt.current.sent = sending
-          return create.mutateAsync({ ...draft, idempotencyKey: attempt.current.key })
-        }}
-        onSaved={() => {
-          attempt.current = { key: crypto.randomUUID() }
-        }}
-        onCancel={onClose}
-      />
-      <FailureToast failed={create.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={create.reset} />
-    </>
-  )
-}
 
 function EditTransaction({ transaction, accounts, categories, onClose }: FormProps & { transaction: Transaction }) {
   const { t } = useTranslation()
@@ -219,13 +187,16 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
 type RowProps = {
   transaction: ListedTransaction
   account?: Account
+  /** The transaction's category; of a split, its first line's. */
   category?: Category
+  /** The user's category tree, to name the category of each line of a split. */
+  categories: Category[]
   onEdit: (transaction: Transaction) => void
   /** Where the list has the row, and how it measures it. */
   row: VirtualRow
 }
 
-function TransactionRow({ transaction, account, category, onEdit, row }: RowProps) {
+function TransactionRow({ transaction, account, category, categories, onEdit, row }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const remove = useDeleteTransaction()
@@ -234,23 +205,43 @@ function TransactionRow({ transaction, account, category, onEdit, row }: RowProp
   const saved = isPending(transaction) ? undefined : transaction
   const id = saved?.id
   const pending = saved === undefined
-  // A transaction is known by who was paid; without a payee, by what it was for.
-  const title = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
+  const split = isSplit(transaction)
+  // A transaction is known by who was paid; without a payee, by what it was for. A split is for several things.
+  const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
 
   return (
     <li {...row} className="space-y-2 border-b p-3 last:border-b-0" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
-        {category && <CategoryBadge icon={category.icon} color={category.color} />}
+        {category && !split && <CategoryBadge icon={category.icon} color={category.color} />}
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
+          {transaction.isRefund && (
+            <span className="inline-block rounded-full border border-emerald-600/40 bg-emerald-600/10 px-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              {t('transactions.refund')}
+            </span>
+          )}
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {[category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
+            {[split ? t('transactions.split.label') : category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
           </p>
+          {split && (
+            <ul aria-label={t('transactions.split.linesOf', { name: title })} className="text-sm text-muted-foreground">
+              {transaction.lines.map((line, index) => (
+                // Lines have no id of their own; their order is theirs.
+                <li key={index} className="break-words">
+                  {findCategory(categories, line.categoryId)?.name}
+                  {separator}
+                  <Money amount={line.amount} currency={transaction.currency} />
+                  {line.note && separator + line.note}
+                </li>
+              ))}
+            </ul>
+          )}
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
-          {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
-          <Money amount={transaction.type === 'expense' ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
+          {/* The type gives the sign, except that a refund is an expense coming back. Putting it in front of the digits is not arithmetic. */}
+          {transaction.isRefund && '+'}
+          <Money amount={transaction.type === 'expense' && !transaction.isRefund ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
         </span>
         {saved && !confirming && (
           <>
@@ -286,26 +277,11 @@ function TransactionRow({ transaction, account, category, onEdit, row }: RowProp
   )
 }
 
+/** What stands between the parts of one line of details. */
+const separator = ' · '
+
 function findCategory(tree: Category[], id: string): Category | undefined {
   return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
-}
-
-/**
- * Pressing N anywhere on the screen opens the drawer to record a transaction (spec section 12), unless the
- * user is typing somewhere or holding a modifier.
- */
-function useShortcutToAdd(open: () => void, enabled: boolean) {
-  useEffect(() => {
-    if (!enabled) return undefined
-    const onKeyDown = (event: KeyboardEvent) => {
-      const typing = event.target instanceof HTMLElement && (event.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))
-      if (event.key.toLowerCase() !== 'n' || event.ctrlKey || event.metaKey || event.altKey || typing) return
-      event.preventDefault()
-      open()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open, enabled])
 }
 
 /**
