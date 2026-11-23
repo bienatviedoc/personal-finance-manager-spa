@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { todayIn } from '@/shared/dates'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
+import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { fakeReportsApi, type FakeExpense } from '@/test/fakeReportsApi'
+import { fakeTransactionsApi } from '@/test/fakeTransactionsApi'
 import { renderApp } from '@/test/renderApp'
 import { testUser } from '@/test/server'
 import { periodOf } from './frame/reportPeriod'
@@ -233,6 +235,31 @@ describe('comparing and what is left out', () => {
     api.failWith = 500
     renderApp(`${report}?period=custom&from=2026-04-01&to=2026-04-30`)
     expect(await screen.findByRole('alert')).toHaveTextContent('The report could not be loaded.')
+  })
+})
+
+describe('keeping up', () => {
+  it('loads the report again when a transaction is recorded from it', async () => {
+    fakeInstitutionsApi()
+    const accounts = fakeAccountsApi([{ name: 'Everyday' }])
+    const categories = fakeCategoriesApi()
+    fakeTransactionsApi([], { accounts: accounts.accounts, categories: categories.categories, today: todayIn(testUser.timeZone) })
+    const api = fakeReportsApi()
+    const { user } = renderApp(report)
+    expect(await screen.findByText('Nothing was spent in this period.')).toBeInTheDocument()
+    const asked = api.reportsAsked.length
+    api.expenses.push({ id: 't-new', date: thisMonth.from, categoryId: 'c-transport', spent: '45000' })
+
+    await user.keyboard('n')
+    const drawer = within(await screen.findByRole('dialog', { name: 'New transaction' }))
+    await drawer.findByLabelText('Account')
+    await user.type(drawer.getByLabelText('Amount (VND)'), '45000')
+    await user.type(drawer.getByLabelText('Category'), 'transp{Enter}')
+    await user.keyboard('{Enter}')
+
+    await waitFor(() => expect(api.reportsAsked.length).toBeGreaterThan(asked))
+    await user.keyboard('{Escape}')
+    expect(await screen.findByRole('list', { name: 'Categories' })).toHaveTextContent('Transport₫45,000100%')
   })
 })
 
