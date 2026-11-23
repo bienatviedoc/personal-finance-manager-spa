@@ -1664,7 +1664,7 @@
         "tags": [
           "Transactions"
         ],
-        "description": "Records income or an expense on an account, in the account's currency; the account's balance follows at once. An expense flagged isRefund is a refund and raises the balance. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422.",
+        "description": "Records income or an expense on an account, in the account's currency; the account's balance follows at once. An expense flagged isRefund is a refund and raises the balance. Send lines in place of categoryId to split it across categories: lines that do not sum exactly to the amount are refused. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422.",
         "operationId": "CreateTransaction",
         "parameters": [
           {
@@ -2716,6 +2716,51 @@
           }
         }
       },
+      "TransactionLineRequest": {
+        "required": [
+          "categoryId",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TransactionLineResponse": {
+        "required": [
+          "categoryId",
+          "amount",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TransactionListResponse": {
         "required": [
           "items",
@@ -2742,8 +2787,7 @@
           "type",
           "accountId",
           "amount",
-          "date",
-          "categoryId"
+          "date"
         ],
         "type": "object",
         "properties": {
@@ -2761,7 +2805,10 @@
             "type": "string"
           },
           "categoryId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "payee": {
@@ -2779,6 +2826,15 @@
           "isRefund": {
             "type": "boolean",
             "default": false
+          },
+          "lines": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TransactionLineRequest"
+            }
           }
         }
       },
@@ -2794,7 +2850,8 @@
           "payee",
           "note",
           "rowVersion",
-          "isRefund"
+          "isRefund",
+          "lines"
         ],
         "type": "object",
         "properties": {
@@ -2840,6 +2897,12 @@
           },
           "isRefund": {
             "type": "boolean"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionLineResponse"
+            }
           }
         }
       },
