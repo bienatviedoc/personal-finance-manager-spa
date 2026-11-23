@@ -39,7 +39,8 @@ type Options = {
  * again with the same `Idempotency-Key` records nothing, and one with that key and a different body is a 422; an edit must name the row version in `If-Match`
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
  * account a transaction is on follows it. Quick add answers the account, not archived, recorded on last, and the
- * category, not archived, most often used for a payee (see the API's QuickAddTests).
+ * category, not archived, on the most lines of a payee's transactions that are not refunds (see the API's QuickAddTests).
+ * Search finds a line's note too, and filtered by a category the total adds only the lines in it.
  *
  * It answers the transfer endpoints too (see the API's TransferTests), since a transfer is two of these
  * transactions: a `transferOut` leg and a `transferIn` leg sharing a `transferId`, with no category. A transfer
@@ -145,12 +146,15 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     return errors
   }
 
-  /** Whether a transaction passes every filter sent: both ends of a range included, a category with its subcategories through any line of a split, the search anywhere in the payee or note. */
+  /** Whether a line is on the category or one of its subcategories. */
+  const lineIn = (line: Transaction['lines'][number], id: string) =>
+    line.categoryId === id || categories.find((category) => category.id === line.categoryId)?.parentId === id
+
+  /** Whether a transaction passes every filter sent: both ends of a range included, a category with its subcategories through any line of a split, the search anywhere in the payee, the note or a line's note. */
   function passes(query: URLSearchParams) {
     const filter = (name: string) => query.get(name) ?? undefined
     const search = filter('q')?.trim().toLowerCase()
-    const inCategory = (transaction: Transaction, id: string) =>
-      transaction.lines.some((line) => line.categoryId === id || categories.find((category) => category.id === line.categoryId)?.parentId === id)
+    const inCategory = (transaction: Transaction, id: string) => transaction.lines.some((line) => lineIn(line, id))
     return (transaction: Transaction) =>
       (filter('from') === undefined || transaction.date >= filter('from')!) &&
       (filter('to') === undefined || transaction.date <= filter('to')!) &&
@@ -159,11 +163,21 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       (filter('type') === undefined || transaction.type === filter('type')) &&
       (filter('min') === undefined || Number(transaction.amount) >= Number(filter('min'))) &&
       (filter('max') === undefined || Number(transaction.amount) <= Number(filter('max'))) &&
-      (!search || [transaction.payee, transaction.note].some((field) => field?.toLowerCase().includes(search)))
+      (!search || [transaction.payee, transaction.note, ...transaction.lines.map((line) => line.note)].some((field) => field?.toLowerCase().includes(search)))
   }
 
-  /** What the transactions come to: how many, and income, expenses (minus refunds) and net in each currency, never added across currencies. */
-  function totalOf(passing: Transaction[]): TransactionList['total'] {
+  /**
+   * What the transactions come to: how many, and income, expenses (minus refunds) and net in each currency, never
+   * added across currencies. Filtered by a category, each adds only its lines in it, as spent does.
+   */
+  function totalOf(found: Transaction[], categoryId: string | null): TransactionList['total'] {
+    const passing =
+      categoryId === null
+        ? found
+        : found.map((transaction) => ({
+            ...transaction,
+            amount: text(transaction.lines.filter((line) => lineIn(line, categoryId)).reduce((total, line) => total + Number(line.amount), 0)),
+          }))
     const sum = (of: Transaction[]) => text(of.reduce((total, transaction) => total + Number(transaction.amount), 0))
     return {
       count: passing.length,
@@ -345,7 +359,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       const start = cursor === null ? 0 : sorted.findIndex((transaction) => transaction.id === cursor) + 1
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
-      return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null, total: totalOf(passing) })
+      return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null, total: totalOf(passing, query.get('categoryId')) })
     }),
     // Before the handler for one transaction, which would take "quick-add" for an id.
     http.get(apiUrl('/api/v1/transactions/quick-add'), ({ request }) => {
@@ -357,9 +371,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       // How often each category was used for the payee; the first counted is the one used last.
       const times = new Map<string, number>()
       for (const transaction of lastFirst) {
-        const category = categories.find((candidate) => candidate.id === transaction.categoryId)
-        if (!payee || transaction.payee?.toLowerCase() !== payee || (type && transaction.type !== type) || !category || category.isArchived) continue
-        times.set(category.id, (times.get(category.id) ?? 0) + 1)
+        // A refund says nothing about what a payee is for; each line of a split is a use of its category.
+        if (!payee || transaction.payee?.toLowerCase() !== payee || (type && transaction.type !== type) || transaction.isRefund) continue
+        for (const line of transaction.lines) {
+          const category = categories.find((candidate) => candidate.id === line.categoryId)
+          if (!category || category.isArchived) continue
+          times.set(category.id, (times.get(category.id) ?? 0) + 1)
+        }
       }
       const mostUsed = [...times].toSorted(([, a], [, b]) => b - a)[0]
       return HttpResponse.json({
