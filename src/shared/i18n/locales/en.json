@@ -222,6 +222,7 @@
     "noAccounts": "A transaction is recorded on an account, and you have none yet.",
     "toAccounts": "Add an account",
     "loading": "Loading transactions",
+    "loadingForm": "Loading…",
     "loadMore": "Load more",
     "type": "Type",
     "types": {
@@ -236,7 +237,9 @@
     "amountIn": "Amount ({{currency}})",
     "date": "Date",
     "category": "Category",
-    "chooseCategory": "Choose a category",
+    "chooseCategory": "Type to find a category",
+    "noCategoryMatches": "No category matches.",
+    "categorySuggested": "Suggested from your earlier transactions with this payee.",
     "subcategory": "{{parent}} › {{name}}",
     "payee": "Payee",
     "note": "Note",

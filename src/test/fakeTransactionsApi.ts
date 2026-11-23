@@ -33,7 +33,8 @@ type Options = {
  * `lines[1].categoryId`); a POST sent
  * again with the same `Idempotency-Key` records nothing, and one with that key and a different body is a 422; an edit must name the row version in `If-Match`
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
- * account a transaction is on follows it.
+ * account a transaction is on follows it. Quick add answers the account, not archived, recorded on last, and the
+ * category, not archived, most often used for a payee (see the API's QuickAddTests).
  */
 export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
   let recorded = 0
@@ -180,6 +181,26 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
       return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null })
+    }),
+    // Before the handler for one transaction, which would take "quick-add" for an id.
+    http.get(apiUrl('/api/v1/transactions/quick-add'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const type = query.get('type')
+      const payee = query.get('payee')?.trim().toLowerCase()
+      const lastFirst = state.transactions.toSorted((a, b) => order.get(b.id)! - order.get(a.id)!)
+      const isArchived = (id: string) => accounts.find((account) => account.id === id)?.isArchived ?? true
+      // How often each category was used for the payee; the first counted is the one used last.
+      const times = new Map<string, number>()
+      for (const transaction of lastFirst) {
+        const category = categories.find((candidate) => candidate.id === transaction.categoryId)
+        if (!payee || transaction.payee?.toLowerCase() !== payee || (type && transaction.type !== type) || !category || category.isArchived) continue
+        times.set(transaction.categoryId, (times.get(transaction.categoryId) ?? 0) + 1)
+      }
+      const mostUsed = [...times].toSorted(([, a], [, b]) => b - a)[0]
+      return HttpResponse.json({
+        lastAccountId: lastFirst.find((transaction) => !isArchived(transaction.accountId))?.accountId ?? null,
+        suggestedCategoryId: mostUsed?.[0] ?? null,
+      })
     }),
     http.get(apiUrl('/api/v1/transactions/:id'), ({ params }) => {
       const found = find(params.id)

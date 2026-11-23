@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { matchPath, NavLink, Outlet, useLocation } from 'react-router'
 import { DeletionCancelledNotice, UserMenu } from '@/features/auth'
 import { useProfileLocale, useSaveLocale } from '@/features/settings'
+import { QuickAdd } from '@/features/transactions'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { useMediaQuery } from '@/shared/lib/useMediaQuery'
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from '@/shared/ui/sheet'
@@ -29,7 +30,10 @@ export function AppShell() {
         )}
       >
         <DeletionCancelledNotice />
-        <Outlet />
+        {/* N on any screen opens the drawer that records a transaction. */}
+        <QuickAdd>
+          <Outlet />
+        </QuickAdd>
       </main>
       {!wide && <TabBar />}
     </div>
