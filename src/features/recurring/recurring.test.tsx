@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { choose, offeredBy } from '@/test/combobox'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { defaultTestCategories, fakeCategoriesApi, type FakeCategory } from '@/test/fakeCategoriesApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
@@ -92,7 +93,7 @@ describe('the recurring screen', () => {
     expect(drawer.getByLabelText('Starts on')).toHaveValue(today)
     expect(drawer.queryByLabelText('Days between')).not.toBeInTheDocument()
     await user.type(drawer.getByLabelText('Amount (VND)'), '9,000,000')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     await user.clear(drawer.getByLabelText('Starts on'))
     await user.type(drawer.getByLabelText('Starts on'), '2027-01-31')
     await user.type(drawer.getByLabelText('Ends on (optional)'), '2027-12-31')
@@ -120,12 +121,10 @@ describe('the recurring screen', () => {
     const drawer = await openNewRule(user)
 
     await user.click(drawer.getByRole('radio', { name: 'Income' }))
-    expect(within(drawer.getByLabelText('Category')).getAllByRole('option').map((option) => option.textContent)).toEqual([
-      'Choose a category', 'Salary', 'Investments', 'Investments › Interest',
-    ])
+    expect(await offeredBy(user, drawer.getByLabelText('Category'))).toEqual(['Salary', 'Investments', 'Investments › Interest'])
     await user.selectOptions(drawer.getByLabelText('Account'), 'Savings in dollars (USD)')
     await user.type(drawer.getByLabelText('Amount (USD)'), '1,250.50')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Salary')
+    await choose(user, drawer.getByLabelText('Category'), 'Salary')
     await user.selectOptions(drawer.getByLabelText('How often'), 'Every N days')
     await user.type(drawer.getByLabelText('Days between'), '14')
     await user.click(drawer.getByRole('button', { name: 'Save' }))
@@ -174,7 +173,7 @@ describe('the recurring screen', () => {
     await user.click(await screen.findByRole('button', { name: 'Edit Landlord' }))
     const drawer = within(screen.getByRole('dialog', { name: 'Edit recurring rule' }))
     expect(drawer.getByLabelText('Amount (VND)')).toHaveValue('9,000,000')
-    expect(drawer.getByLabelText('Category')).toHaveDisplayValue('Transport')
+    expect(drawer.getByLabelText('Category')).toHaveValue('Transport')
     expect(drawer.getByLabelText('How often')).toHaveDisplayValue('Every N days')
     expect(drawer.getByLabelText('Days between')).toHaveValue('30')
     expect(drawer.getByLabelText('Starts on')).toHaveValue('2026-12-05')
@@ -236,7 +235,7 @@ describe('the recurring screen', () => {
     const { user } = renderApp('/recurring')
     const drawer = await openNewRule(user)
     await user.type(drawer.getByLabelText('Amount (VND)'), '100')
-    await user.selectOptions(drawer.getByLabelText('Category'), 'Transport')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
     // Archived somewhere else since the screen loaded.
     accountsApi.accounts[0]!.isArchived = true
     await user.click(drawer.getByRole('button', { name: 'Save' }))

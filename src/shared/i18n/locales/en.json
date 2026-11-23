@@ -307,6 +307,7 @@
     "amountIn": "Amount ({{currency}})",
     "category": "Category",
     "chooseCategory": "Choose a category",
+    "noCategoryMatches": "No category matches.",
     "subcategory": "{{parent}} › {{name}}",
     "frequency": "How often",
     "frequencyOptions": {

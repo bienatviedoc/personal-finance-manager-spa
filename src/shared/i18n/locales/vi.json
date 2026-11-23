@@ -307,6 +307,7 @@
     "amountIn": "Số tiền ({{currency}})",
     "category": "Danh mục",
     "chooseCategory": "Chọn danh mục",
+    "noCategoryMatches": "Không có danh mục nào khớp.",
     "subcategory": "{{parent}} › {{name}}",
     "frequency": "Tần suất",
     "frequencyOptions": {

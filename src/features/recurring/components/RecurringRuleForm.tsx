@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import type { Account } from '@/features/accounts'
 import type { Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
+import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { calendarDate, todayIn } from '@/shared/dates'
@@ -78,6 +79,7 @@ const serverErrors: Record<RecurringRuleField, ParseKeys> = {
 
 // Named outside JSX, where lint would take a field name for user-facing text.
 const amountField = 'amount'
+const categoryField = 'categoryId'
 
 type Props = {
   /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
@@ -220,11 +222,23 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
         error={errors.amount?.message && t(errors.amount.message as ParseKeys, { example: amountExample(locale, currency) })}
         currency={currency}
       />
-      <SelectField
-        label={t('recurring.category')}
-        error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
-        options={[{ value: '', label: t('recurring.chooseCategory') }, ...categoryOptions]}
-        {...form.register('categoryId')}
+      {/* A type-ahead picker, as every form that takes a category has. */}
+      <Controller
+        control={form.control}
+        name={categoryField}
+        render={({ field }) => (
+          <ComboboxField
+            label={t('recurring.category')}
+            placeholder={t('recurring.chooseCategory')}
+            noMatches={t('recurring.noCategoryMatches')}
+            error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
+            options={categoryOptions}
+            ref={field.ref}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+          />
+        )}
       />
 
       <SelectField
