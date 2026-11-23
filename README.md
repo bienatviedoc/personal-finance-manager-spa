@@ -58,6 +58,17 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
   request fails, and load the list again once the API has answered. One not yet answered is a
   `PendingTransaction`: it has no id or row version, so it offers nothing to edit or delete (`isPending`).
+- **Quick add** (spec TXN-8 and section 12). `<QuickAdd>` from `@/features/transactions` wraps every screen in
+  the shell: pressing N anywhere opens the drawer that records a transaction (not while typing, and not over
+  another drawer or dialog), and nothing is loaded until it first opens. The transactions screen's own button
+  opens the same drawer through `useQuickAdd()`. The form starts on the account the API says was used last
+  (`lastAccountQuery`), and a new transaction takes the category its payee most often had
+  (`suggestedCategoryQuery`, asked once the payee has been left alone for a moment) until the user picks one
+  themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
+- **A type-ahead picker** is `<ComboboxField>` from `@/shared/components`: typing narrows the options, whatever
+  the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
+  the form's. A drawer holding one passes `escapeClosesPickerFirst` to its `onEscapeKeyDown`. Tests choose from
+  one with `choose` and read what it offers with `offeredBy` (`src/test/combobox.ts`).
 - **A split transaction sends `lines` in place of `categoryId`** (see the glossary: split transaction, line), and
   every transaction answers its `lines`, one when it is not split (`isSplit`). The form shows what remains of the
   amount to split and sends nothing until that is nothing; the API checks the sum again. What remains is worked
