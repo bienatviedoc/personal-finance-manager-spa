@@ -310,7 +310,8 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   the amount input takes the decimals of the chosen account's currency.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
-  (from `useUserSettings()` in `@/features/settings`), not the browser's.
+  (from `useUserSettings()` in `@/features/settings`), not the browser's. A month (`2026-11`, such as a budget month) is a
+  `CalendarMonth`, made only by `isCalendarMonth`, `monthOf` or `shiftMonth` and written with `formatMonth`.
 - The user's base currency and time zone come from `useUserSettings()`.
 - **Not converted.** An amount the API could not convert, for want of an exchange rate, comes back under
   `notConverted` in its own currency and is left out of the total next to it. Always show that flag with the
