@@ -184,6 +184,45 @@ describe('the budget screen', () => {
     await waitFor(() => expect(profile.reads).toBe(2))
   })
 
+  it('leaves alone a category already budgeted in the month, and says when nothing was copied', async () => {
+    const { budgets } = november()
+    const { user } = renderApp('/budgets/2026-11')
+
+    // October's budget is on Groceries, whose parent Food & drink has one in November.
+    await user.click(await screen.findByRole('button', { name: 'Copy budgets from October 2026' }))
+
+    await waitFor(() => expect(copyStatus()).toHaveTextContent('No budgets copied from October 2026'))
+    expect(budgets.budgets.filter((budget) => budget.month === '2026-11')).toHaveLength(2)
+    expect(amountOf(await row('Food & drink'), 'Food & drink')).toHaveValue('3,000,000')
+  })
+
+  it('says when copying failed, and tries again', async () => {
+    const { budgets } = november()
+    const { user } = renderApp('/budgets/2026-12')
+
+    budgets.failWith = 500
+    await user.click(await screen.findByRole('button', { name: 'Copy budgets from November 2026' }))
+
+    expect(await screen.findByText('The budgets could not be copied.')).toBeInTheDocument()
+    budgets.failWith = undefined
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => expect(copyStatus()).toHaveTextContent('2 budgets copied from November 2026.'))
+    expect(screen.queryByText('The budgets could not be copied.')).not.toBeInTheDocument()
+  })
+
+  it('says what a copy came to only in the month it was made in', async () => {
+    november()
+    const { user } = renderApp('/budgets/2026-12')
+
+    await user.click(await screen.findByRole('button', { name: 'Copy budgets from November 2026' }))
+    await waitFor(() => expect(copyStatus()).toHaveTextContent('2 budgets copied'))
+    await user.click(screen.getByRole('link', { name: 'Next month: January 2027' }))
+
+    expect(await screen.findByRole('button', { name: 'Copy budgets from December 2026' })).toBeInTheDocument()
+    expect(copyStatus()).toBeEmptyDOMElement()
+  })
+
   it('moves between months with the month switcher', async () => {
     const { budgets } = november()
     const { user, router } = renderApp('/budgets/2026-11')
