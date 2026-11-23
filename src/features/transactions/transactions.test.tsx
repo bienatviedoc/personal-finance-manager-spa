@@ -108,7 +108,7 @@ describe('transactions', () => {
     expect(transactionsApi.requests).toEqual([
       {
         method: 'POST',
-        body: { type: 'expense', accountId: everyday, amount: '125000', date: '2026-11-02', categoryId: 'c-groceries', payee: 'Co.opmart', note: 'weekly shop' },
+        body: { type: 'expense', accountId: everyday, amount: '125000', date: '2026-11-02', categoryId: 'c-groceries', payee: 'Co.opmart', note: 'weekly shop', isRefund: false },
       },
     ])
     expect(listed()).toEqual([['Co.opmart', 'Groceries · Everyday · Nov 2, 2026', '-₫125,000']])

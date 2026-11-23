@@ -223,6 +223,9 @@
       "expense": "Khoản chi",
       "income": "Khoản thu"
     },
+    "isRefund": "Đây là khoản hoàn tiền",
+    "refundHint": "Tiền được trả lại từ một lần mua. Khoản này làm tăng số dư và giảm số đã chi trong danh mục.",
+    "refund": "Hoàn tiền",
     "account": "Tài khoản",
     "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Số tiền ({{currency}})",
@@ -274,6 +277,7 @@
       "linesLeft": "Tổng các dòng phải bằng số tiền: còn {{amount}} chưa chia.",
       "linesOver": "Tổng các dòng phải bằng số tiền: đang vượt {{amount}}.",
       "lines": "Kiểm tra các dòng: mỗi dòng cần một danh mục của bạn chưa lưu trữ và một số tiền, và tổng các dòng phải bằng số tiền.",
+      "refundNotExpense": "Chỉ khoản chi mới có thể là khoản hoàn tiền.",
       "stale": "Giao dịch này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được giao dịch.",

@@ -360,7 +360,7 @@ export interface paths {
         /** @description The user's transactions, newest date first and, within a date, last recorded first. A deleted transaction is never listed. */
         get: operations["ListTransactions"];
         put?: never;
-        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send lines in place of categoryId to split it across categories: lines that do not sum exactly to the amount are refused. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
+        /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. An expense flagged isRefund is a refund and raises the balance. Send lines in place of categoryId to split it across categories: lines that do not sum exactly to the amount are refused. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
         post: operations["CreateTransaction"];
         delete?: never;
         options?: never;
@@ -601,6 +601,8 @@ export interface components {
             categoryId?: null | string;
             payee?: null | string;
             note?: null | string;
+            /** @default false */
+            isRefund: boolean;
             lines?: null | components["schemas"]["TransactionLineRequest"][];
         };
         TransactionResponse: {
@@ -618,6 +620,7 @@ export interface components {
             payee: null | string;
             note: null | string;
             rowVersion: string;
+            isRefund: boolean;
             lines: components["schemas"]["TransactionLineResponse"][];
         };
         /** @enum {unknown} */

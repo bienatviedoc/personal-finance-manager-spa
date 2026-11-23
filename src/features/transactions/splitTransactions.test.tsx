@@ -102,6 +102,7 @@ describe('split transactions', () => {
           date: '2026-11-02',
           payee: null,
           note: null,
+          isRefund: false,
           lines: [
             { categoryId: 'c-groceries', amount: '320000', note: 'food' },
             { categoryId: 'c-transport', amount: '180000', note: null },
@@ -231,7 +232,7 @@ describe('split transactions', () => {
     expect(transactionsApi.requests).toEqual([
       {
         method: 'PUT',
-        body: { type: 'expense', accountId: everyday, amount: '500000.00', date: '2026-11-02', categoryId: 'c-groceries', payee: 'Co.opmart', note: null },
+        body: { type: 'expense', accountId: everyday, amount: '500000.00', date: '2026-11-02', categoryId: 'c-groceries', payee: 'Co.opmart', note: null, isRefund: false },
       },
     ])
     expect(transactionsApi.transactions[0]?.lines).toEqual([{ categoryId: 'c-groceries', amount: '500000.00', note: null }])

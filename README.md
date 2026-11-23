@@ -64,6 +64,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   out by `remainingAmount` in `src/shared/money`, on the digits of the decimal strings: the one place amounts are
   subtracted, and still never through a JavaScript `number`. The API names what it refuses about one line by
   where it is (`lines[1].categoryId`); the form says it once, for all the lines.
+- **A refund is an expense with `isRefund` set** (see the glossary), never a type of its own: the form offers the
+  flag to an expense only, and the list marks a refund and shows its amount coming back (`+`), since it raises
+  the balance.
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.

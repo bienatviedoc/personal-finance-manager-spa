@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -58,6 +58,8 @@ const schemaFor = (today: CalendarDate, split: boolean) =>
         note: z.string().trim().max(1000, { error: 'transactions.errors.noteTooLong' }),
       }),
     ),
+    // A refund: an expense that is money coming back. Only an expense can be one.
+    isRefund: z.boolean(),
   })
 
 type Schema = ReturnType<typeof schemaFor>
@@ -75,6 +77,7 @@ const serverErrors: Record<Exclude<TransactionField, 'lines'>, ParseKeys> = {
   categoryId: 'transactions.errors.category',
   payee: 'transactions.errors.payeeTooLong',
   note: 'transactions.errors.noteTooLong',
+  isRefund: 'transactions.errors.refundNotExpense',
 }
 
 // Named outside JSX, where lint would take a field name for user-facing text.
@@ -101,7 +104,7 @@ type Props = {
 
 /**
  * Records or edits income or an expense. The type toggle at the top decides which categories are offered;
- * the chosen account decides the currency of the amount.
+ * the chosen account decides the currency of the amount. An expense can be flagged as a refund.
  */
 export function TransactionForm({ id, transaction, accounts, categories, onSave, onSaved, onCancel }: Props) {
   const { t } = useTranslation()
@@ -114,6 +117,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
   // Set by a save that was stopped because the lines do not sum to the amount, and by the API refusing the lines.
   const [sumRefused, setSumRefused] = useState(false)
   const [linesRefused, setLinesRefused] = useState(false)
+  const refundHintId = useId()
 
   const accountOptions = accounts.filter((account) => !account.isArchived || account.id === transaction?.accountId)
   const form = useForm<Values, unknown, z.output<Schema>>({
@@ -128,9 +132,10 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           categoryId: isSplit(transaction) ? '' : transaction.categoryId,
           payee: transaction.payee ?? '',
           note: transaction.note ?? '',
+          isRefund: transaction.isRefund,
           lines: isSplit(transaction) ? transaction.lines.map((line) => ({ ...line, note: line.note ?? '' })) : [],
         }
-      : { type: 'expense', accountId: accountOptions[0]?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', lines: [] },
+      : { type: 'expense', accountId: accountOptions[0]?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', isRefund: false, lines: [] },
   })
   const lines = useFieldArray({ control: form.control, name: 'lines' })
   const { errors, isSubmitting } = form.formState
@@ -155,9 +160,11 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
   }, [savedCount, form])
 
   const typeToggle = form.register('type', {
-    // A category of the other kind cannot stay: the type decides which kind it takes, on every line.
+    // A category of the other kind cannot stay: the type decides which kind it takes, on every line. Nor can
+    // the refund flag: only an expense can be a refund.
     onChange: () => {
       form.setValue('categoryId', '')
+      form.setValue('isRefund', false)
       form.getValues('lines').forEach((_, index) => form.setValue(`lines.${index}.categoryId`, ''))
     },
   })
@@ -212,6 +219,8 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           ...(splitLines ? { lines: splitLines } : { categoryId: values.categoryId }),
           payee: values.payee || null,
           note: values.note || null,
+          // Only an expense can be a refund.
+          isRefund: values.type === 'expense' && values.isRefund,
         },
         currency: account.currency,
       })
@@ -221,7 +230,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     }
     if (outcome.saved) {
       if (!transaction) {
-        form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '', lines: [] })
+        form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '', isRefund: false, lines: [] })
         setSplit(false)
         setSumRefused(false)
         setSavedCount((count) => count + 1)
@@ -255,6 +264,19 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           ))}
         </div>
       </fieldset>
+
+      {type === 'expense' && (
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" aria-describedby={refundHintId} {...form.register('isRefund')} />
+            {t('transactions.isRefund')}
+          </label>
+          <p id={refundHintId} className="text-sm text-muted-foreground">
+            {t('transactions.refundHint')}
+          </p>
+          {errors.isRefund?.message && <p className="text-sm text-destructive">{t(errors.isRefund.message as ParseKeys)}</p>}
+        </div>
+      )}
 
       <SelectField
         label={t('transactions.account')}

@@ -223,6 +223,9 @@
       "expense": "Expense",
       "income": "Income"
     },
+    "isRefund": "This is a refund",
+    "refundHint": "Money coming back from a purchase. It raises the balance and lowers what you spent in the category.",
+    "refund": "Refund",
     "account": "Account",
     "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Amount ({{currency}})",
@@ -274,6 +277,7 @@
       "linesLeft": "The lines must add up to the amount: {{amount}} left to split.",
       "linesOver": "The lines must add up to the amount: they come to {{amount}} more.",
       "lines": "Check the lines: each needs one of your categories that is not archived and an amount, and together they must add up to the amount.",
+      "refundNotExpense": "Only an expense can be a refund.",
       "stale": "This transaction was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "generic": "Something went wrong. Try again.",
       "notSaved": "The transaction was not saved.",
