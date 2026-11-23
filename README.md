@@ -58,6 +58,17 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the transaction in the cached list as soon as it is sent, put the list back if the API refuses it or the
   request fails, and load the list again once the API has answered. One not yet answered is a
   `PendingTransaction`: it has no id or row version, so it offers nothing to edit or delete (`isPending`).
+- **Quick add** (spec TXN-8 and section 12). `<QuickAdd>` from `@/features/transactions` wraps every screen in
+  the shell: pressing N anywhere opens the drawer that records a transaction (not while typing, and not over
+  another drawer or dialog), and nothing is loaded until it first opens. The transactions screen's own button
+  opens the same drawer through `useQuickAdd()`. The form starts on the account the API says was used last
+  (`lastAccountQuery`), and a new transaction takes the category its payee most often had
+  (`suggestedCategoryQuery`, asked once the payee has been left alone for a moment) until the user picks one
+  themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
+- **A type-ahead picker** is `<ComboboxField>` from `@/shared/components`: typing narrows the options, whatever
+  the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
+  the form's. A drawer holding one passes `escapeClosesPickerFirst` to its `onEscapeKeyDown`. Tests choose from
+  one with `choose` and read what it offers with `offeredBy` (`src/test/combobox.ts`).
 - **A split transaction sends `lines` in place of `categoryId`** (see the glossary: split transaction, line), and
   every transaction answers its `lines`, one when it is not split (`isSplit`). The form shows what remains of the
   amount to split and sends nothing until that is nothing; the API checks the sum again. What remains is worked
@@ -85,6 +96,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
   the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
   used key that comes with a different body), and so is the next transaction.
+- **A change to a transaction moves what was spent,** too, so the same hooks load the budgets again through
+  `refreshBudgets` from `@/features/budgets`. Setting the first budget locks the base currency and removing the
+  last one unlocks it, so the budget hooks load the profile again (`refreshProfile` from `@/features/settings`).
+- **A budget is set, not created or edited:** `useSetBudget(month)` sends `PUT /budgets/{month}/{categoryId}`
+  with the budget's `rowVersion` as `If-Match` when the category already has one that month and without it when
+  it has none; `useRemoveBudget(month)` removes it.
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
@@ -160,6 +177,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
 | `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, and locks the base currency `fakeProfileApi` holds |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
@@ -248,7 +266,17 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   total (`NotConverted` on the accounts screen); never hide it or estimate the amount. Nobody enters a rate: the
   API fetches them.
 - **Changing the base currency** loads everything again (`useUpdateProfile`), because what the API converted into
-  the old one no longer holds.
+  the old one no longer holds. Once the user has a budget it is locked (`baseCurrencyLocked` from
+  `useUserSettings()`): the profile screen disables it, says why, and no longer sends it.
+- **Budgets.** `/budgets/:month?` shows one budget month (`2026-11`; without one, or with something that is not
+  a month, the month it is now in the user's time zone). Budgeted, spent, remaining, the percentage spent, the
+  state and the totals are the API's (`budgetsQuery(month)`); the SPA adds nothing up. Every expense category
+  has a row with its amount edited in place (Enter or Save; an emptied amount removes the budget). A category
+  whose parent or subcategory is budgeted that month offers no amount and says whose budget its spending counts
+  toward. Expenses that are not converted are left out of spent and counted in a note, on the row and the totals.
+- **A budget's state is never colour alone** (spec section 8): on track, warning and over budget are each said
+  in words beside an icon of their own shape, and the progress bar names its percentage; colour only adds to that.
+  The warning threshold is the user's (`budgetWarningPercent`, Settings > Profile).
 
 ## Phones, themes and installing
 

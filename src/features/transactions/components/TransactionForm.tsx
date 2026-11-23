@@ -1,16 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useState } from 'react'
-import { useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import type { Account } from '@/features/accounts'
 import type { Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
+import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
+import { useDebounced } from '@/shared/lib/useDebounced'
 import { cn, focusRingWithin } from '@/shared/lib/utils'
 import {
   AmountField,
@@ -25,7 +28,7 @@ import {
 } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isStale } from '@/shared/api/versionedSave'
-import { isSplit, transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
+import { isSplit, suggestedCategoryQuery, transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
 /**
  * The API's rules (see `Transaction` in the API), repeated here for fast feedback only; the API enforces them
@@ -82,7 +85,9 @@ const serverErrors: Record<Exclude<TransactionField, 'lines'>, ParseKeys> = {
 
 // Named outside JSX, where lint would take a field name for user-facing text.
 const amountField = 'amount'
+const categoryField = 'categoryId'
 const lineAmountField = (index: number) => `lines.${index}.amount` as const
+const lineCategoryField = (index: number) => `lines.${index}.categoryId` as const
 
 type Props = {
   /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
@@ -93,6 +98,8 @@ type Props = {
   accounts: Account[]
   /** The user's category tree, archived categories included; those are offered only to the transaction that has them. */
   categories: Category[]
+  /** The account a new transaction starts on, when it is one of those offered: the one used last (spec TXN-8). */
+  lastAccountId?: string
   onSave: (draft: TransactionDraft) => Promise<SaveOutcome>
   /**
    * Called once the transaction is saved. A form that records stays as it is for the next transaction, keeping the
@@ -102,11 +109,15 @@ type Props = {
   onCancel: () => void
 }
 
+/** How long the payee is left alone, in milliseconds, before the API is asked which category it usually takes. */
+const payeeSettles = 250
+
 /**
  * Records or edits income or an expense. The type toggle at the top decides which categories are offered;
- * the chosen account decides the currency of the amount. An expense can be flagged as a refund.
+ * the chosen account decides the currency of the amount. An expense can be flagged as a refund. A new
+ * transaction takes the category its payee most often had, until the user chooses one themselves (spec TXN-8).
  */
-export function TransactionForm({ id, transaction, accounts, categories, onSave, onSaved, onCancel }: Props) {
+export function TransactionForm({ id, transaction, accounts, categories, lastAccountId, onSave, onSaved, onCancel }: Props) {
   const { t } = useTranslation()
   const locale = useLocale()
   const { baseCurrency, timeZone } = useUserSettings()
@@ -114,6 +125,8 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
   const [split, setSplit] = useState(transaction !== undefined && isSplit(transaction))
   const schema = useMemo(() => schemaFor(today, split), [today, split])
   const [savedCount, setSavedCount] = useState(0)
+  // Whether the user picked the category themselves; until they do, a new transaction takes the one its payee suggests.
+  const [pickedCategory, setPickedCategory] = useState(false)
   // Set by a save that was stopped because the lines do not sum to the amount, and by the API refusing the lines.
   const [sumRefused, setSumRefused] = useState(false)
   const [linesRefused, setLinesRefused] = useState(false)
@@ -136,11 +149,11 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           isRefund: transaction.isRefund,
           lines: isSplit(transaction) ? transaction.lines.map((line) => ({ ...line, note: line.note ?? '' })) : [],
         }
-      : { type: 'expense', accountId: accountOptions[0]?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', isRefund: false, lines: [] },
+      : { type: 'expense', accountId: (accountOptions.find((account) => account.id === lastAccountId) ?? accountOptions[0])?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', isRefund: false, lines: [] },
   })
   const lines = useFieldArray({ control: form.control, name: 'lines' })
   const { errors, isSubmitting } = form.formState
-  const [type, accountId, amount, lineValues] = useWatch({ control: form.control, name: ['type', 'accountId', 'amount', 'lines'] })
+  const [type, accountId, amount, lineValues, payee, categoryId] = useWatch({ control: form.control, name: ['type', 'accountId', 'amount', 'lines', 'payee', 'categoryId'] })
   const currency = accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
   // What is left of the amount after the lines entered so far; unknown until there is an amount.
   const remaining = split && amount ? remainingAmount(amount, lineValues.flatMap((line) => (line.amount ? [line.amount] : []))) : null
@@ -153,6 +166,21 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     .filter(({ category }) => category.kind === type && (!category.isArchived || transaction?.lines.some((line) => line.categoryId === category.id)))
     .map(({ category, label }) => ({ value: category.id, label }))
 
+  // Only a new transaction is suggested a category: an edited one already has the one the user gave it.
+  const settledPayee = useDebounced(payee, payeeSettles)
+  const suggestion = useQuery(suggestedCategoryQuery({ type, payee: transaction ? '' : settledPayee }))
+  // What the payee typed now suggests, among the categories offered: '' when nothing, undefined while it is not
+  // known, which it is not while the payee is still being typed or has just been emptied by a save.
+  const suggestedId =
+    suggestion.data === undefined || settledPayee !== payee ? undefined : (categoryOptions.find((option) => option.value === suggestion.data)?.value ?? '')
+  // Whether the category shown is the one suggested for what is typed now, which the picker says under itself.
+  const suggested = !pickedCategory && suggestedId !== undefined && suggestedId !== '' && suggestedId === categoryId
+  const { setValue, getValues } = form
+  useEffect(() => {
+    // What the user picked stays, and a split has no one category to suggest. Until they pick, the category follows the payee: to nothing, if it suggests nothing.
+    if (pickedCategory || split || suggestedId === undefined || suggestedId === getValues('categoryId')) return
+    setValue('categoryId', suggestedId, { shouldValidate: suggestedId !== '' })
+  }, [pickedCategory, split, suggestedId, setValue, getValues])
   const refusedLines = sumRefused ? 'sum' : linesRefused ? 'lines' : null
 
   // Once the emptied form has rendered, the next transaction starts at the amount.
@@ -166,6 +194,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     onChange: () => {
       form.setValue('categoryId', '')
       form.setValue('isRefund', false)
+      setPickedCategory(false)
       form.getValues('lines').forEach((_, index) => form.setValue(`lines.${index}.categoryId`, ''))
     },
   })
@@ -174,6 +203,8 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
   const splitIt = () => {
     lines.replace([{ ...emptyLine, categoryId: form.getValues('categoryId') }, emptyLine])
     form.clearErrors('categoryId')
+    // From here the categories are the user's: going back to one category keeps the first line's.
+    setPickedCategory(true)
     setSplit(true)
   }
 
@@ -234,6 +265,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
         form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '', isRefund: false, lines: [] })
         setSplit(false)
         setSumRefused(false)
+        setPickedCategory(false)
         setSavedCount((count) => count + 1)
       }
       onSaved()
@@ -301,13 +333,20 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
         error={errors.date?.message && t(errors.date.message as ParseKeys)}
         {...form.register('date')}
       />
+      {/* Before the category, which it suggests. */}
+      <TextField
+        label={t('transactions.payee')}
+        autoComplete="off"
+        error={errors.payee?.message && t(errors.payee.message as ParseKeys)}
+        {...form.register('payee')}
+      />
       {split ? (
         <SplitLines
           control={form.control}
           register={form.register}
           errors={errors.lines}
           lines={lines.fields}
-          categoryOptions={[{ value: '', label: t('transactions.chooseCategory') }, ...categoryOptions]}
+          categoryOptions={categoryOptions}
           currency={currency}
           remaining={remaining}
           refused={refusedLines}
@@ -317,23 +356,33 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
         />
       ) : (
         <div className="space-y-2">
-          <SelectField
-            label={t('transactions.category')}
-            error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
-            options={[{ value: '', label: t('transactions.chooseCategory') }, ...categoryOptions]}
-            {...form.register('categoryId')}
+          <Controller
+            control={form.control}
+            name={categoryField}
+            render={({ field }) => (
+              <ComboboxField
+                label={t('transactions.category')}
+                placeholder={t('transactions.chooseCategory')}
+                noMatches={t('transactions.noCategoryMatches')}
+                hint={suggested ? t('transactions.categorySuggested') : undefined}
+                error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
+                options={categoryOptions}
+                ref={field.ref}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChange={(value) => {
+                  // Picked, or emptied, by the user: no suggestion replaces it.
+                  setPickedCategory(true)
+                  field.onChange(value)
+                }}
+              />
+            )}
           />
           <Button type="button" variant="outline" size="sm" onClick={splitIt}>
             {t('transactions.split.start')}
           </Button>
         </div>
       )}
-      <TextField
-        label={t('transactions.payee')}
-        autoComplete="off"
-        error={errors.payee?.message && t(errors.payee.message as ParseKeys)}
-        {...form.register('payee')}
-      />
       <TextField
         label={t('transactions.note')}
         autoComplete="off"
@@ -367,7 +416,7 @@ type SplitLinesProps = {
   errors: FieldErrors<Values>['lines']
   /** The lines as the form keeps them: one key each, to tell them apart when one is removed. */
   lines: { id: string }[]
-  /** The categories of the transaction's type, after the option that chooses none. */
+  /** The categories of the transaction's type. */
   categoryOptions: { value: string; label: string }[]
   currency: Currency
   /** What is left of the amount after the lines, as a decimal string; null until there is an amount. */
@@ -397,11 +446,22 @@ function SplitLines({ control, register, errors, lines, categoryOptions, currenc
         const lineErrors = errors?.[index]
         return (
           <div key={line.id} role="group" aria-label={t('transactions.split.line', { number })} className="space-y-2 border-b pb-3">
-            <SelectField
-              label={t('transactions.split.lineCategory', { number })}
-              error={lineErrors?.categoryId?.message && t(lineErrors.categoryId.message as ParseKeys)}
-              options={categoryOptions}
-              {...register(`lines.${index}.categoryId`)}
+            <Controller
+              control={control}
+              name={lineCategoryField(index)}
+              render={({ field }) => (
+                <ComboboxField
+                  label={t('transactions.split.lineCategory', { number })}
+                  placeholder={t('transactions.chooseCategory')}
+                  noMatches={t('transactions.noCategoryMatches')}
+                  error={lineErrors?.categoryId?.message && t(lineErrors.categoryId.message as ParseKeys)}
+                  options={categoryOptions}
+                  ref={field.ref}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                />
+              )}
             />
             <AmountField
               control={control}

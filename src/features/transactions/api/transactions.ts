@@ -1,5 +1,6 @@
-import { infiniteQueryOptions, useMutation, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
+import { infiniteQueryOptions, queryOptions, useMutation, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { refreshAccountBalances } from '@/features/accounts'
+import { refreshBudgets } from '@/features/budgets'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
 import { ifMatch, isStale, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
@@ -70,6 +71,32 @@ export const transactionsQuery = infiniteQueryOptions({
   initialPageParam: undefined as string | undefined,
   getNextPageParam: (last) => last.nextCursor ?? undefined,
 })
+
+/** What quick add asks the API. Under the transactions' key, so recording, editing or deleting one asks again. */
+const quickAddKey = [...transactionsKey, 'quick-add']
+
+async function quickAdd(query: { type?: TransactionType; payee?: string } = {}) {
+  const { data, response } = await api.GET('/api/v1/transactions/quick-add', { params: { query } })
+  if (!data) throw new Error(`Could not load quick add: ${response.status}`)
+  return data
+}
+
+/** The account, not archived, the user recorded a transaction on last; null when they have recorded none. */
+export const lastAccountQuery = queryOptions({
+  queryKey: [...quickAddKey, 'last-account'],
+  queryFn: async () => (await quickAdd()).lastAccountId,
+})
+
+/**
+ * The category the user most often gave this payee on transactions of this type; null when they never used
+ * the payee. Asks nothing while there is no payee.
+ */
+export const suggestedCategoryQuery = ({ type, payee }: { type: TransactionType; payee: string }) =>
+  queryOptions({
+    queryKey: [...quickAddKey, 'suggested-category', { type, payee: payee.trim().toLowerCase() }],
+    queryFn: async () => (await quickAdd({ type, payee: payee.trim() })).suggestedCategoryId,
+    enabled: payee.trim() !== '',
+  })
 
 /**
  * Records a transaction, shown in the list at once. The idempotency key is made up by the caller, once per
@@ -175,9 +202,9 @@ function linesRefusedAsOne<Answer extends VersionedSaveResponse<Transaction>>(an
   return { ...answer, error: { errors: { ...errors, lines: [] } } }
 }
 
-/** Loads again everything a changed transaction or transfer shows in: the lists, an open transfer, the account balances. */
+/** Loads again everything a changed transaction or transfer shows in: the lists, an open transfer, the account balances, the budgets. */
 export function refreshTransactions(queryClient: QueryClient) {
-  return Promise.all([queryClient.invalidateQueries({ queryKey: transactionsKey }), refreshAccountBalances(queryClient)])
+  return Promise.all([queryClient.invalidateQueries({ queryKey: transactionsKey }), refreshAccountBalances(queryClient), refreshBudgets(queryClient)])
 }
 
 /** Newest date first; within a date, the last recorded first: ids are in the order of recording, and a pending one is the latest. */

@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { isStale } from '@/shared/api/versionedSave'
@@ -22,33 +23,34 @@ import {
   listKey,
   takesFromBalance,
   transactionsQuery,
-  useCreateTransaction,
   useDeleteTransaction,
   useEditTransaction,
   type ListedTransaction,
   type Transaction,
-  type TransactionDraft,
 } from '../api/transactions'
 import { transferQuery, useCreateTransfer, useDeleteTransfer, useEditTransfer, type Transfer, type TransferFields } from '../api/transfers'
+import { useQuickAdd } from '../components/quickAddContext'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransferForm } from '../components/TransferForm'
 
 /**
- * What the drawer is open for: recording a transaction, editing this one, as it was when the drawer opened,
- * recording a transfer, or editing the transfer with this id, which either of its legs opens.
+ * What the drawer is open for: editing this transaction, as it was when the drawer opened, recording a
+ * transfer, or editing the transfer with this id, which either of its legs opens.
  */
-type Drawer = { adding: true } | { editing: Transaction } | { transferring: true } | { transferId: string } | null
+type Drawer = { editing: Transaction } | { transferring: true } | { transferId: string } | null
 
 /**
  * The user's income, expenses and transfers, newest first, refunds marked as such. Recording and editing
- * happen in a side drawer (spec section 12); the list shows a change to income or an expense as soon as it is
- * sent. A transfer is listed as its two legs, each on its own account and marked as a transfer; either opens
- * the transfer form.
+ * happen in a side drawer (spec section 12): editing and transfers in this screen's own, recording a
+ * transaction in the one quick add opens on every screen. The list shows a change to income or an expense as
+ * soon as it is sent. A transfer is listed as its two legs, each on its own account and marked as a transfer;
+ * either opens the transfer form.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.transactions'))
   const [drawer, setDrawer] = useState<Drawer>(null)
+  const addTransaction = useQuickAdd()
   const transactions = useInfiniteQuery(transactionsQuery)
   // Archived accounts and categories are loaded too: the transactions on them still show their names.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
@@ -71,12 +73,8 @@ export function TransactionsPage() {
       ? t('transfers.editTitle')
       : drawer && 'transferring' in drawer
         ? t('transfers.new')
-        : editing
-          ? t('transactions.editTitle')
-          : t('transactions.new')
+        : t('transactions.editTitle')
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
-
-  useShortcutToAdd(() => setDrawer((open) => open ?? { adding: true }), canRecord)
 
   return (
     <section className="max-w-2xl space-y-6">
@@ -94,7 +92,7 @@ export function TransactionsPage() {
         </p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button disabled={!loaded} aria-keyshortcuts="N" onClick={() => setDrawer({ adding: true })}>
+          <Button disabled={!loaded} aria-keyshortcuts="N" onClick={addTransaction}>
             {t('transactions.add')}
           </Button>
           {canTransfer && (
@@ -134,6 +132,7 @@ export function TransactionsPage() {
           // The sheet's own close button has no translated name; ours does.
           showCloseButton={false}
           aria-describedby={undefined}
+          onEscapeKeyDown={escapeClosesPickerFirst}
           className="w-full gap-4 overflow-y-auto bg-background p-4 text-foreground sm:max-w-md"
         >
           <div className="flex items-center justify-between">
@@ -142,9 +141,6 @@ export function TransactionsPage() {
               <X aria-hidden className="size-5" />
             </SheetClose>
           </div>
-          {loaded && drawer && 'adding' in drawer && (
-            <AddTransaction accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
-          )}
           {loaded && editing && (
             <EditTransaction transaction={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
@@ -159,38 +155,6 @@ export function TransactionsPage() {
 }
 
 type FormProps = { accounts: Account[]; categories: Category[]; onClose: () => void }
-
-/** Records one transaction after another: the drawer stays open, ready for the next transaction (spec section 12). */
-function AddTransaction({ accounts, categories, onClose }: FormProps) {
-  const { t } = useTranslation()
-  const formId = useId()
-  const create = useCreateTransaction()
-  // One key per request the user means to make: saving the same values again after a failure sends the same
-  // one, so the API cannot record the transaction twice. Changed values are a new request, and so is the
-  // next transaction: each takes a new key.
-  const attempt = useRef<{ key: string; sent?: string }>({ key: crypto.randomUUID() })
-
-  return (
-    <>
-      <TransactionForm
-        id={formId}
-        accounts={accounts}
-        categories={categories}
-        onSave={(draft: TransactionDraft) => {
-          const sending = JSON.stringify(draft.fields)
-          if (attempt.current.sent !== undefined && attempt.current.sent !== sending) attempt.current.key = crypto.randomUUID()
-          attempt.current.sent = sending
-          return create.mutateAsync({ ...draft, idempotencyKey: attempt.current.key })
-        }}
-        onSaved={() => {
-          attempt.current = { key: crypto.randomUUID() }
-        }}
-        onCancel={onClose}
-      />
-      <FailureToast failed={create.isError} message={t('transactions.errors.notSaved')} retry={{ form: formId }} onDismiss={create.reset} />
-    </>
-  )
-}
 
 function EditTransaction({ transaction, accounts, categories, onClose }: FormProps & { transaction: Transaction }) {
   const { t } = useTranslation()
@@ -385,24 +349,6 @@ const separator = ' · '
 
 function findCategory(tree: Category[], id: string | null): Category | undefined {
   return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
-}
-
-/**
- * Pressing N anywhere on the screen opens the drawer to record a transaction (spec section 12), unless the
- * user is typing somewhere or holding a modifier.
- */
-function useShortcutToAdd(open: () => void, enabled: boolean) {
-  useEffect(() => {
-    if (!enabled) return undefined
-    const onKeyDown = (event: KeyboardEvent) => {
-      const typing = event.target instanceof HTMLElement && (event.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))
-      if (event.key.toLowerCase() !== 'n' || event.ctrlKey || event.metaKey || event.altKey || typing) return
-      event.preventDefault()
-      open()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open, enabled])
 }
 
 /** Rows standing in for the list while it loads. */
