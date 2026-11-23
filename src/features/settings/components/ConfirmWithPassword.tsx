@@ -50,13 +50,13 @@ export function ConfirmWithPassword({ explanation, submitLabel, destructive = fa
         error={errors.password?.message && t(errors.password.message as ParseKeys)}
         {...form.register('password')}
       />
-      <FailureToast failed={failed} message={t('settings.security.failed')} retry={{ form: formId }} onDismiss={() => setFailed(false)} />
+      <FailureToast failed={failed} message={t('settings.confirmWithPassword.failed')} retry={{ form: formId }} onDismiss={() => setFailed(false)} />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" variant={destructive ? 'destructive' : 'default'} disabled={isSubmitting}>
           {submitLabel}
         </Button>
         <Button type="button" variant="outline" onClick={onDone}>
-          {t('settings.security.cancel')}
+          {t('settings.confirmWithPassword.cancel')}
         </Button>
       </div>
     </form>

@@ -609,6 +609,8 @@
     },
     "confirmWithPassword": {
       "password": "Password",
+      "cancel": "Cancel",
+      "failed": "Something went wrong. Try again in a little while.",
       "errors": {
         "required": "Enter your password.",
         "incorrect": "That is not your password."
@@ -622,7 +624,9 @@
         "start": "Export my data",
         "confirmBody": "The file holds all your financial data, and anyone who has the file can read it. Keep it somewhere safe.",
         "submit": "Download",
-        "downloaded": "Your data is downloaded."
+        "downloaded": "Your data is downloaded.",
+        "cancel": "Cancel",
+        "failed": "Something went wrong. Try again in a little while."
       },
       "delete": {
         "title": "Delete your profile",

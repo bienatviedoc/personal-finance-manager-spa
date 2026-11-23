@@ -609,6 +609,8 @@
     },
     "confirmWithPassword": {
       "password": "Mật khẩu",
+      "cancel": "Hủy",
+      "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút.",
       "errors": {
         "required": "Nhập mật khẩu.",
         "incorrect": "Đó không phải mật khẩu của bạn."
@@ -622,7 +624,9 @@
         "start": "Xuất dữ liệu của tôi",
         "confirmBody": "Tệp này chứa toàn bộ dữ liệu tài chính của bạn, và ai có tệp cũng đọc được. Hãy cất nó ở nơi an toàn.",
         "submit": "Tải về",
-        "downloaded": "Dữ liệu của bạn đã được tải về."
+        "downloaded": "Dữ liệu của bạn đã được tải về.",
+        "cancel": "Hủy",
+        "failed": "Đã xảy ra lỗi. Hãy thử lại sau ít phút."
       },
       "delete": {
         "title": "Xóa hồ sơ của bạn",
