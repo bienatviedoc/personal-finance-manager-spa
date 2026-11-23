@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
-import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Copy, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
@@ -15,7 +15,7 @@ import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { amountExample, AmountInput, Money, type AmountValue, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { budgetsQuery, useRemoveBudget, useSetBudget, type Budget, type BudgetState, type BudgetTotals } from '../api/budgets'
+import { budgetsQuery, useCopyBudgets, useRemoveBudget, useSetBudget, type Budget, type BudgetState, type BudgetTotals } from '../api/budgets'
 import type { BudgetMonth } from '../budgetMonth'
 
 /** What a row needs of the category it is for: one from the user's tree, or the one a budget carries when it is archived. */
@@ -58,6 +58,9 @@ export function BudgetsPage() {
 
       {budgets.data && rows && (
         <>
+          {/* What a copy said belongs to the month it was made in. */}
+          <CopyLastMonth key={month} month={month} />
+
           {budgets.data.items.length === 0 ? (
             <p className="text-muted-foreground">{t('budgets.empty')}</p>
           ) : (
@@ -139,6 +142,28 @@ function MonthSwitcher({ month, monthName, thisMonth }: { month: BudgetMonth; mo
         </Link>
       )}
     </nav>
+  )
+}
+
+/** Copies last month's budgets into the month shown, in one action, and says how many it copied (spec BUD-4). */
+function CopyLastMonth({ month }: { month: BudgetMonth }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const copy = useCopyBudgets(month)
+  const lastMonth = shiftMonth(month, -1)
+  const from = formatMonth(lastMonth, locale)
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button type="button" variant="outline" size="sm" disabled={copy.isPending} onClick={() => copy.mutate(lastMonth)}>
+        <Copy aria-hidden className="size-4" />
+        {t('budgets.copy.action', { month: from })}
+      </Button>
+      <p role="status" className="text-sm text-muted-foreground">
+        {copy.data && t('budgets.copy.done', { count: copy.data.copied, month: from })}
+      </p>
+      <FailureToast failed={copy.isError} message={t('budgets.copy.failed')} retry={() => copy.mutate(lastMonth)} onDismiss={copy.reset} />
+    </div>
   )
 }
 

@@ -3089,6 +3089,65 @@
         }
       }
     },
+    "/api/v1/budgets/{month}/copy-from/{sourceMonth}": {
+      "post": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount.",
+        "operationId": "CopyBudgets",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceMonth",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopiedBudgetsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/spending-by-category": {
       "get": {
         "tags": [
@@ -3878,6 +3937,22 @@
           },
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "CopiedBudgetsResponse": {
+        "required": [
+          "copied"
+        ],
+        "type": "object",
+        "properties": {
+          "copied": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

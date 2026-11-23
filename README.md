@@ -131,6 +131,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **A budget is set, not created or edited:** `useSetBudget(month)` sends `PUT /budgets/{month}/{categoryId}`
   with the budget's `rowVersion` as `If-Match` when the category already has one that month and without it when
   it has none; `useRemoveBudget(month)` removes it.
+- **Last month's budgets are copied in one action** (BUD-4): the budget screen's "Copy budgets from …" button
+  calls `useCopyBudgets(month)` with the month before the one shown. The API decides what is copied (never over a
+  budget the month has, nor onto an archived category) and answers how many; the screen says that number.
 - **Reports share one frame** (spec sections 7 and 12). `ReportFrame` in `features/reports/frame` holds what every
   report has: the period (a preset, or dates the user chooses), the account and category filters, comparing with
   the period before, and the chart or table view, all in the address (`period`, `from`, `to`, `accountId`,
@@ -231,7 +234,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
-| `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, and locks the base currency `fakeProfileApi` holds |
+| `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
