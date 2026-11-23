@@ -90,6 +90,11 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
   the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
   used key that comes with a different body), and so is the next transaction.
+- **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
+  edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
+  date, and works out every date (`nextRunDate`). The SPA never computes a due date. A transaction a rule posted
+  carries `recurringRuleId`, and its row links to `/recurring?rule=<id>` (`RecurringRuleLink`), where that rule is
+  pointed out. A rule is income or an expense, never a transfer; use the glossary's term, recurring rule.
 - **A change to a transaction moves what was spent,** too, so the same hooks load the budgets again through
   `refreshBudgets` from `@/features/budgets`. Setting the first budget locks the base currency and removing the
   last one unlocks it, so the budget hooks load the profile again (`refreshProfile` from `@/features/settings`).
@@ -179,6 +184,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
 | `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, and locks the base currency `fakeProfileApi` holds |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
