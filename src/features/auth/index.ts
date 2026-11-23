@@ -15,5 +15,7 @@ export const authRoutes: RouteObject[] = [
   { path: 'reset-password', Component: ResetPasswordPage },
 ]
 
-export { requireSignedInUser, signedInUserQuery } from './api/session'
+export { deletionRequested } from './api/deletion'
+export { forgetSignedInUser, requireSignedInUser, signedInUserQuery } from './api/session'
+export { DeletionCancelledNotice } from './components/DeletionCancelledNotice'
 export { UserMenu } from './components/UserMenu'
