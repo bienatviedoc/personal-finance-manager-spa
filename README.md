@@ -81,6 +81,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.
+- **A transfer is two transactions in the list.** The API lists a transfer as its two legs (`transferOut`,
+  `transferIn`), each on its own account and carrying the `transferId` they share; the list marks them as a
+  transfer. A leg is never edited or deleted as a transaction: either leg opens the transfer form, which loads
+  the transfer by that id (`transferQuery`) and saves both legs through `/transfers` (`features/transactions/api/transfers.ts`).
+  Between accounts in different currencies the form asks for both amounts; nothing converts one into the other.
+  Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
 - **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
   `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
   the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change

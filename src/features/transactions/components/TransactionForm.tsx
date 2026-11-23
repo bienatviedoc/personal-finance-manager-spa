@@ -137,12 +137,13 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
     resolver: zodResolver(schema),
     defaultValues: transaction
       ? {
-          type: transaction.type,
+          // Income or an expense: a leg of a transfer opens the transfer form instead, and has no category.
+          type: transaction.type === 'income' ? 'income' : 'expense',
           accountId: transaction.accountId,
           amount: transaction.amount,
           date: transaction.date,
-          // A split has no category of its own: its lines name theirs.
-          categoryId: isSplit(transaction) ? '' : transaction.categoryId,
+          // A split has no category of its own: its lines name theirs. Neither has a leg of a transfer, which never opens this form.
+          categoryId: isSplit(transaction) ? '' : (transaction.categoryId ?? ''),
           payee: transaction.payee ?? '',
           note: transaction.note ?? '',
           isRefund: transaction.isRefund,
