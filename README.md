@@ -69,6 +69,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
   the form's. A drawer holding one passes `escapeClosesPickerFirst` to its `onEscapeKeyDown`. Tests choose from
   one with `choose` and read what it offers with `offeredBy` (`src/test/combobox.ts`).
+- **A refund is an expense with `isRefund` set** (see the glossary), never a type of its own: the form offers the
+  flag to an expense only, and the list marks a refund and shows its amount coming back (`+`), since it raises
+  the balance.
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.

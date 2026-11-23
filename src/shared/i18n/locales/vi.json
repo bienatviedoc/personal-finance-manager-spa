@@ -224,6 +224,9 @@
       "expense": "Khoản chi",
       "income": "Khoản thu"
     },
+    "isRefund": "Đây là khoản hoàn tiền",
+    "refundHint": "Tiền được trả lại từ một lần mua. Khoản này làm tăng số dư và giảm số đã chi trong danh mục.",
+    "refund": "Hoàn tiền",
     "account": "Tài khoản",
     "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Số tiền ({{currency}})",
@@ -257,6 +260,7 @@
       "category": "Chọn danh mục.",
       "payeeTooLong": "Dùng tối đa 200 ký tự.",
       "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "refundNotExpense": "Chỉ khoản chi mới có thể là khoản hoàn tiền.",
       "stale": "Giao dịch này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được giao dịch.",

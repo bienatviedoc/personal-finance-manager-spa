@@ -32,9 +32,9 @@ import { TransactionForm } from '../components/TransactionForm'
 type Drawer = { editing: Transaction } | null
 
 /**
- * The user's income and expenses, newest first. Recording and editing happen in a side drawer (spec section
- * 12): editing in this screen's own, recording in the one quick add opens on every screen. The list shows a
- * change as soon as it is sent.
+ * The user's income and expenses, newest first, refunds marked as such. Recording and editing happen in a side
+ * drawer (spec section 12): editing in this screen's own, recording in the one quick add opens on every screen.
+ * The list shows a change as soon as it is sent.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
@@ -169,14 +169,20 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
         {category && <CategoryBadge icon={category.icon} color={category.color} />}
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
+          {transaction.isRefund && (
+            <span className="inline-block rounded-full border border-emerald-600/40 bg-emerald-600/10 px-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              {t('transactions.refund')}
+            </span>
+          )}
           <p data-testid="details" className="text-sm text-muted-foreground">
             {[category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
           </p>
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
-          {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
-          <Money amount={transaction.type === 'expense' ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
+          {/* The type gives the sign, except that a refund is an expense coming back. Putting it in front of the digits is not arithmetic. */}
+          {transaction.isRefund && '+'}
+          <Money amount={transaction.type === 'expense' && !transaction.isRefund ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
         </span>
         {saved && !confirming && (
           <>

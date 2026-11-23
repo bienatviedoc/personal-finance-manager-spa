@@ -18,7 +18,7 @@ type MissingType = Exclude<TransactionType, (typeof transactionTypes)[number]>
 export const everyTransactionTypeListed: MissingType extends never ? true : MissingType = true
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note'] as const
+const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note', 'isRefund'] as const
 export type TransactionField = (typeof transactionFields)[number]
 
 export type SaveOutcome = VersionedSaveOutcome<'transaction', Transaction, TransactionField>

@@ -47,7 +47,7 @@ describe('quick add', () => {
 
     expect(await drawer.findByText('Saved. Add another, or close when you are done.')).toBeInTheDocument()
     expect(transactionsApi.requests).toEqual([
-      { method: 'POST', body: { type: 'expense', accountId: everyday, amount: '45000', date: today, categoryId: 'c-transport', payee: 'Grab', note: null } },
+      { method: 'POST', body: { type: 'expense', accountId: everyday, amount: '45000', date: today, categoryId: 'c-transport', payee: 'Grab', note: null, isRefund: false } },
     ])
     expect(drawer.getByLabelText('Amount (VND)')).toHaveValue('')
     await waitFor(() => expect(drawer.getByLabelText('Amount (VND)')).toHaveFocus())

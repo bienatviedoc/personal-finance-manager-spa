@@ -26,7 +26,7 @@ type Options = {
  * as the real API (see the API's TransactionTests): the list is newest date first and, within a date, last
  * recorded first, a page at a time; the currency is the account's; the amount is above zero with no more
  * decimals than the currency has; the date is not in the future; income takes an income category and an
- * expense an expense category; archived accounts and categories take no new transactions; a POST sent
+ * expense an expense category; only an expense can be a refund, which raises the balance; archived accounts and categories take no new transactions; a POST sent
  * again with the same `Idempotency-Key` records nothing, and one with that key and a different body is a 422; an edit must name the row version in `If-Match`
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
  * account a transaction is on follows it. Quick add answers the account, not archived, recorded on last, and the
@@ -48,6 +48,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         payee: null,
         note: null,
         rowVersion: '1',
+        isRefund: false,
         ...transaction,
       }
     }),
@@ -79,7 +80,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   const order = new Map(state.transactions.map((transaction, index) => [transaction.id, index - state.transactions.length]))
 
   const find = (id: unknown) => state.transactions.find((transaction) => transaction.id === id)
-  const signed = (transaction: Transaction) => (transaction.type === 'income' ? 1 : -1) * Number(transaction.amount)
+  // The type gives the sign, except that a refund raises the balance.
+  const signed = (transaction: Transaction) => (transaction.type === 'income' || transaction.isRefund ? 1 : -1) * Number(transaction.amount)
   const move = (transaction: Transaction, direction: 1 | -1) => {
     const account = accounts.find((candidate) => candidate.id === transaction.accountId)
     if (account) account.balance = text(Number(account.balance) + direction * signed(transaction))
@@ -111,6 +113,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (fraction.length > decimals[account.currency]!) return invalid('amount', 'The amount has more decimals than its currency.')
     if (body.date! > today) return invalid('date', "A transaction's date cannot be in the future.")
     if (category.kind !== body.type) return invalid('categoryId', 'An income transaction takes an income category.')
+    if (body.isRefund && body.type !== 'expense') return invalid('isRefund', 'Only an expense can be a refund.')
 
     return {
       fields: {
@@ -122,6 +125,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         categoryId: category.id,
         payee: body.payee?.trim() || null,
         note: body.note?.trim() || null,
+        isRefund: body.isRefund ?? false,
       },
     }
   }
