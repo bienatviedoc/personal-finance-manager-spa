@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ParseKeys } from 'i18next'
 import { useEffect, useId, useMemo, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import type { Account } from '@/features/accounts'
@@ -12,29 +12,52 @@ import { TextField } from '@/shared/components/TextField'
 import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRingWithin } from '@/shared/lib/utils'
-import { AmountField, amountExample, formatAmountForInput, isZeroAmount, parseAmount, requiredAmount } from '@/shared/money'
+import {
+  AmountField,
+  amountExample,
+  formatAmountForInput,
+  formatMoney,
+  isZeroAmount,
+  parseAmount,
+  remainingAmount,
+  requiredAmount,
+  type Currency,
+} from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isStale } from '@/shared/api/versionedSave'
-import { transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
+import { isSplit, transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
 /**
  * The API's rules (see `Transaction` in the API), repeated here for fast feedback only; the API enforces them
  * again. What depends on the chosen account, the decimals its currency has, is checked on submit.
  */
-const schemaFor = (today: CalendarDate) =>
+// What an amount input holds: null when the text is not an amount, '' when it is empty.
+const amountAboveZero = requiredAmount({ invalid: 'transactions.errors.amountInvalid', required: 'transactions.errors.amountRequired' }).refine(
+  (amount) => !amount || !isZeroAmount(amount),
+  { error: 'transactions.errors.amountZero' },
+)
+
+/**
+ * @param split Whether the transaction is split across lines, which then name its categories: it has none of
+ * its own. A transaction that is not split holds no lines. That the lines sum to the amount is checked on submit.
+ */
+const schemaFor = (today: CalendarDate, split: boolean) =>
   z.object({
     type: z.enum(transactionTypes),
     accountId: z.string().min(1, { error: 'transactions.errors.account' }),
-    // What the amount input holds: null when the text is not an amount, '' when it is empty.
-    amount: requiredAmount({ invalid: 'transactions.errors.amountInvalid', required: 'transactions.errors.amountRequired' }).refine(
-      (amount) => !amount || !isZeroAmount(amount),
-      { error: 'transactions.errors.amountZero' },
-    ),
+    amount: amountAboveZero,
     // Calendar dates as YYYY-MM-DD sort as text.
     date: calendarDate('transactions.errors.date').refine((date) => date <= today, { error: 'transactions.errors.dateInFuture' }),
-    categoryId: z.string().min(1, { error: 'transactions.errors.category' }),
+    categoryId: z.string().refine((categoryId) => split || categoryId !== '', { error: 'transactions.errors.category' }),
     payee: z.string().trim().max(200, { error: 'transactions.errors.payeeTooLong' }),
     note: z.string().trim().max(1000, { error: 'transactions.errors.noteTooLong' }),
+    lines: z.array(
+      z.object({
+        categoryId: z.string().min(1, { error: 'transactions.errors.category' }),
+        amount: amountAboveZero,
+        note: z.string().trim().max(1000, { error: 'transactions.errors.noteTooLong' }),
+      }),
+    ),
     // A refund: an expense that is money coming back. Only an expense can be one.
     isRefund: z.boolean(),
   })
@@ -43,8 +66,10 @@ type Schema = ReturnType<typeof schemaFor>
 /** What the form holds; once validated, the amount is a decimal string. */
 type Values = z.input<Schema>
 
-/** The message the form shows for each field the API refused. */
-const serverErrors: Record<TransactionField, ParseKeys> = {
+const emptyLine = { categoryId: '', amount: '', note: '' }
+
+/** The message the form shows for each field the API refused. What it refuses about the lines is said once, for all of them. */
+const serverErrors: Record<Exclude<TransactionField, 'lines'>, ParseKeys> = {
   type: 'transactions.errors.type',
   accountId: 'transactions.errors.account',
   amount: 'transactions.errors.amountInvalid',
@@ -57,6 +82,7 @@ const serverErrors: Record<TransactionField, ParseKeys> = {
 
 // Named outside JSX, where lint would take a field name for user-facing text.
 const amountField = 'amount'
+const lineAmountField = (index: number) => `lines.${index}.amount` as const
 
 type Props = {
   /** The form's id, for a button outside it that submits it: the one that tries again after a failure. */
@@ -85,8 +111,12 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
   const locale = useLocale()
   const { baseCurrency, timeZone } = useUserSettings()
   const today = todayIn(timeZone)
-  const schema = useMemo(() => schemaFor(today), [today])
+  const [split, setSplit] = useState(transaction !== undefined && isSplit(transaction))
+  const schema = useMemo(() => schemaFor(today, split), [today, split])
   const [savedCount, setSavedCount] = useState(0)
+  // Set by a save that was stopped because the lines do not sum to the amount, and by the API refusing the lines.
+  const [sumRefused, setSumRefused] = useState(false)
+  const [linesRefused, setLinesRefused] = useState(false)
   const refundHintId = useId()
 
   const accountOptions = accounts.filter((account) => !account.isArchived || account.id === transaction?.accountId)
@@ -98,24 +128,31 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           accountId: transaction.accountId,
           amount: transaction.amount,
           date: transaction.date,
-          categoryId: transaction.categoryId,
+          // A split has no category of its own: its lines name theirs.
+          categoryId: isSplit(transaction) ? '' : transaction.categoryId,
           payee: transaction.payee ?? '',
           note: transaction.note ?? '',
           isRefund: transaction.isRefund,
+          lines: isSplit(transaction) ? transaction.lines.map((line) => ({ ...line, note: line.note ?? '' })) : [],
         }
-      : { type: 'expense', accountId: accountOptions[0]?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', isRefund: false },
+      : { type: 'expense', accountId: accountOptions[0]?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', isRefund: false, lines: [] },
   })
+  const lines = useFieldArray({ control: form.control, name: 'lines' })
   const { errors, isSubmitting } = form.formState
-  const [type, accountId] = useWatch({ control: form.control, name: ['type', 'accountId'] })
+  const [type, accountId, amount, lineValues] = useWatch({ control: form.control, name: ['type', 'accountId', 'amount', 'lines'] })
   const currency = accounts.find((account) => account.id === accountId)?.currency ?? baseCurrency
+  // What is left of the amount after the lines entered so far; unknown until there is an amount.
+  const remaining = split && amount ? remainingAmount(amount, lineValues.flatMap((line) => (line.amount ? [line.amount] : []))) : null
 
   const categoryOptions = categories
     .flatMap((category) => [
       { category, label: category.name },
       ...category.subcategories.map((subcategory) => ({ category: subcategory, label: t('transactions.subcategory', { parent: category.name, name: subcategory.name }) })),
     ])
-    .filter(({ category }) => category.kind === type && (!category.isArchived || category.id === transaction?.categoryId))
+    .filter(({ category }) => category.kind === type && (!category.isArchived || transaction?.lines.some((line) => line.categoryId === category.id)))
     .map(({ category, label }) => ({ value: category.id, label }))
+
+  const refusedLines = sumRefused ? 'sum' : linesRefused ? 'lines' : null
 
   // Once the emptied form has rendered, the next transaction starts at the amount.
   useEffect(() => {
@@ -123,13 +160,30 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
   }, [savedCount, form])
 
   const typeToggle = form.register('type', {
-    // A category of the other kind cannot stay: the type decides which kind it takes. Nor can the refund
-    // flag: only an expense can be a refund.
+    // A category of the other kind cannot stay: the type decides which kind it takes, on every line. Nor can
+    // the refund flag: only an expense can be a refund.
     onChange: () => {
       form.setValue('categoryId', '')
       form.setValue('isRefund', false)
+      form.getValues('lines').forEach((_, index) => form.setValue(`lines.${index}.categoryId`, ''))
     },
   })
+
+  /** Splits the amount across two lines to start with, the first on the category already chosen. */
+  const splitIt = () => {
+    lines.replace([{ ...emptyLine, categoryId: form.getValues('categoryId') }, emptyLine])
+    form.clearErrors('categoryId')
+    setSplit(true)
+  }
+
+  /** One category again: the first line's, for the whole amount. */
+  const useOneCategory = () => {
+    form.setValue('categoryId', form.getValues('lines')[0]?.categoryId ?? '')
+    lines.replace([])
+    setSplit(false)
+    setSumRefused(false)
+    setLinesRefused(false)
+  }
 
   const onSubmit = form.handleSubmit(async (values) => {
     const amount = values.amount as string
@@ -139,6 +193,20 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
       form.setError(account ? 'amount' : 'accountId', { message: account ? 'transactions.errors.amountInvalid' : 'transactions.errors.account' }, { shouldFocus: true })
       return
     }
+    const splitLines = split ? values.lines.map((line) => ({ categoryId: line.categoryId, amount: line.amount as string, note: line.note || null })) : null
+    if (splitLines) {
+      const unfit = splitLines.findIndex((line) => parseAmount(formatAmountForInput(line.amount, locale, account.currency), locale, account.currency) === null)
+      if (unfit !== -1) {
+        form.setError(`lines.${unfit}.amount`, { message: 'transactions.errors.amountInvalid' }, { shouldFocus: true })
+        return
+      }
+      // The lines of a split sum exactly to its amount (spec section 3, rule 5): nothing is sent until they do.
+      if (!isZeroAmount(remainingAmount(amount, splitLines.map((line) => line.amount)))) {
+        setSumRefused(true)
+        return
+      }
+    }
+    setLinesRefused(false)
 
     let outcome: SaveOutcome
     try {
@@ -148,7 +216,7 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
           accountId: values.accountId,
           amount,
           date: values.date,
-          categoryId: values.categoryId,
+          ...(splitLines ? { lines: splitLines } : { categoryId: values.categoryId }),
           payee: values.payee || null,
           note: values.note || null,
           // Only an expense can be a refund.
@@ -162,7 +230,9 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     }
     if (outcome.saved) {
       if (!transaction) {
-        form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '', isRefund: false })
+        form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '', isRefund: false, lines: [] })
+        setSplit(false)
+        setSumRefused(false)
         setSavedCount((count) => count + 1)
       }
       onSaved()
@@ -170,7 +240,8 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
     }
     if (isStale(outcome)) return
     for (const refused of outcome.fields) {
-      form.setError(refused, { message: serverErrors[refused] }, { shouldFocus: true })
+      if (refused === 'lines') setLinesRefused(true)
+      else form.setError(refused, { message: serverErrors[refused] }, { shouldFocus: true })
     }
   })
 
@@ -229,12 +300,33 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
         error={errors.date?.message && t(errors.date.message as ParseKeys)}
         {...form.register('date')}
       />
-      <SelectField
-        label={t('transactions.category')}
-        error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
-        options={[{ value: '', label: t('transactions.chooseCategory') }, ...categoryOptions]}
-        {...form.register('categoryId')}
-      />
+      {split ? (
+        <SplitLines
+          control={form.control}
+          register={form.register}
+          errors={errors.lines}
+          lines={lines.fields}
+          categoryOptions={[{ value: '', label: t('transactions.chooseCategory') }, ...categoryOptions]}
+          currency={currency}
+          remaining={remaining}
+          refused={refusedLines}
+          onAdd={() => lines.append(emptyLine)}
+          onRemove={lines.remove}
+          onUseOneCategory={useOneCategory}
+        />
+      ) : (
+        <div className="space-y-2">
+          <SelectField
+            label={t('transactions.category')}
+            error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
+            options={[{ value: '', label: t('transactions.chooseCategory') }, ...categoryOptions]}
+            {...form.register('categoryId')}
+          />
+          <Button type="button" variant="outline" size="sm" onClick={splitIt}>
+            {t('transactions.split.start')}
+          </Button>
+        </div>
+      )}
       <TextField
         label={t('transactions.payee')}
         autoComplete="off"
@@ -261,5 +353,102 @@ export function TransactionForm({ id, transaction, accounts, categories, onSave,
         {savedCount > 0 && !isSubmitting && t('transactions.savedAddAnother', { count: savedCount })}
       </p>
     </form>
+  )
+}
+
+/** A split has at least two lines (see `Transaction.MinSplitLines` in the API), and at most fifty. */
+const minLines = 2
+const maxLines = 50
+
+type SplitLinesProps = {
+  control: Control<Values, unknown, z.output<Schema>>
+  register: UseFormRegister<Values>
+  errors: FieldErrors<Values>['lines']
+  /** The lines as the form keeps them: one key each, to tell them apart when one is removed. */
+  lines: { id: string }[]
+  /** The categories of the transaction's type, after the option that chooses none. */
+  categoryOptions: { value: string; label: string }[]
+  currency: Currency
+  /** What is left of the amount after the lines, as a decimal string; null until there is an amount. */
+  remaining: string | null
+  /** Why the last save was stopped, if it was about the lines: they do not sum to the amount, or the API refused them. */
+  refused: 'sum' | 'lines' | null
+  onAdd: () => void
+  onRemove: (index: number) => void
+  onUseOneCategory: () => void
+}
+
+/**
+ * The lines of a split transaction: a category, an amount and an optional note each. Under them, what remains
+ * of the transaction's amount to split, which must be nothing before the transaction can be saved.
+ */
+function SplitLines({ control, register, errors, lines, categoryOptions, currency, remaining, refused, onAdd, onRemove, onUseOneCategory }: SplitLinesProps) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const left = remaining === null || isZeroAmount(remaining) ? null : formatMoney(remaining.replace('-', ''), currency, locale)
+  const over = remaining?.startsWith('-') ?? false
+
+  return (
+    <fieldset className="space-y-3 rounded-lg border p-3">
+      <legend className="px-1 text-sm font-medium">{t('transactions.split.lines')}</legend>
+      {lines.map((line, index) => {
+        const number = index + 1
+        const lineErrors = errors?.[index]
+        return (
+          <div key={line.id} role="group" aria-label={t('transactions.split.line', { number })} className="space-y-2 border-b pb-3">
+            <SelectField
+              label={t('transactions.split.lineCategory', { number })}
+              error={lineErrors?.categoryId?.message && t(lineErrors.categoryId.message as ParseKeys)}
+              options={categoryOptions}
+              {...register(`lines.${index}.categoryId`)}
+            />
+            <AmountField
+              control={control}
+              name={lineAmountField(index)}
+              label={t('transactions.split.lineAmount', { number, currency })}
+              error={lineErrors?.amount?.message && t(lineErrors.amount.message as ParseKeys, { example: amountExample(locale, currency) })}
+              currency={currency}
+            />
+            <TextField
+              label={t('transactions.split.lineNote', { number })}
+              autoComplete="off"
+              error={lineErrors?.note?.message && t(lineErrors.note.message as ParseKeys)}
+              {...register(`lines.${index}.note`)}
+            />
+            {lines.length > minLines && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)}>
+                {t('transactions.split.removeLine', { number })}
+              </Button>
+            )}
+          </div>
+        )
+      })}
+
+      {/* Says what remains as the lines are filled in; it must be nothing before the transaction can be saved. */}
+      <p role="status" data-testid="remaining" className={cn('text-sm font-medium', left !== null && 'text-destructive')}>
+        {remaining !== null && (left === null ? t('transactions.split.nothingLeft') : t(over ? 'transactions.split.over' : 'transactions.split.left', { amount: left }))}
+      </p>
+      {refused === 'sum' && left !== null && (
+        <p role="alert" className="text-sm text-destructive">
+          {t(over ? 'transactions.errors.linesOver' : 'transactions.errors.linesLeft', { amount: left })}
+        </p>
+      )}
+      {refused === 'lines' && (
+        <p role="alert" className="text-sm text-destructive">
+          {t('transactions.errors.lines')}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {lines.length < maxLines && (
+          <Button type="button" variant="outline" size="sm" onClick={onAdd}>
+            {t('transactions.split.addLine')}
+          </Button>
+        )}
+        <Button type="button" variant="ghost" size="sm" onClick={onUseOneCategory}>
+          {t('transactions.split.useOneCategory')}
+        </Button>
+      </div>
+    </fieldset>
   )
 }

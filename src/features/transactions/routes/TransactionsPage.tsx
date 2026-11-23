@@ -17,6 +17,7 @@ import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { X } from 'lucide-react'
 import {
   isPending,
+  isSplit,
   listKey,
   transactionsQuery,
   useCreateTransaction,
@@ -88,6 +89,7 @@ export function TransactionsPage() {
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
+              categories={categories.data}
               onEdit={(editing) => setDrawer({ editing })}
             />
           ))}
@@ -183,9 +185,17 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
   )
 }
 
-type RowProps = { transaction: ListedTransaction; account?: Account; category?: Category; onEdit: (transaction: Transaction) => void }
+type RowProps = {
+  transaction: ListedTransaction
+  account?: Account
+  /** The transaction's category; of a split, its first line's. */
+  category?: Category
+  /** The user's category tree, to name the category of each line of a split. */
+  categories: Category[]
+  onEdit: (transaction: Transaction) => void
+}
 
-function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
+function TransactionRow({ transaction, account, category, categories, onEdit }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const remove = useDeleteTransaction()
@@ -194,13 +204,14 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   const saved = isPending(transaction) ? undefined : transaction
   const id = saved?.id
   const pending = saved === undefined
-  // A transaction is known by who was paid; without a payee, by what it was for.
-  const title = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
+  const split = isSplit(transaction)
+  // A transaction is known by who was paid; without a payee, by what it was for. A split is for several things.
+  const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
 
   return (
     <li className="space-y-2 p-3" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
-        {category && <CategoryBadge icon={category.icon} color={category.color} />}
+        {category && !split && <CategoryBadge icon={category.icon} color={category.color} />}
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
           {transaction.isRefund && (
@@ -209,8 +220,21 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
             </span>
           )}
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {[category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
+            {[split ? t('transactions.split.label') : category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
           </p>
+          {split && (
+            <ul aria-label={t('transactions.split.linesOf', { name: title })} className="text-sm text-muted-foreground">
+              {transaction.lines.map((line, index) => (
+                // Lines have no id of their own; their order is theirs.
+                <li key={index} className="break-words">
+                  {findCategory(categories, line.categoryId)?.name}
+                  {separator}
+                  <Money amount={line.amount} currency={transaction.currency} />
+                  {line.note && separator + line.note}
+                </li>
+              ))}
+            </ul>
+          )}
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
@@ -251,6 +275,9 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
     </li>
   )
 }
+
+/** What stands between the parts of one line of details. */
+const separator = ' · '
 
 function findCategory(tree: Category[], id: string): Category | undefined {
   return tree.flatMap((category) => [category, ...category.subcategories]).find((category) => category.id === id)
