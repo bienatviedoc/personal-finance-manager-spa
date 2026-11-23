@@ -3,7 +3,7 @@ import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
-import { CategoryBadge, categoriesQuery, findCategory, type Category } from '@/features/categories'
+import { CategoryBadge, categoriesQuery, findCategory, kindTakenBy, type Category } from '@/features/categories'
 import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
@@ -11,7 +11,7 @@ import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn } from '@/shared/lib/utils'
-import { Money } from '@/shared/money'
+import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
   recurringRulesQuery,
@@ -134,7 +134,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
   const remove = useDeleteRecurringRule()
   const [confirming, setConfirming] = useState(false)
   // A rule is only ever income or an expense.
-  const type = rule.type === 'income' ? 'income' : 'expense'
+  const type = kindTakenBy(rule.type)
   // A rule is known by who is paid; without a payee, by what it is for.
   const title = rule.payee ?? category?.name ?? t(`recurring.types.${type}`)
   const frequency = rule.frequency === 'everyNDays' ? t('recurring.everyDays', { count: Number(rule.interval) }) : t(`recurring.frequencies.${rule.frequency}`)
@@ -163,7 +163,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
           {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
-          <Money amount={type === 'expense' ? `-${rule.amount}` : rule.amount} currency={rule.currency} />
+          <Money amount={signedAmount(rule.amount, type === 'expense')} currency={rule.currency} />
         </span>
         {!confirming && (
           <>

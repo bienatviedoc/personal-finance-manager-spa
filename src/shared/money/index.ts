@@ -1,7 +1,7 @@
 export { AmountField } from './AmountField'
 export { amountExample, requiredAmount, typedAmount } from './amountSchema'
 export { AmountInput, type AmountValue } from './AmountInput'
-export { currencies, decimalPattern, inCurrencyOrder, isZeroAmount, type Currency, type DecimalString } from './currencies'
+export { currencies, decimalPattern, inCurrencyOrder, isZeroAmount, signedAmount, type Currency, type DecimalString } from './currencies'
 export { formatMoney } from './formatMoney'
 export { Money } from './Money'
 export { decimalsOf, formatAmountForInput, parseAmount, withMostDecimals } from './parseAmount'

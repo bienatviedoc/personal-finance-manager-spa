@@ -6,7 +6,7 @@ import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldE
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { useAccountChoices, type Account } from '@/features/accounts'
-import { useCategoryChoices, type Category } from '@/features/categories'
+import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
@@ -140,7 +140,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
     defaultValues: transaction
       ? {
           // Income or an expense: a leg of a transfer opens the transfer form instead, and has no category.
-          type: transaction.type === 'income' ? 'income' : 'expense',
+          type: kindTakenBy(transaction.type),
           accountId: transaction.accountId,
           amount: transaction.amount,
           date: transaction.date,

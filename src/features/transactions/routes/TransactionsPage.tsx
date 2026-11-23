@@ -15,7 +15,7 @@ import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn } from '@/shared/lib/utils'
-import { Money, withMostDecimals } from '@/shared/money'
+import { Money, signedAmount, withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { ArrowRightLeft } from 'lucide-react'
 import {
@@ -328,7 +328,7 @@ function TransactionRow({ transaction, account, category, categories, onEdit, ro
         <span data-testid="amount" className="font-medium tabular-nums">
           {/* The type gives the sign, except that a refund is an expense coming back. Putting it in front of the digits is not arithmetic. */}
           {transaction.isRefund && '+'}
-          <Money amount={takesFromBalance(transaction) ? `-${transaction.amount}` : transaction.amount} currency={transaction.currency} />
+          <Money amount={signedAmount(transaction.amount, takesFromBalance(transaction))} currency={transaction.currency} />
         </span>
         {saved && !confirming && (
           <>

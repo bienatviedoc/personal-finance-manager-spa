@@ -4,7 +4,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { useAccountChoices, type Account } from '@/features/accounts'
-import { useCategoryChoices, type Category } from '@/features/categories'
+import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
@@ -112,7 +112,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
     defaultValues: rule
       ? {
           // A rule is only ever income or an expense.
-          type: rule.type === 'income' ? 'income' : 'expense',
+          type: kindTakenBy(rule.type),
           accountId: rule.accountId,
           amount: rule.amount,
           categoryId: rule.categoryId,
