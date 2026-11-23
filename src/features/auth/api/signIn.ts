@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, forgetAntiforgeryToken } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
+import { deletionCancelledQuery } from './deletion'
 import { signedInUserQuery } from './session'
 
 export type SignInOutcome =
@@ -22,9 +23,11 @@ export function useSignIn() {
 
   return useMutation({
     mutationFn: async (body: components['schemas']['SignInRequest']): Promise<SignInOutcome> => {
-      const { response, error } = await api.POST('/api/v1/auth/login', { body })
+      const { data, response, error } = await api.POST('/api/v1/auth/login', { body })
       if (response.ok) {
         forgetAntiforgeryToken()
+        // The user had asked to be deleted, and signing in cancelled that: the shell tells them so.
+        if (data?.deletionCancelled) queryClient.setQueryData(deletionCancelledQuery.queryKey, true)
         // Fetched now, not just marked stale: the router's loaders read this cache on the next navigation.
         await queryClient.fetchQuery({ ...signedInUserQuery, staleTime: 0 })
         return 'signed-in'

@@ -134,6 +134,11 @@
     "userMenu": {
       "signedInAs": "Signed in as {{email}}",
       "signOut": "Sign out"
+    },
+    "deletion": {
+      "requested": "You are signed out, and your profile will be deleted in 30 days. To keep it, sign in again before then.",
+      "cancelled": "Welcome back. Signing in cancelled the deletion of your profile, and nothing was erased.",
+      "dismiss": "OK"
     }
   },
   "accounts": {
@@ -512,13 +517,35 @@
         "turnOff": "Turn off two-factor sign-in",
         "turnOffBody": "Signing in will take only your password. Enter it to turn off two-factor sign-in.",
         "turnOffSubmit": "Turn off",
-        "password": "Password",
         "errors": {
           "codeInvalid": "Enter the 6-digit code.",
-          "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app.",
-          "passwordRequired": "Enter your password.",
-          "passwordIncorrect": "That is not your password."
+          "codeIncorrect": "That code is not right. Enter the newest code from your authenticator app."
         }
+      }
+    },
+    "confirmWithPassword": {
+      "password": "Password",
+      "errors": {
+        "required": "Enter your password.",
+        "incorrect": "That is not your password."
+      }
+    },
+    "data": {
+      "title": "Your data",
+      "export": {
+        "title": "Export your data",
+        "body": "Download everything the app holds about you as one ZIP file: your profile as JSON, and your transactions and everything else you have entered as CSV files, which any spreadsheet opens.",
+        "start": "Export my data",
+        "confirmBody": "The file holds all your financial data, and anyone who has the file can read it. Keep it somewhere safe.",
+        "submit": "Download",
+        "downloaded": "Your data is downloaded."
+      },
+      "delete": {
+        "title": "Delete your profile",
+        "body": "Deleting your profile signs you out everywhere at once. For 30 days you can change your mind: sign in again and the deletion is cancelled. After 30 days everything you have entered is erased for good, and nobody can bring it back.",
+        "start": "Delete my profile",
+        "confirmBody": "You will be signed out now. In 30 days your profile and everything in it is erased, unless you sign in again before then. Enter your password to go ahead.",
+        "submit": "Delete my profile"
       }
     }
   },
