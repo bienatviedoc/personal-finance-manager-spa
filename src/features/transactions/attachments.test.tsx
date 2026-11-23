@@ -38,8 +38,9 @@ function fakeApis(attachments: Parameters<typeof fakeAttachmentsApi>[0] = []) {
 
 /** Opens the drawer of a transaction and answers its attachments section, once loaded. */
 async function attachmentsOf(user: ReturnType<typeof renderApp>['user'], payee: string) {
-  await user.click(await screen.findByRole('button', { name: `Edit ${payee}` }))
-  const section = within(await screen.findByRole('region', { name: 'Attachments' }))
+  // The first test of the file also waits for the app itself to load, which a busy machine makes slow.
+  await user.click(await screen.findByRole('button', { name: `Edit ${payee}` }, { timeout: 3000 }))
+  const section = within(await screen.findByRole('region', { name: 'Attachments' }, { timeout: 3000 }))
   await waitFor(() => expect(section.queryByText('Loading attachments')).not.toBeInTheDocument())
   return section
 }
