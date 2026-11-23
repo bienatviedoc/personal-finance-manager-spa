@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { components } from '@/shared/api/schema'
+import { fakeAttachmentsApi } from './fakeAttachmentsApi'
 import type { FakeCategory } from './fakeCategoriesApi'
 import { apiUrl, problem, refuseWithoutToken, server } from './server'
 
@@ -260,6 +261,9 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       return new HttpResponse(null, { status: 204 })
     }),
   )
+
+  // A transaction's drawer loads its attachments: none, unless a test sets up `fakeAttachmentsApi` itself afterwards.
+  fakeAttachmentsApi([], { transactions: state.transactions })
 
   return state
 }

@@ -292,6 +292,30 @@
       "notDeleted": "Chưa xóa được giao dịch."
     }
   },
+  "attachments": {
+    "title": "Tệp đính kèm",
+    "loading": "Đang tải tệp đính kèm",
+    "none": "Chưa có tệp đính kèm nào.",
+    "attach": "Đính kèm hóa đơn",
+    "hint": "JPEG, PNG hoặc PDF, mỗi tệp tối đa 5 MB.",
+    "attaching": "Đang đính kèm {{name}}…",
+    "openNamed": "Mở {{name}}",
+    "remove": "Gỡ",
+    "removeNamed": "Gỡ {{name}}",
+    "removeExplained": "Gỡ {{name}}? Tệp sẽ bị xóa.",
+    "removeConfirm": "Gỡ",
+    "cancel": "Hủy",
+    "errors": {
+      "type": "{{name}} không phải là tệp JPEG, PNG hoặc PDF.",
+      "tooLarge": "{{name}} lớn hơn 5 MB.",
+      "empty": "{{name}} là tệp trống.",
+      "refused": "Không đính kèm được {{name}}. Hãy đính kèm tệp JPEG, PNG hoặc PDF tối đa 5 MB.",
+      "notLoaded": "Không tải được tệp đính kèm.",
+      "notAttached": "Chưa đính kèm được hóa đơn.",
+      "notOpened": "Không mở được tệp đính kèm.",
+      "notRemoved": "Chưa gỡ được tệp đính kèm."
+    }
+  },
   "recurring": {
     "intro": "Các khoản thu và chi lặp lại, như lương, tiền thuê nhà và các gói đăng ký. Mỗi khoản được tự động ghi vào ngày đến hạn.",
     "list": "Quy tắc định kỳ",

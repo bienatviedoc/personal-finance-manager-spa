@@ -90,6 +90,17 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
   the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
   used key that comes with a different body), and so is the next transaction.
+- **Attachments** (receipts) live in the drawer of a transaction the API has recorded (`Attachments` in
+  `features/transactions`): attach one, open one, remove one. A file is a JPEG, PNG or PDF of at most 5 MB; the
+  screen says so before sending what the browser can already tell is not (`whyNotAttachable`), and the API has
+  the last word, reading the file itself. The upload is the one request that is a form, not JSON
+  (`useAddAttachment`).
+- **An attached file is opened through a signed URL**, which the API hands out for a few minutes and which
+  needs no sign-in. Ask for one each time the user opens the file (`useOpenAttachment`, a mutation), put it
+  nowhere but the tab it opens in, and never in the query cache, a link or a log. The tab is opened in the click
+  itself and sent to the URL once the API answers, or browsers would block it as a pop-up. The file is served
+  by the storage, another origin, so nothing in the content security policy changes; showing a file inside the
+  app (a thumbnail) would mean adding the storage's address to the policy on purpose.
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
   edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
   date, and works out every date (`nextRunDate`). The SPA never computes a due date. A transaction a rule posted
@@ -184,10 +195,16 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
 | `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, and locks the base currency `fakeProfileApi` holds |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
+
+To upload in a test, hand `user.upload` a `new File([...])` whose first bytes are a real JPEG, PNG or PDF
+signature. `src/test/setup.ts` makes `File` and `FormData` Node's own, because the request leaves through
+Node's `fetch`, which cannot read jsdom's. `window.open` is not implemented in jsdom: spy on it and answer a
+stand-in tab (see `attachments.test.tsx`).
 
 jsdom has no `matchMedia`, so `src/test/mediaQueries.ts` stands in for it: every test starts on a light-themed
 desktop, and `setScreenWidth(360)` or `setSystemTheme('dark')` changes the pretend device mid-test.
