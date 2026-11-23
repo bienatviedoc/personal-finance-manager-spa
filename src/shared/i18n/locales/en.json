@@ -316,6 +316,49 @@
       "notDeleted": "The transaction was not deleted."
     }
   },
+  "budgets": {
+    "intro": "A spending limit for each expense category, month by month, against what you have spent.",
+    "byCategory": "Budgets by category",
+    "subcategoriesOf": "Subcategories of {{name}}",
+    "empty": "No budgets for this month yet. Enter an amount next to a category to set one.",
+    "totals": "Totals for {{month}}",
+    "budgeted": "Budgeted",
+    "spent": "Spent",
+    "remaining": "Remaining",
+    "amountFor": "Budget for {{name}}",
+    "noBudget": "No budget",
+    "save": "Save",
+    "saveFor": "Save the budget for {{name}}",
+    "remove": "Remove",
+    "removeFor": "Remove the budget for {{name}}",
+    "archived": "Archived",
+    "countsTowardParent": "Counts toward the budget for {{name}}.",
+    "subcategoriesBudgeted": "Its subcategories have budgets of their own this month.",
+    "progress": "{{name}}: {{percent}}% of the budget spent",
+    "progressOfZero": "{{name}}: spent against a budget of zero",
+    "percent": "{{percent}}%",
+    "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
+    "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
+    "states": {
+      "onTrack": "On track",
+      "warning": "Warning",
+      "over": "Over budget"
+    },
+    "month": {
+      "switcher": "Budget month",
+      "previous": "Previous month: {{month}}",
+      "next": "Next month: {{month}}",
+      "current": "This month"
+    },
+    "errors": {
+      "notLoaded": "The budgets could not be loaded.",
+      "amount": "Enter an amount of zero or more, such as {{example}}.",
+      "category": "This category cannot take a budget this month: a category and its subcategory cannot both have one.",
+      "stale": "This budget was changed somewhere else. The latest amount is shown; check it and save again.",
+      "notSaved": "The budget could not be saved.",
+      "notRemoved": "The budget could not be removed."
+    }
+  },
   "institutions": {
     "backToAccounts": "Back to accounts",
     "intro": "The banks and wallet providers you hold money with.",
@@ -356,9 +399,12 @@
       "title": "Profile",
       "baseCurrency": "Base currency",
       "baseCurrencyHint": "Totals, budgets and reports are shown in this currency.",
+      "baseCurrencyLocked": "The base currency is locked because you have a budget: budgets are amounts you entered in it.",
       "timeZone": "Time zone",
       "timeZoneHint": "Decides which day “today” is, and where a budget month starts and ends.",
       "language": "Language",
+      "budgetWarning": "Budget warning threshold (%)",
+      "budgetWarningHint": "A budget’s state becomes a warning once this share of it is spent.",
       "amountExample": "Amounts will look like this:",
       "save": "Save",
       "saved": "Your settings are saved.",
@@ -366,7 +412,9 @@
       "errors": {
         "baseCurrency": "This base currency cannot be chosen.",
         "timeZone": "This time zone cannot be chosen.",
-        "locale": "This language cannot be chosen."
+        "locale": "This language cannot be chosen.",
+        "baseCurrencyLocked": "The base currency cannot change while you have a budget.",
+        "budgetWarningPercent": "Enter a whole percentage from 1 to 100."
       }
     },
     "categories": "Categories",
