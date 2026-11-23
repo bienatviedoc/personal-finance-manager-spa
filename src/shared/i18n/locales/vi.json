@@ -480,6 +480,13 @@
     "percent": "{{percent}}%",
     "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+    "copy": {
+      "action": "Sao chép ngân sách từ {{month}}",
+      "done_zero": "Không sao chép ngân sách nào từ {{month}}: mọi danh mục có ngân sách ở tháng đó đều đã có ngân sách tháng này hoặc không thể có.",
+      "done_one": "Đã sao chép {{count}} ngân sách từ {{month}}.",
+      "done_other": "Đã sao chép {{count}} ngân sách từ {{month}}.",
+      "failed": "Không thể sao chép ngân sách."
+    },
     "states": {
       "onTrack": "Đúng kế hoạch",
       "warning": "Cảnh báo",
