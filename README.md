@@ -69,6 +69,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
   the form's. A drawer holding one passes `escapeClosesPickerFirst` to its `onEscapeKeyDown`. Tests choose from
   one with `choose` and read what it offers with `offeredBy` (`src/test/combobox.ts`).
+- **A split transaction sends `lines` in place of `categoryId`** (see the glossary: split transaction, line), and
+  every transaction answers its `lines`, one when it is not split (`isSplit`). The form shows what remains of the
+  amount to split and sends nothing until that is nothing; the API checks the sum again. What remains is worked
+  out by `remainingAmount` in `src/shared/money`, on the digits of the decimal strings: the one place amounts are
+  subtracted, and still never through a JavaScript `number`. The API names what it refuses about one line by
+  where it is (`lines[1].categoryId`); the form says it once, for all the lines.
 - **A refund is an expense with `isRefund` set** (see the glossary), never a type of its own: the form offers the
   flag to an expense only, and the list marks a refund and shows its amount coming back (`+`), since it raises
   the balance.

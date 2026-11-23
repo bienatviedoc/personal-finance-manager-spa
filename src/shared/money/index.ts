@@ -5,3 +5,4 @@ export { currencies, inCurrencyOrder, isZeroAmount, type Currency, type DecimalS
 export { formatMoney } from './formatMoney'
 export { Money } from './Money'
 export { formatAmountForInput, parseAmount } from './parseAmount'
+export { remainingAmount } from './remainingAmount'
