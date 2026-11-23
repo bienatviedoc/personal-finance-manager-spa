@@ -357,7 +357,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The user's transactions, newest date first and, within a date, last recorded first. A deleted transaction is never listed. */
+        /** @description The user's transactions that pass every filter sent, a page at a time, with the total of all that pass, whichever page is asked for. Newest date first and, within a date, last recorded first, unless sort and order say otherwise. A deleted transaction is never listed or counted. */
         get: operations["ListTransactions"];
         put?: never;
         /** @description Records income or an expense on an account, in the account's currency; the account's balance follows at once. Send an Idempotency-Key the client made up for this transaction: a retry with the same key answers the transaction the first request recorded and records nothing, and a different transaction sent with a key already used answers 422. */
@@ -484,6 +484,17 @@ export interface components {
         };
         /** @enum {unknown} */
         Currency: "VND" | "USD" | "EUR";
+        CurrencyTotalResponse: {
+            currency: components["schemas"]["Currency"];
+            income: string;
+            expenses: string;
+            net: string;
+        };
+        FilteredTotalResponse: {
+            /** Format: int32 */
+            count: number | string;
+            currencies: components["schemas"]["CurrencyTotalResponse"][];
+        };
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -578,6 +589,7 @@ export interface components {
         TransactionListResponse: {
             items: components["schemas"]["TransactionResponse"][];
             nextCursor: null | string;
+            total: components["schemas"]["FilteredTotalResponse"];
         };
         TransactionRequest: {
             type: string;
@@ -1949,6 +1961,16 @@ export interface operations {
     ListTransactions: {
         parameters: {
             query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+                type?: string;
+                min?: string;
+                max?: string;
+                q?: string;
+                sort?: string;
+                order?: string;
                 limit?: number | string;
                 cursor?: string;
             };

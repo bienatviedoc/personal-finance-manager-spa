@@ -1,9 +1,10 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
@@ -11,7 +12,7 @@ import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
-import { Money } from '@/shared/money'
+import { Money, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/shared/ui/sheet'
 import { X } from 'lucide-react'
@@ -26,20 +27,27 @@ import {
   type Transaction,
   type TransactionDraft,
 } from '../api/transactions'
+import { TransactionFilterBar } from '../components/TransactionFilterBar'
 import { TransactionForm } from '../components/TransactionForm'
+import { TransactionTotal } from '../components/TransactionTotal'
+import { VirtualRows, type VirtualRow } from '../components/VirtualRows'
+import { useTransactionFilters } from '../hooks/useTransactionFilters'
 
 /** What the drawer is open for: recording a transaction, or editing this one, as it was when the drawer opened. */
 type Drawer = { adding: true } | { editing: Transaction } | null
 
 /**
- * The user's income and expenses, newest first. Recording and editing happen in a side drawer (spec section
- * 12); the list shows a change as soon as it is sent.
+ * The user's income and expenses, narrowed and sorted by the filters in the address, with what they come to.
+ * Only the rows near the screen are in the page, and the next page is loaded as the last row comes near.
+ * Recording and editing happen in a side drawer (spec section 12); the list shows a change as soon as it is sent.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.transactions'))
   const [drawer, setDrawer] = useState<Drawer>(null)
-  const transactions = useInfiniteQuery(transactionsQuery)
+  const { baseCurrency } = useUserSettings()
+  const { view, isFiltered, change, clear } = useTransactionFilters()
+  const transactions = useInfiniteQuery(transactionsQuery(view))
   // Archived accounts and categories are loaded too: the transactions on them still show their names.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
@@ -54,6 +62,15 @@ export function TransactionsPage() {
       : undefined
   const canRecord = accounts.data?.accounts.some((account) => !account.isArchived) ?? false
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
+  const canOpenDrawer = accounts.data !== undefined && categories.data !== undefined
+  // Every page carries the total of everything that passes the filters; the last one loaded is the latest word.
+  const total = transactions.data?.pages.at(-1)?.total
+
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = transactions
+  // A page that failed to load is asked for again by the user, not by the list at every render.
+  const loadNextPage = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage()
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
 
   useShortcutToAdd(() => setDrawer((open) => open ?? { adding: true }), canRecord)
 
@@ -72,29 +89,45 @@ export function TransactionsPage() {
           </Link>
         </p>
       ) : (
-        <Button disabled={!loaded} aria-keyshortcuts="N" onClick={() => setDrawer({ adding: true })}>
+        <Button disabled={!canOpenDrawer} aria-keyshortcuts="N" onClick={() => setDrawer({ adding: true })}>
           {t('transactions.add')}
         </Button>
       )}
 
+      {accounts.data && categories.data && (
+        <TransactionFilterBar
+          view={view}
+          isFiltered={isFiltered}
+          onChange={change}
+          onClear={clear}
+          accounts={accounts.data.accounts}
+          categories={categories.data}
+          fallbackCurrency={mostDecimals(accounts.data.accounts.map((account) => account.currency)) ?? baseCurrency}
+        />
+      )}
+
       {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('transactions.errors.generic')}</ErrorMessage>}
-      {!loaded && !transactions.isError && <ListSkeleton />}
-      {loaded && items.length === 0 && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
+      {!loaded && !transactions.isError && <ListSkeleton label={t('transactions.loading')} />}
+      {loaded && total && items.length > 0 && <TransactionTotal total={total} />}
+      {loaded && items.length === 0 && isFiltered && <p className="text-muted-foreground">{t('transactions.filters.noMatch')}</p>}
+      {loaded && items.length === 0 && !isFiltered && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
       {loaded && items.length > 0 && (
-        <ul aria-label={t('screens.transactions')} className="divide-y rounded-lg border">
-          {items.map((transaction) => (
+        <VirtualRows items={items} itemKey={listKey} label={t('screens.transactions')} onEndReached={loadNextPage}>
+          {(transaction, row) => (
             <TransactionRow
               key={listKey(transaction)}
+              row={row}
               transaction={transaction}
               account={accounts.data.accounts.find((account) => account.id === transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
               onEdit={(editing) => setDrawer({ editing })}
             />
-          ))}
-        </ul>
+          )}
+        </VirtualRows>
       )}
-      {transactions.hasNextPage && (
-        <Button variant="outline" disabled={transactions.isFetchingNextPage} onClick={() => void transactions.fetchNextPage()}>
+      {loaded && isFetchingNextPage && <ListSkeleton label={t('transactions.loadingMore')} />}
+      {hasNextPage && isFetchNextPageError && (
+        <Button variant="outline" onClick={() => void fetchNextPage()}>
           {t('transactions.loadMore')}
         </Button>
       )}
@@ -112,10 +145,10 @@ export function TransactionsPage() {
               <X aria-hidden className="size-5" />
             </SheetClose>
           </div>
-          {loaded && drawer && 'adding' in drawer && (
+          {canOpenDrawer && drawer && 'adding' in drawer && (
             <AddTransaction accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
-          {loaded && editing && (
+          {canOpenDrawer && editing && (
             <EditTransaction transaction={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
           )}
         </SheetContent>
@@ -183,9 +216,16 @@ function EditTransaction({ transaction, accounts, categories, onClose }: FormPro
   )
 }
 
-type RowProps = { transaction: ListedTransaction; account?: Account; category?: Category; onEdit: (transaction: Transaction) => void }
+type RowProps = {
+  transaction: ListedTransaction
+  account?: Account
+  category?: Category
+  onEdit: (transaction: Transaction) => void
+  /** Where the list has the row, and how it measures it. */
+  row: VirtualRow
+}
 
-function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
+function TransactionRow({ transaction, account, category, onEdit, row }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const remove = useDeleteTransaction()
@@ -198,7 +238,7 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
   const title = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
 
   return (
-    <li className="space-y-2 p-3" aria-busy={pending || undefined}>
+    <li {...row} className="space-y-2 border-b p-3 last:border-b-0" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
         {category && <CategoryBadge icon={category.icon} color={category.color} />}
         <div className="min-w-24 flex-1">
@@ -268,11 +308,19 @@ function useShortcutToAdd(open: () => void, enabled: boolean) {
   }, [open, enabled])
 }
 
-/** Rows standing in for the list while it loads. */
-function ListSkeleton() {
-  const { t } = useTranslation()
+/**
+ * The currency with the most decimals, so that an amount in any of them can be typed: the range of amounts
+ * is compared with every transaction, whatever currency it is in.
+ */
+function mostDecimals(currencies: Currency[]): Currency | undefined {
+  const decimals = (currency: Currency) => new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 0
+  return currencies.toSorted((a, b) => decimals(b) - decimals(a))[0]
+}
+
+/** Rows standing in for the list while it loads, or for its next page under the rows already there. */
+function ListSkeleton({ label }: { label: string }) {
   return (
-    <ul aria-busy aria-label={t('transactions.loading')} className="divide-y rounded-lg border">
+    <ul aria-busy aria-label={label} className="divide-y rounded-lg border">
       {[0, 1, 2].map((row) => (
         <li key={row} className="flex items-center gap-3 p-3">
           <span className="size-7 animate-pulse rounded-full bg-muted" />

@@ -209,7 +209,7 @@
     }
   },
   "transactions": {
-    "intro": "Your income and expenses, newest first.",
+    "intro": "Your income and expenses. Filter, search and sort them to find any one.",
     "add": "Add transaction",
     "new": "New transaction",
     "editTitle": "Edit transaction",
@@ -218,6 +218,35 @@
     "toAccounts": "Add an account",
     "loading": "Loading transactions",
     "loadMore": "Load more",
+    "loadingMore": "Loading more transactions",
+    "filters": {
+      "title": "Filter transactions",
+      "search": "Search payee and note",
+      "from": "From",
+      "to": "To",
+      "min": "Minimum amount",
+      "max": "Maximum amount",
+      "allAccounts": "All accounts",
+      "allCategories": "All categories",
+      "allTypes": "All types",
+      "sortBy": "Sort by",
+      "sort": {
+        "dateDesc": "Newest first",
+        "dateAsc": "Oldest first",
+        "amountDesc": "Largest amount first",
+        "amountAsc": "Smallest amount first"
+      },
+      "clear": "Clear filters",
+      "noMatch": "No transactions match these filters."
+    },
+    "total": {
+      "title": "Total of these transactions",
+      "count_one": "{{count}} transaction",
+      "count_other": "{{count}} transactions",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net"
+    },
     "type": "Type",
     "types": {
       "expense": "Expense",

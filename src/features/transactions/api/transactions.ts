@@ -1,7 +1,7 @@
 import { infiniteQueryOptions, useMutation, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { refreshAccountBalances } from '@/features/accounts'
 import { api } from '@/shared/api/client'
-import type { components } from '@/shared/api/schema'
+import type { components, paths } from '@/shared/api/schema'
 import { ifMatch, isStale, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
 import type { Currency } from '@/shared/money'
 
@@ -42,20 +42,37 @@ export const isPending = (transaction: ListedTransaction): transaction is Pendin
 /** What tells one listed transaction from another: its id, or its key while it has none. */
 export const listKey = (transaction: ListedTransaction) => (isPending(transaction) ? transaction.pendingKey : transaction.id)
 
+type ListQuery = NonNullable<paths['/api/v1/transactions']['get']['parameters']['query']>
+
 /**
- * The user's transactions, newest date first and, within a date, last recorded first. A user has
- * thousands, so they are loaded a page at a time as the list asks for more.
+ * Which transactions the list shows and in what order, as the API's query names them. Everything left out
+ * lets every transaction through, newest date first.
  */
-export const transactionsQuery = infiniteQueryOptions({
-  queryKey: [...transactionsKey, 'list'],
-  queryFn: async ({ pageParam }) => {
-    const { data, response } = await api.GET('/api/v1/transactions', { params: { query: { cursor: pageParam } } })
-    if (!data) throw new Error(`Could not load transactions: ${response.status}`)
-    return data satisfies TransactionPage as TransactionPage
-  },
-  initialPageParam: undefined as string | undefined,
-  getNextPageParam: (last) => last.nextCursor ?? undefined,
-})
+export type TransactionFilters = Pick<ListQuery, 'from' | 'to' | 'accountId' | 'categoryId' | 'min' | 'max' | 'q'> & {
+  type?: TransactionType
+  sort?: 'date' | 'amount'
+  order?: 'asc' | 'desc'
+}
+
+/** What the transactions that pass the filters come to, on every page of the list. */
+export type FilteredTotal = components['schemas']['FilteredTotalResponse']
+
+/**
+ * The user's transactions that pass the filters, newest date first and, within a date, last recorded first
+ * unless the filters say otherwise. A user has thousands, so they are loaded a page at a time as the list
+ * asks for more. Each page carries the total of everything that passes.
+ */
+export const transactionsQuery = (filters: TransactionFilters = {}) =>
+  infiniteQueryOptions({
+    queryKey: [...transactionsKey, 'list', filters],
+    queryFn: async ({ pageParam }) => {
+      const { data, response } = await api.GET('/api/v1/transactions', { params: { query: { ...filters, cursor: pageParam } } })
+      if (!data) throw new Error(`Could not load transactions: ${response.status}`)
+      return data satisfies TransactionPage as TransactionPage
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+  })
 
 /**
  * Records a transaction, shown in the list at once. The idempotency key is made up by the caller, once per
@@ -98,8 +115,10 @@ export function useDeleteTransaction() {
 type LoadedPages = InfiniteData<TransactionPage, string | undefined>
 
 /**
- * Saves a transaction optimistically (spec section 12): the lists show it as soon as it is sent, are put
- * back if it is not saved, and are loaded again, with the account balances, once the API has answered.
+ * Saves a transaction optimistically (spec section 12): the list of everything, newest first, shows it as
+ * soon as it is sent and is put back if it is not saved. Only the API knows whether a transaction passes a
+ * filter (amounts are never compared here) or where another sort order has it, so a filtered or re-sorted
+ * view shows the change once the API has answered, when every list is loaded again, with the account balances.
  */
 function useSaveTransaction<Draft extends TransactionDraft>(
   save: (draft: Draft) => Promise<VersionedSaveResponse<Transaction>>,
@@ -107,7 +126,7 @@ function useSaveTransaction<Draft extends TransactionDraft>(
   identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion'> | Pick<PendingTransaction, 'pendingKey'>,
 ) {
   const queryClient = useQueryClient()
-  const list = { queryKey: transactionsQuery.queryKey }
+  const list = { queryKey: transactionsQuery().queryKey, exact: true }
 
   return useMutation({
     mutationFn: async (draft: Draft): Promise<SaveOutcome> => versionedSaveOutcome('transaction', await save(draft), transactionFields),

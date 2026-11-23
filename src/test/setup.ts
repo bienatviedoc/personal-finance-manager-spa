@@ -10,12 +10,18 @@ Element.prototype.hasPointerCapture ??= () => false
 Element.prototype.setPointerCapture ??= () => undefined
 Element.prototype.releasePointerCapture ??= () => undefined
 
+// jsdom has no scrolling, and says so each time the virtualised transaction list puts the page where it has it.
+window.scrollTo = () => undefined
+
 beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' })
 })
 
 beforeEach(() => {
   installFakeMatchMedia()
+  // jsdom lays nothing out, so a virtualised list cannot tell which rows are on screen. The pretend screen is
+  // tall enough for every row a test lists; a test of virtualisation itself makes it a real height.
+  window.innerHeight = 100_000
 })
 
 afterEach(() => {
