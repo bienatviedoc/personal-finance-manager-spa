@@ -10,6 +10,7 @@ import { apiUrl, problem, server } from '@/test/server'
 
 const budgetList = () => screen.findByRole('list', { name: 'Budgets by category' })
 const row = async (name: string) => within(await budgetList()).getByRole('listitem', { name })
+const copyStatus = () => screen.getByRole('status')
 const amountOf = (item: HTMLElement, name: string) => within(item).getByRole('textbox', { name: `Budget for ${name}` })
 
 /** November 2026: Food & drink on track with its subcategories' spending, Transport at a warning. */
@@ -167,6 +168,59 @@ describe('the budget screen', () => {
     await waitFor(() => expect(within(food).queryByRole('textbox', { name: 'Budget for Food & drink' })).not.toBeInTheDocument())
     expect(within(food).getByText('Its subcategories have budgets of their own this month.')).toBeInTheDocument()
     expect(amountOf(await row('Eating out'), 'Eating out')).toHaveValue('')
+  })
+
+  it('copies last month’s budgets into the month shown in one action, and says how many were copied', async () => {
+    const { budgets, profile } = november()
+    const { user } = renderApp('/budgets/2026-12')
+
+    await user.click(await screen.findByRole('button', { name: 'Copy budgets from November 2026' }))
+
+    await waitFor(() => expect(copyStatus()).toHaveTextContent('2 budgets copied from November 2026.'))
+    expect(budgets.copies).toEqual([{ month: '2026-12', sourceMonth: '2026-11' }])
+    await waitFor(() => expect(amountOf(screen.getByRole('listitem', { name: 'Food & drink' }), 'Food & drink')).toHaveValue('3,000,000'))
+    expect(amountOf(await row('Transport'), 'Transport')).toHaveValue('500,000')
+    // The first budget locks the base currency, so the profile is asked for again.
+    await waitFor(() => expect(profile.reads).toBe(2))
+  })
+
+  it('leaves alone a category already budgeted in the month, and says when nothing was copied', async () => {
+    const { budgets } = november()
+    const { user } = renderApp('/budgets/2026-11')
+
+    // October's budget is on Groceries, whose parent Food & drink has one in November.
+    await user.click(await screen.findByRole('button', { name: 'Copy budgets from October 2026' }))
+
+    await waitFor(() => expect(copyStatus()).toHaveTextContent('No budgets copied from October 2026'))
+    expect(budgets.budgets.filter((budget) => budget.month === '2026-11')).toHaveLength(2)
+    expect(amountOf(await row('Food & drink'), 'Food & drink')).toHaveValue('3,000,000')
+  })
+
+  it('says when copying failed, and tries again', async () => {
+    const { budgets } = november()
+    const { user } = renderApp('/budgets/2026-12')
+
+    budgets.failWith = 500
+    await user.click(await screen.findByRole('button', { name: 'Copy budgets from November 2026' }))
+
+    expect(await screen.findByText('The budgets could not be copied.')).toBeInTheDocument()
+    budgets.failWith = undefined
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    await waitFor(() => expect(copyStatus()).toHaveTextContent('2 budgets copied from November 2026.'))
+    expect(screen.queryByText('The budgets could not be copied.')).not.toBeInTheDocument()
+  })
+
+  it('says what a copy came to only in the month it was made in', async () => {
+    november()
+    const { user } = renderApp('/budgets/2026-12')
+
+    await user.click(await screen.findByRole('button', { name: 'Copy budgets from November 2026' }))
+    await waitFor(() => expect(copyStatus()).toHaveTextContent('2 budgets copied'))
+    await user.click(screen.getByRole('link', { name: 'Next month: January 2027' }))
+
+    expect(await screen.findByRole('button', { name: 'Copy budgets from December 2026' })).toBeInTheDocument()
+    expect(copyStatus()).toBeEmptyDOMElement()
   })
 
   it('moves between months with the month switcher', async () => {
