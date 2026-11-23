@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
@@ -10,6 +10,7 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { escapeClosesPickerFirst } from '@/shared/components/escapeClosesPickerFirst'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
+import { useIdempotencyKey } from '@/shared/api/useIdempotencyKey'
 import { isStale } from '@/shared/api/versionedSave'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
@@ -226,21 +227,14 @@ function AddTransfer({ accounts, onClose }: TransferProps) {
   const { t } = useTranslation()
   const formId = useId()
   const create = useCreateTransfer()
-  // One key per request the user means to make, as for a transaction: the same values sent again after a
-  // failure carry the same key, and changed values a new one.
-  const attempt = useRef<{ key: string; sent?: string }>({ key: crypto.randomUUID() })
+  const idempotencyKey = useIdempotencyKey()
 
   return (
     <>
       <TransferForm
         id={formId}
         accounts={accounts}
-        onSave={(fields: TransferFields) => {
-          const sending = JSON.stringify(fields)
-          if (attempt.current.sent !== undefined && attempt.current.sent !== sending) attempt.current.key = crypto.randomUUID()
-          attempt.current.sent = sending
-          return create.mutateAsync({ fields, idempotencyKey: attempt.current.key })
-        }}
+        onSave={(fields: TransferFields) => create.mutateAsync({ fields, idempotencyKey: idempotencyKey.keyFor(fields) })}
         onSaved={onClose}
         onCancel={onClose}
       />

@@ -106,7 +106,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   again; fields the API refused stay under their inputs. The toast is the Radix primitive in
   `src/shared/ui/toast.tsx`, and stays until the user answers it.
 - **A new transaction carries an `Idempotency-Key`**, made up once for each request the user means to make
-  (`AddTransaction`). Saving the same values again after a failure sends the same key, so the API cannot record
+  (`useIdempotencyKey` in `src/shared/api`, as a new transfer does). Saving the same values again after a failure sends the same key, so the API cannot record
   the transaction twice. Values changed after a failure are a new request with a new key (the API refuses a
   used key that comes with a different body), and so is the next transaction.
 - **Attachments** (receipts) live in the drawer of a transaction the API has recorded (`Attachments` in
