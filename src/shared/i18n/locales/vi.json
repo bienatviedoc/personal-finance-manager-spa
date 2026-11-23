@@ -451,6 +451,7 @@
       "payeeTooLong": "Dùng tối đa 200 ký tự.",
       "noteTooLong": "Dùng tối đa 1000 ký tự.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "stale": "Quy tắc định kỳ này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "notSaved": "Quy tắc định kỳ chưa được lưu.",
       "notChanged": "Quy tắc định kỳ chưa được thay đổi.",
       "notDeleted": "Quy tắc định kỳ chưa được xóa."

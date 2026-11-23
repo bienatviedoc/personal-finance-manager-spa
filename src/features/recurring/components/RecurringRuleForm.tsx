@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useAccountChoices, type Account } from '@/features/accounts'
 import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
+import { isStale } from '@/shared/api/versionedSave'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
@@ -180,6 +181,8 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
       onSaved()
       return
     }
+    // Whoever saves says so; the form is started again from the rule as it is now.
+    if (isStale(outcome)) return
     for (const refused of outcome.fields) {
       form.setError(refused, { message: serverErrors[refused] }, { shouldFocus: true })
     }

@@ -24,7 +24,8 @@ type Options = {
  * time; a rule is income or an expense, never a transfer; its currency is its account's; the amount is above
  * zero with no more decimals than the currency has; income takes an income category and an expense an expense
  * category; archived accounts and categories take no new rules; only `everyNDays` takes an `interval`, of 1 to
- * 365; the end date is not before the start date; pausing and resuming answer the rule; deleting removes it.
+ * 365; the end date is not before the start date; an edit must name the row version in `If-Match` (412 when
+ * stale, 428 when missing), and pausing and resuming move it on too; pausing and resuming answer the rule; deleting removes it.
  * Nothing posts here, so a rule's next run date stays its start date.
  */
 export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { accounts, categories }: Options) {
@@ -48,11 +49,14 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
         endDate: null,
         nextRunDate: startDate,
         isPaused: false,
+        rowVersion: '1',
         ...rule,
       }
     }),
     /** Every request that changes something, in the order they arrived; a body where one was sent. */
     requests: [] as { method: string; path: string; body?: Partial<RecurringRuleRequest> }[],
+    /** The `If-Match` header of every edit, in the order they arrived. */
+    ifMatches: [] as (string | null)[],
     /** The next request that changes something fails with a 500, having saved nothing. */
     failNext() {
       failing = true
@@ -131,8 +135,8 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
     state.requests.push({ method: request.method, path: new URL(request.url).pathname })
     const found = find(params.id)
     if (!found) return problem(404)
-    found.isPaused = isPaused
-    return HttpResponse.json(found)
+    Object.assign(found, { isPaused, rowVersion: String(Number(found.rowVersion) + 1) })
+    return HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } })
   }
 
   server.use(
@@ -153,19 +157,23 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
       if (stopped) return stopped
       const result = await validated(request)
       if (result.refused) return result.refused
-      const created: RecurringRule = { id: `01970000-0000-7000-8000-6${String(added++).padStart(11, '0')}`, isPaused: false, ...result.fields }
+      const created: RecurringRule = { id: `01970000-0000-7000-8000-6${String(added++).padStart(11, '0')}`, isPaused: false, rowVersion: '1', ...result.fields }
       state.rules.push(created)
-      return HttpResponse.json(created, { status: 201 })
+      return HttpResponse.json(created, { status: 201, headers: { ETag: `"${created.rowVersion}"` } })
     }),
     http.put(apiUrl('/api/v1/recurring-rules/:id'), async ({ request, params }) => {
+      const ifMatch = request.headers.get('If-Match')
+      state.ifMatches.push(ifMatch)
       const stopped = refusedOrFailed(request)
       if (stopped) return stopped
+      if (ifMatch === null) return problem(428)
       const found = find(params.id)
       if (!found) return problem(404)
+      if (ifMatch !== `"${found.rowVersion}"`) return problem(412)
       const result = await validated(request, found)
       if (result.refused) return result.refused
-      Object.assign(found, result.fields)
-      return HttpResponse.json(found)
+      Object.assign(found, result.fields, { rowVersion: String(Number(found.rowVersion) + 1) })
+      return HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } })
     }),
     http.post(apiUrl('/api/v1/recurring-rules/:id/pause'), setPaused(true)),
     http.post(apiUrl('/api/v1/recurring-rules/:id/resume'), setPaused(false)),

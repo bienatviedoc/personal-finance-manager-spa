@@ -208,7 +208,31 @@ describe('the recurring screen', () => {
         },
       },
     ])
+    expect(rulesApi.ifMatches).toEqual(['"1"'])
     expect(listed()).toEqual([['Landlord', 'Transport · Everyday · Every month', 'Next on Dec 5, 2026', '-₫9,500,000']])
+  })
+
+  it('edits a rule changed somewhere else since it was opened from the latest version, saying so', async () => {
+    const { rulesApi } = fakeApis([rent])
+    const { user } = renderApp('/recurring')
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Landlord' }))
+    const drawer = within(screen.getByRole('dialog', { name: 'Edit recurring rule' }))
+    // Given a new amount in another tab, after this one was opened.
+    Object.assign(rulesApi.rules[0]!, { amount: '9900000.00', rowVersion: '2' })
+    await user.clear(drawer.getByLabelText('Amount (VND)'))
+    await user.type(drawer.getByLabelText('Amount (VND)'), '1')
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+
+    expect(
+      await drawer.findByText('This recurring rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.'),
+    ).toBeInTheDocument()
+    await waitFor(() => expect(drawer.getByLabelText('Amount (VND)')).toHaveValue('9,900,000'))
+    expect(rulesApi.rules[0]!.amount).toBe('9900000.00')
+
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(rulesApi.ifMatches).toEqual(['"1"', '"2"']))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('pauses a rule, which then says so and can be resumed', async () => {

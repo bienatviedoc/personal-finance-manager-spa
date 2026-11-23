@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, findCategory, kindTakenBy, type Category } from '@/features/categories'
 import { Drawer } from '@/shared/components/Drawer'
+import { isStale } from '@/shared/api/versionedSave'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
@@ -115,11 +116,23 @@ function AddRule({ accounts, categories, onClose }: FormProps) {
 function EditRule({ rule, accounts, categories, onClose }: FormProps & { rule: RecurringRule }) {
   const { t } = useTranslation()
   const formId = useId()
-  const edit = useEditRecurringRule(rule.id)
+  const edit = useEditRecurringRule(rule)
+  const stale = isStale(edit.data)
 
   return (
     <>
-      <RecurringRuleForm id={formId} rule={rule} accounts={accounts} categories={categories} onSave={edit.mutateAsync} onSaved={onClose} onCancel={onClose} />
+      {stale && <ErrorMessage>{t('recurring.errors.stale')}</ErrorMessage>}
+      {/* A new row version is a new rule to edit: the form starts again from what the API holds now. */}
+      <RecurringRuleForm
+        key={rule.rowVersion}
+        id={formId}
+        rule={rule}
+        accounts={accounts}
+        categories={categories}
+        onSave={edit.mutateAsync}
+        onSaved={onClose}
+        onCancel={onClose}
+      />
       <FailureToast failed={edit.isError} message={t('recurring.errors.notSaved')} retry={{ form: formId }} onDismiss={edit.reset} />
     </>
   )

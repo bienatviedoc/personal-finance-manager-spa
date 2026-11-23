@@ -533,8 +533,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description One recurring rule. The ETag header carries its row version. */
         get: operations["GetRecurringRule"];
-        /** @description Replaces what the rule's next transactions say and when they are due. Transactions it already posted stay as they are, and a new schedule carries on after the last occurrence posted or skipped. */
+        /** @description Replaces what the rule's next transactions say and when they are due. Transactions it already posted stay as they are, and a new schedule carries on after the last occurrence posted or skipped. Send the row version last read as If-Match: a stale one answers 412, none answers 428. Posting an occurrence, pausing and resuming change the row version too. */
         put: operations["EditRecurringRule"];
         post?: never;
         /** @description Deletes the rule: it posts nothing more. The transactions it posted stay, no longer linked to a rule. */
@@ -908,6 +909,7 @@ export interface components {
             /** Format: date */
             nextRunDate: null | string;
             isPaused: boolean;
+            rowVersion: string;
         };
         RegisterRequest: {
             email: string;
@@ -3249,7 +3251,9 @@ export interface operations {
     EditRecurringRule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: string;
             };

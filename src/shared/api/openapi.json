@@ -2609,6 +2609,7 @@
         "tags": [
           "Recurring rules"
         ],
+        "description": "One recurring rule. The ETag header carries its row version.",
         "operationId": "GetRecurringRule",
         "parameters": [
           {
@@ -2651,7 +2652,7 @@
         "tags": [
           "Recurring rules"
         ],
-        "description": "Replaces what the rule's next transactions say and when they are due. Transactions it already posted stay as they are, and a new schedule carries on after the last occurrence posted or skipped.",
+        "description": "Replaces what the rule's next transactions say and when they are due. Transactions it already posted stay as they are, and a new schedule carries on after the last occurrence posted or skipped. Send the row version last read as If-Match: a stale one answers 412, none answers 428. Posting an occurrence, pausing and resuming change the row version too.",
         "operationId": "EditRecurringRule",
         "parameters": [
           {
@@ -2661,6 +2662,13 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -4212,7 +4220,8 @@
           "startDate",
           "endDate",
           "nextRunDate",
-          "isPaused"
+          "isPaused",
+          "rowVersion"
         ],
         "type": "object",
         "properties": {
@@ -4281,6 +4290,9 @@
           },
           "isPaused": {
             "type": "boolean"
+          },
+          "rowVersion": {
+            "type": "string"
           }
         }
       },

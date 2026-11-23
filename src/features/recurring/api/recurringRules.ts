@@ -1,6 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
-import { refusedFields } from '@/shared/api/refusedFields'
+import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
 import type { components } from '@/shared/api/schema'
 
 export type RecurringRule = components['schemas']['RecurringRuleResponse']
@@ -31,7 +31,7 @@ export type RecurringRuleFields = Omit<components['schemas']['RecurringRuleReque
 const recurringRuleFields = ['type', 'accountId', 'amount', 'categoryId', 'payee', 'note', 'frequency', 'interval', 'startDate', 'endDate'] as const
 export type RecurringRuleField = (typeof recurringRuleFields)[number]
 
-export type SaveOutcome = { saved: true; rule: RecurringRule } | { saved: false; fields: RecurringRuleField[] }
+export type SaveOutcome = VersionedSaveOutcome<'rule', RecurringRule, RecurringRuleField>
 
 const recurringRulesKey = ['recurring-rules']
 
@@ -56,9 +56,15 @@ export function useCreateRecurringRule() {
   return useSaveRecurringRule(async (body: RecurringRuleFields) => api.POST('/api/v1/recurring-rules', { body }))
 }
 
-/** Replaces what a rule's next transactions say and when they are due. What it already recorded stays as it is. */
-export function useEditRecurringRule(id: string) {
-  return useSaveRecurringRule(async (body: RecurringRuleFields) => api.PUT('/api/v1/recurring-rules/{id}', { params: { path: { id } }, body }))
+/**
+ * Replaces what a rule's next transactions say and when they are due, from the row version it was read at,
+ * sent as `If-Match`. What it already recorded stays as it is. If the rule has changed since (a 412: edited,
+ * paused or resumed somewhere else, or an occurrence recorded) nothing is saved and the outcome is stale.
+ */
+export function useEditRecurringRule({ id, rowVersion }: Pick<RecurringRule, 'id' | 'rowVersion'>) {
+  return useSaveRecurringRule(async (body: RecurringRuleFields) =>
+    api.PUT('/api/v1/recurring-rules/{id}', { params: { path: { id }, header: { 'If-Match': ifMatch(rowVersion) } }, body }),
+  )
 }
 
 /** Pauses a rule: it records nothing until it is resumed. */
@@ -80,20 +86,13 @@ export function useDeleteRecurringRule() {
   })
 }
 
-type SaveResponse = { data?: RecurringRule; error?: unknown; response: Response }
-
-function useSaveRecurringRule(save: (fields: RecurringRuleFields) => Promise<SaveResponse>) {
+function useSaveRecurringRule(save: (fields: RecurringRuleFields) => Promise<VersionedSaveResponse<RecurringRule>>) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (fields: RecurringRuleFields): Promise<SaveOutcome> => {
-      const { data, error, response } = await save(fields)
-      if (data) return { saved: true, rule: data }
-      const refused = refusedFields(response, error, recurringRuleFields)
-      if (refused) return { saved: false, fields: refused }
-      throw new Error(`Saving a recurring rule failed: ${response.status}`)
-    },
+    mutationFn: async (fields: RecurringRuleFields): Promise<SaveOutcome> => versionedSaveOutcome('rule', await save(fields), recurringRuleFields),
+    // Saved, the list shows the change; stale, it loads the rule as it is now, to edit from.
     onSuccess: (outcome) => {
-      if (outcome.saved) return queryClient.invalidateQueries({ queryKey: recurringRulesKey })
+      if (outcome.saved || 'stale' in outcome) return queryClient.invalidateQueries({ queryKey: recurringRulesKey })
     },
   })
 }
