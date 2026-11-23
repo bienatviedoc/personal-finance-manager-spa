@@ -73,11 +73,12 @@ export function useCreateTransaction() {
  * Edits the transaction from the row version it was read at, sent as `If-Match`; the list shows the change at
  * once. If the transaction has changed since (a 412) nothing is saved and the outcome is stale.
  */
-export function useEditTransaction({ id, rowVersion }: Pick<Transaction, 'id' | 'rowVersion'>) {
+export function useEditTransaction({ id, rowVersion, recurringRuleId }: Pick<Transaction, 'id' | 'rowVersion' | 'recurringRuleId'>) {
   return useSaveTransaction(
     async ({ fields }: TransactionDraft) =>
       api.PUT('/api/v1/transactions/{id}', { params: { path: { id }, header: { 'If-Match': ifMatch(rowVersion) } }, body: fields }),
-    () => ({ id, rowVersion }),
+    // An edit leaves the transaction linked to the recurring rule that posted it.
+    () => ({ id, rowVersion, recurringRuleId }),
   )
 }
 
@@ -104,7 +105,7 @@ type LoadedPages = InfiniteData<TransactionPage, string | undefined>
 function useSaveTransaction<Draft extends TransactionDraft>(
   save: (draft: Draft) => Promise<VersionedSaveResponse<Transaction>>,
   /** What the transaction is known by while it is shown ahead of the API's answer. */
-  identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion'> | Pick<PendingTransaction, 'pendingKey'>,
+  identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion' | 'recurringRuleId'> | Pick<PendingTransaction, 'pendingKey'>,
 ) {
   const queryClient = useQueryClient()
   const list = { queryKey: transactionsQuery.queryKey }
@@ -117,6 +118,8 @@ function useSaveTransaction<Draft extends TransactionDraft>(
       const before = queryClient.getQueryData<LoadedPages>(list.queryKey)
       const { fields, currency } = draft
       const shown: ListedTransaction = {
+        // What a user records is posted by no recurring rule.
+        recurringRuleId: null,
         ...identify(draft),
         ...fields,
         currency,

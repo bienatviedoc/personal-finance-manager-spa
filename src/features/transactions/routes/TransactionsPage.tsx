@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, type Account } from '@/features/accounts'
 import { CategoryBadge, categoriesQuery, type Category } from '@/features/categories'
+import { RecurringRuleLink } from '@/features/recurring'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
@@ -207,6 +208,7 @@ function TransactionRow({ transaction, account, category, onEdit }: RowProps) {
             {[category?.name, account?.name, formatDate(transaction.date, locale)].filter(Boolean).join(' · ')}
           </p>
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
+          {transaction.recurringRuleId && <RecurringRuleLink ruleId={transaction.recurringRuleId} />}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
           {/* The type gives the sign. Putting it in front of the digits is not arithmetic. */}
