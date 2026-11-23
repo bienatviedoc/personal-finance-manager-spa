@@ -54,6 +54,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         payee: null,
         note: null,
         rowVersion: '1',
+        recurringRuleId: null,
         // One line with the whole amount, unless the test seeds a split.
         lines: [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
         isRefund: false,
@@ -221,7 +222,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       const body = JSON.stringify(await request.clone().json())
       const result = await validated(request)
       if (result.refused) return result.refused
-      const created: Transaction = { id: `01970000-0000-7000-8000-4${String(recorded++).padStart(11, '0')}`, rowVersion: '1', ...result.fields }
+      const created: Transaction = {
+        id: `01970000-0000-7000-8000-4${String(recorded++).padStart(11, '0')}`,
+        rowVersion: '1',
+        // Only the worker posts for a rule; what a user records is linked to none.
+        recurringRuleId: null,
+        ...result.fields,
+      }
       state.transactions.push(created)
       order.set(created.id, recorded)
       if (key !== null) byKey.set(key, { recorded: created, body })
