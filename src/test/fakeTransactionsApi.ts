@@ -64,6 +64,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         note: null,
         transferId: null,
         rowVersion: '1',
+        recurringRuleId: null,
         // One line with the whole amount, unless the test seeds a split.
         lines: categoryId === null ? [] : [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
         isRefund: false,
@@ -224,7 +225,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (!fits(toAmount, to.currency)) return invalid('toAmount', 'The amount has more decimals than its currency.')
     if (body.date! > today) return invalid('date', "A transfer's date cannot be in the future.")
 
-    const shared = { date: body.date!, categoryId: null, payee: null, note: body.note?.trim() || null, isRefund: false, lines: [] }
+    const shared = { date: body.date!, categoryId: null, payee: null, note: body.note?.trim() || null, isRefund: false, lines: [], recurringRuleId: null }
     return {
       out: { ...shared, accountId: from.id, amount: text(Number(body.amount)), currency: from.currency },
       into: { ...shared, accountId: to.id, amount: text(Number(toAmount)), currency: to.currency },
@@ -304,7 +305,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       const body = JSON.stringify(await request.clone().json())
       const result = await validated(request)
       if (result.refused) return result.refused
-      const created: Transaction = { id: `01970000-0000-7000-8000-4${String(recorded++).padStart(11, '0')}`, rowVersion: '1', ...result.fields }
+      const created: Transaction = {
+        id: `01970000-0000-7000-8000-4${String(recorded++).padStart(11, '0')}`,
+        rowVersion: '1',
+        // Only the worker posts for a rule; what a user records is linked to none.
+        recurringRuleId: null,
+        ...result.fields,
+      }
       state.transactions.push(created)
       order.set(created.id, recorded)
       if (key !== null) byKey.set(key, { recorded: created, body })
