@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { decimalPattern } from '@/shared/money'
-import { transactionTypes, type TransactionFilters } from '../api/transactions'
+import { transactionTypes, transferLegTypes, type TransactionFilters } from '../api/transactions'
 
 /** The filters, as the address and the API both name them. The sort order is not one: clearing the filters leaves it. */
 const filterNames = ['from', 'to', 'accountId', 'categoryId', 'type', 'min', 'max', 'q'] as const
@@ -63,7 +63,7 @@ function read(params: URLSearchParams): TransactionFilters {
     to: matching('to', calendarDate),
     accountId: text('accountId'),
     categoryId: text('categoryId'),
-    type: oneOf('type', transactionTypes),
+    type: oneOf('type', [...transactionTypes, ...transferLegTypes]),
     min: amount('min'),
     max: amount('max'),
     q: text('q')?.trim().slice(0, maxSearchLength) || undefined,

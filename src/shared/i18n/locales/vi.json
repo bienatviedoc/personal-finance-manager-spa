@@ -256,7 +256,9 @@
     "type": "Loại",
     "types": {
       "expense": "Khoản chi",
-      "income": "Khoản thu"
+      "income": "Khoản thu",
+      "transferOut": "Chuyển đi",
+      "transferIn": "Chuyển đến"
     },
     "isRefund": "Đây là khoản hoàn tiền",
     "refundHint": "Tiền được trả lại từ một lần mua. Khoản này làm tăng số dư và giảm số đã chi trong danh mục.",
@@ -319,6 +321,38 @@
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được giao dịch.",
       "notDeleted": "Chưa xóa được giao dịch."
+    }
+  },
+  "transfers": {
+    "add": "Chuyển giữa các tài khoản",
+    "new": "Chuyển khoản mới",
+    "editTitle": "Sửa chuyển khoản",
+    "mark": "Chuyển khoản",
+    "loading": "Đang tải chuyển khoản",
+    "from": "Từ tài khoản",
+    "to": "Đến tài khoản",
+    "amountIn": "Số tiền ({{currency}})",
+    "toAmountIn": "Số tiền nhận được ({{currency}})",
+    "bothAmounts": "Hai tài khoản này dùng hai loại tiền khác nhau, nên hãy nhập cả hai số tiền. Ứng dụng không tra tỷ giá.",
+    "date": "Ngày",
+    "note": "Ghi chú",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "deleteExplained": "Xóa chuyển khoản này? Cả hai vế sẽ không còn trong danh sách này, và số dư của hai tài khoản trở lại như trước.",
+    "errors": {
+      "account": "Chọn một tài khoản của bạn chưa bị lưu trữ.",
+      "sameAccount": "Chọn một tài khoản khác với tài khoản chuyển tiền đi.",
+      "amountRequired": "Nhập số tiền.",
+      "amountZero": "Nhập số tiền lớn hơn 0.",
+      "amountInvalid": "Nhập số tiền, ví dụ {{example}}.",
+      "toAmountRequired": "Nhập số tiền nhận được.",
+      "date": "Nhập ngày.",
+      "dateInFuture": "Ngày không được ở tương lai.",
+      "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "stale": "Chuyển khoản này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "notLoaded": "Chưa tải được chuyển khoản. Hãy thử lại.",
+      "notSaved": "Chưa lưu được chuyển khoản.",
+      "notDeleted": "Chưa xóa được chuyển khoản."
     }
   },
   "attachments": {

@@ -8,7 +8,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { amountExample, AmountInput, type AmountValue, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { Label } from '@/shared/ui/label'
-import { transactionTypes, type TransactionFilters } from '../api/transactions'
+import { transactionTypes, transferLegTypes, type TransactionFilters } from '../api/transactions'
 import { maxSearchLength, type ViewChanges } from '../hooks/useTransactionFilters'
 
 type Props = {
@@ -92,7 +92,7 @@ export function TransactionFilterBar({ view, isFiltered, onChange, onClear, acco
         label={t('transactions.type')}
         value={type}
         onChange={(event) => setType(event.target.value)}
-        options={[{ value: '', label: t('transactions.filters.allTypes') }, ...transactionTypes.map((type) => ({ value: type, label: t(`transactions.types.${type}`) }))]}
+        options={[{ value: '', label: t('transactions.filters.allTypes') }, ...[...transactionTypes, ...transferLegTypes].map((type) => ({ value: type, label: t(`transactions.types.${type}`) }))]}
       />
       <SelectField
         label={t('transactions.filters.sortBy')}

@@ -203,6 +203,25 @@ describe('the transaction list', () => {
     expect(total()).toBe('3 transactions' + 'VND' + 'Income₫0' + 'Expenses₫550,000' + 'Net-₫550,000')
   })
 
+  it('lists the legs of a transfer, which can be filtered for, and leaves them out of the income and expenses of the total', async () => {
+    fakeApis([
+      { type: 'transferOut', accountId: everyday, amount: '2000000.00', date: '2026-11-02', transferId: 't-1' },
+      { type: 'transferIn', accountId: dollars, amount: '80.00', date: '2026-11-02', transferId: 't-1' },
+      { type: 'expense', accountId: everyday, amount: '45000.00', date: '2026-10-28', categoryId: 'c-transport', payee: 'Grab' },
+    ])
+    const { user, router } = renderApp('/transactions')
+    await listShown()
+
+    expect(payees()).toEqual(['Transfer in', 'Transfer out', 'Grab'])
+    // Three transactions; the dollars that arrived are no income, so there is no total in dollars.
+    expect(total()).toBe('3 transactions' + 'VND' + 'Income₫0' + 'Expenses₫45,000' + 'Net-₫45,000')
+
+    await user.selectOptions(filterBar().getByLabelText('Type'), 'Transfer out')
+    await waitFor(() => expect(payees()).toEqual(['Transfer out']))
+    expect(router.state.location.search).toBe('?type=transferOut')
+    expect(total()).toBe('1 transaction')
+  })
+
   it('says so when nothing passes the filters, and clears them all at once', async () => {
     fakeApis()
     const { user, router } = renderApp('/transactions?q=nothing-has-this&type=income&sort=amount')

@@ -60,7 +60,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   what the API could not read) and changes them; the list is a query per view. The filter bar applies a choice
   at once and something typed once the typing pauses. Never keep a filter in component state alone.
 - **The total of a filtered list is the API's** (`total` on every page: a count, and income, expenses and net in
-  each currency). `TransactionTotal` shows it; the SPA never adds up the rows it has loaded.
+  each currency; the legs of a transfer are counted and are in neither). `TransactionTotal` shows it; the SPA never adds up the rows it has loaded.
 - **The transaction list is virtualised** (spec section 8): `VirtualRows` keeps only the rows near the screen in
   the page, over [TanStack Virtual](https://tanstack.com/virtual), with the page itself scrolling. The next page
   is loaded as the last loaded row comes near the screen; skeletons stand in for a view, or a next page, that
@@ -94,6 +94,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
   that feature to refresh it; it never touches the other's query keys.
+- **A transfer is two transactions in the list.** The API lists a transfer as its two legs (`transferOut`,
+  `transferIn`), each on its own account and carrying the `transferId` they share; the list marks them as a
+  transfer. A leg is never edited or deleted as a transaction: either leg opens the transfer form, which loads
+  the transfer by that id (`transferQuery`) and saves both legs through `/transfers` (`features/transactions/api/transfers.ts`).
+  Between accounts in different currencies the form asks for both amounts; nothing converts one into the other.
+  Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
 - **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
   `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
   the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change

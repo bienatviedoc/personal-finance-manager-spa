@@ -4,7 +4,8 @@ import type { FilteredTotal } from '../api/transactions'
 
 /**
  * What the transactions that pass the filters come to (spec TXN-3): all of them, not only the rows loaded so
- * far. The API adds them up, each currency on its own; nothing is added here.
+ * far. The API adds them up, each currency on its own; nothing is added here. The legs of a transfer are
+ * counted and are in neither income nor expenses.
  */
 export function TransactionTotal({ total }: { total: FilteredTotal }) {
   const { t } = useTranslation()
