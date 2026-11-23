@@ -142,6 +142,7 @@
     }
   },
   "accounts": {
+    "option": "{{name}} ({{currency}})",
     "intro": "Những nơi bạn giữ tiền, nhóm theo tổ chức tài chính.",
     "add": "Thêm tài khoản",
     "new": "Tài khoản mới",
@@ -264,7 +265,6 @@
     "refundHint": "Tiền được trả lại từ một lần mua. Khoản này làm tăng số dư và giảm số đã chi trong danh mục.",
     "refund": "Hoàn tiền",
     "account": "Tài khoản",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Số tiền ({{currency}})",
     "date": "Ngày",
     "category": "Danh mục",
@@ -394,7 +394,6 @@
       "income": "Khoản thu"
     },
     "account": "Tài khoản",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Số tiền ({{currency}})",
     "category": "Danh mục",
     "chooseCategory": "Chọn danh mục",

@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import type { Account } from '@/features/accounts'
+import { useAccountChoices, type Account } from '@/features/accounts'
 import { useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
@@ -133,6 +133,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
   const refundHintId = useId()
 
   const accountOptions = accounts.filter((account) => !account.isArchived || account.id === transaction?.accountId)
+  const accountChoices = useAccountChoices(accountOptions)
   const form = useForm<Values, unknown, z.output<Schema>>({
     resolver: zodResolver(schema),
     defaultValues: transaction
@@ -310,7 +311,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
       <SelectField
         label={t('transactions.account')}
         error={errors.accountId?.message && t(errors.accountId.message as ParseKeys)}
-        options={accountOptions.map((account) => ({ value: account.id, label: t('transactions.accountOption', { name: account.name, currency: account.currency }) }))}
+        options={accountChoices}
         {...form.register('accountId')}
       />
 

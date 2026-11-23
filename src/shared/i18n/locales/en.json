@@ -142,6 +142,7 @@
     }
   },
   "accounts": {
+    "option": "{{name}} ({{currency}})",
     "intro": "The places your money sits, grouped by institution.",
     "add": "Add account",
     "new": "New account",
@@ -264,7 +265,6 @@
     "refundHint": "Money coming back from a purchase. It raises the balance and lowers what you spent in the category.",
     "refund": "Refund",
     "account": "Account",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Amount ({{currency}})",
     "date": "Date",
     "category": "Category",
@@ -394,7 +394,6 @@
       "income": "Income"
     },
     "account": "Account",
-    "accountOption": "{{name}} ({{currency}})",
     "amountIn": "Amount ({{currency}})",
     "category": "Category",
     "chooseCategory": "Choose a category",

@@ -3,7 +3,7 @@ import type { ParseKeys } from 'i18next'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
-import type { Account } from '@/features/accounts'
+import { useAccountChoices, type Account } from '@/features/accounts'
 import { useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ComboboxField } from '@/shared/components/ComboboxField'
@@ -106,6 +106,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
   const today = todayIn(timeZone)
 
   const accountOptions = accounts.filter((account) => !account.isArchived || account.id === rule?.accountId)
+  const accountChoices = useAccountChoices(accountOptions)
   const form = useForm<Values, unknown, z.output<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: rule
@@ -208,7 +209,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
       <SelectField
         label={t('recurring.account')}
         error={errors.accountId?.message && t(errors.accountId.message as ParseKeys)}
-        options={accountOptions.map((account) => ({ value: account.id, label: t('recurring.accountOption', { name: account.name, currency: account.currency }) }))}
+        options={accountChoices}
         {...form.register('accountId')}
       />
       <AmountField
