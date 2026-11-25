@@ -841,6 +841,7 @@ export interface components {
             /** Format: int32 */
             count: number | string;
             currencies: components["schemas"]["CurrencyTotalResponse"][];
+            spent: null | components["schemas"]["SpentTotalResponse"];
         };
         HttpValidationProblemDetails: {
             type?: null | string;
@@ -1062,6 +1063,12 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
             items: components["schemas"]["SpendingTransactionResponse"][];
+        };
+        SpentTotalResponse: {
+            currency: components["schemas"]["Currency"];
+            amount: string;
+            /** Format: int32 */
+            notConverted: number | string;
         };
         TransactionLineRequest: {
             /** Format: uuid */
