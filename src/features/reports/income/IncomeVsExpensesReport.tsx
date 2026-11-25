@@ -6,7 +6,7 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { formatDate, formatMonth, monthOf } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
-import { formatMoney, Money, type Currency } from '@/shared/money'
+import { formatAxisAmount, formatMoney, Money, type Currency } from '@/shared/money'
 import { incomeVsExpensesQuery, type IncomeAndExpenses, type MonthIncomeAndExpenses } from '../api/incomeVsExpenses'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
@@ -104,7 +104,8 @@ function MonthsChart({ months, currency }: { months: MonthIncomeAndExpenses[]; c
         { ...series.expenses, name: t('reports.income.expenses'), values: months.map((month) => Number(month.expenses)) },
       ]}
       line={{ ...series.net, name: t('reports.income.net'), values: months.map((month) => Number(month.net)) }}
-      format={(value) => formatMoney(String(value), currency, locale)}
+      formatValue={(value) => formatMoney(String(value), currency, locale)}
+      formatAxis={(value) => formatAxisAmount(value, locale)}
     />
   )
 }

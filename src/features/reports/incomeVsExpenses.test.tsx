@@ -79,6 +79,15 @@ describe('the income vs expenses report', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
+  it('writes the amounts on the chart axis short, as every chart axis does', async () => {
+    setUp()
+    renderApp(firstQuarter)
+
+    const chart = await screen.findByRole('img', { name: 'Income and expenses per month, with net' })
+    await waitFor(() => expect(within(chart).getByText('21M')).toBeInTheDocument())
+    expect(within(chart).queryByText('₫21,000,000')).not.toBeInTheDocument()
+  })
+
   it('compares with the previous period', async () => {
     const api = setUp()
     const { user } = renderApp(`${firstQuarter}&view=table`)

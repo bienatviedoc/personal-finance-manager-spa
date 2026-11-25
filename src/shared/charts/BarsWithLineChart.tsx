@@ -19,8 +19,10 @@ type Props = {
   bars: ChartSeries[]
   /** Drawn as a line over the bars. */
   line: ChartSeries
-  /** Writes a value for the axis and the tooltip. */
-  format: (value: number) => string
+  /** Writes a value in the tooltip, in full. */
+  formatValue: (value: number) => string
+  /** Writes a value on the side axis, short (`formatAxisAmount`). */
+  formatAxis: (value: number) => string
   /** In pixels. */
   height?: number
 }
@@ -29,7 +31,7 @@ type Props = {
  * Grouped bars with a line over them (spec section 12, Charts): the one place the app draws one, over the charting
  * library, so the library can be swapped without touching a feature.
  */
-export function BarsWithLineChart({ label, points, bars, line, format, height = 300 }: Props) {
+export function BarsWithLineChart({ label, points, bars, line, formatValue, formatAxis, height = 300 }: Props) {
   const data = points.map((point, index) => ({
     point,
     ...Object.fromEntries([...bars, line].map((series) => [series.key, series.values[index] ?? 0])),
@@ -41,8 +43,8 @@ export function BarsWithLineChart({ label, points, bars, line, format, height = 
         <ComposedChart data={data} accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="point" />
-          <YAxis tickFormatter={format} width={96} />
-          <Tooltip formatter={(value) => format(Number(value))} />
+          <YAxis tickFormatter={formatAxis} width={96} />
+          <Tooltip formatter={(value) => formatValue(Number(value))} />
           <Legend />
           {bars.map((series) => (
             <Bar key={series.key} dataKey={series.key} name={series.name} fill={series.color} isAnimationActive={false} />
