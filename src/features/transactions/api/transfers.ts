@@ -70,11 +70,14 @@ export function useEditTransfer({ id, rowVersion }: Pick<Transfer, 'id' | 'rowVe
 /** The expense and the income a user picked to mark as one transfer. */
 export type MarkAsTransferFields = components['schemas']['MarkAsTransferRequest']
 
+const markFields = ['expenseId', 'incomeId'] as const
+export type MarkField = (typeof markFields)[number]
+
 /**
- * What marking answers: the transfer the two became, or that the API refused one of them (changed somewhere
+ * What marking answers: the transfer the two became, or which of the two the API refused (changed somewhere
  * else since the list was loaded, as the screen checks every rule it can see before sending).
  */
-export type MarkOutcome = { marked: true; transfer: Transfer } | { marked: false }
+export type MarkOutcome = { saved: true; transfer: Transfer } | { saved: false; fields: MarkField[] }
 
 /**
  * Marks an expense on one account and income on another as one transfer (spec IMP-7): the expense becomes its
@@ -86,8 +89,9 @@ export function useMarkAsTransfer() {
   return useMutation({
     mutationFn: async (fields: MarkAsTransferFields): Promise<MarkOutcome> => {
       const { data, error, response } = await api.POST('/api/v1/transfers/mark', { body: fields })
-      if (data) return { marked: true, transfer: data }
-      if (refusedFields(response, error, ['expenseId', 'incomeId'] as const)) return { marked: false }
+      if (data) return { saved: true, transfer: data }
+      const refused = refusedFields(response, error, markFields)
+      if (refused) return { saved: false, fields: refused }
       throw new Error(`Marking as a transfer failed: ${response.status}`)
     },
     // A request that failed may still have been saved, and a refused one means the list is out of date.
@@ -99,17 +103,21 @@ export function useMarkAsTransfer() {
 export type UnmarkFields = components['schemas']['UnmarkTransferRequest']
 const unmarkFields = ['expenseCategoryId', 'incomeCategoryId'] as const
 export type UnmarkField = (typeof unmarkFields)[number]
+/** What a transfer became once unmarked: an expense on the account the money left, and income on the one it arrived on. */
+export type UnmarkedTransfer = components['schemas']['UnmarkedTransferResponse']
+export type UnmarkOutcome = { saved: true; unmarked: UnmarkedTransfer } | { saved: false; fields: UnmarkField[] }
 
 /**
  * Unmarks the transfer: its Transfer out leg becomes an expense and its Transfer in leg income again, on the
  * categories chosen, each keeping its account, amount, date and note. Any transfer can be unmarked, marked or recorded.
+ * Answers the two as the API saved them.
  */
 export function useUnmarkTransfer(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (fields: UnmarkFields): Promise<{ saved: true } | { saved: false; fields: UnmarkField[] }> => {
+    mutationFn: async (fields: UnmarkFields): Promise<UnmarkOutcome> => {
       const { data, error, response } = await api.POST('/api/v1/transfers/{id}/unmark', { params: { path: { id } }, body: fields })
-      if (data) return { saved: true }
+      if (data) return { saved: true, unmarked: data }
       const refused = refusedFields(response, error, unmarkFields)
       if (refused) return { saved: false, fields: refused }
       throw new Error(`Unmarking a transfer failed: ${response.status}`)

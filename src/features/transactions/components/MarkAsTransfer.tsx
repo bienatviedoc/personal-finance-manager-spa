@@ -9,13 +9,19 @@ import { useMarkAsTransfer } from '../api/transfers'
 /** An amount's digits without the zeros that end its decimals, so 100.00 and 100 read the same. Nothing is added up. */
 const digitsOf = (amount: string) => (amount.includes('.') ? amount.replace(/\.?0+$/, '') : amount)
 
+/** The expense and the income among what was picked: the two legs it would become. */
+type Legs = { expense: Transaction | undefined; income: Transaction | undefined }
+
+const legsOf = (picked: Transaction[]): Legs => ({
+  expense: picked.find((transaction) => transaction.type === 'expense'),
+  income: picked.find((transaction) => transaction.type === 'income'),
+})
+
 /**
  * Why the picked transactions cannot be marked as a transfer, or null when they can: the API's rules (see
  * `Transfer.Mark` in the API) repeated for fast feedback only, as the API checks them again.
  */
-function whyNot(picked: Transaction[]): ParseKeys | null {
-  const expense = picked.find((transaction) => transaction.type === 'expense')
-  const income = picked.find((transaction) => transaction.type === 'income')
+function whyNot(picked: Transaction[], { expense, income }: Legs): ParseKeys | null {
   if (picked.length !== 2 || !expense || !income) return 'transfers.whyNot.types'
   if (expense.accountId === income.accountId) return 'transfers.whyNot.sameAccount'
   if (expense.date !== income.date) return 'transfers.whyNot.date'
@@ -37,10 +43,9 @@ type Props = {
 export function MarkAsTransfer({ picked, onClear }: Props) {
   const { t } = useTranslation()
   const mark = useMarkAsTransfer()
-  const reason = whyNot(picked)
-  const expense = picked.find((transaction) => transaction.type === 'expense')
-  const income = picked.find((transaction) => transaction.type === 'income')
-  const send = () => expense && income && mark.mutate({ expenseId: expense.id, incomeId: income.id }, { onSuccess: (outcome) => outcome.marked && onClear() })
+  const { expense, income } = legsOf(picked)
+  const reason = whyNot(picked, { expense, income })
+  const send = () => expense && income && mark.mutate({ expenseId: expense.id, incomeId: income.id }, { onSuccess: (outcome) => outcome.saved && onClear() })
 
   return (
     <section aria-label={t('transfers.markTitle')} className="space-y-2 rounded-lg border bg-muted/40 p-3 text-sm">
@@ -54,7 +59,7 @@ export function MarkAsTransfer({ picked, onClear }: Props) {
         </Button>
       </div>
       {reason && <p>{t(reason)}</p>}
-      {mark.data?.marked === false && <ErrorMessage>{t('transfers.errors.markRefused')}</ErrorMessage>}
+      {mark.data?.saved === false && <ErrorMessage>{t('transfers.errors.markRefused')}</ErrorMessage>}
       <FailureToast failed={mark.isError} message={t('transfers.errors.notMarked')} retry={send} onDismiss={mark.reset} />
     </section>
   )
