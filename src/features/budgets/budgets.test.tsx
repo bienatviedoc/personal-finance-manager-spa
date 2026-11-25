@@ -2,9 +2,12 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { todayIn } from '@/shared/dates'
+import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeBudgetsApi } from '@/test/fakeBudgetsApi'
 import { defaultTestCategories, fakeCategoriesApi } from '@/test/fakeCategoriesApi'
+import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { fakeProfileApi } from '@/test/fakeProfileApi'
+import { fakeTransactionsApi } from '@/test/fakeTransactionsApi'
 import { renderApp } from '@/test/renderApp'
 import { apiUrl, problem, server } from '@/test/server'
 
@@ -290,6 +293,77 @@ describe('the budget screen', () => {
     expect(within(await row('Food & drink')).getByRole('note')).toHaveTextContent('2 expenses are not converted yet and are left out of spent.')
     expect(within(await row('Transport')).getByRole('note')).toHaveTextContent('1 expense is not converted yet and is left out of spent.')
     expect(within(screen.getByRole('group', { name: 'Totals for November 2026' })).getByRole('note')).toHaveTextContent('3 expenses are not converted yet')
+  })
+
+  it('opens the transactions behind a budget: its category and subcategories in its month, coming to its spent', async () => {
+    const { categories } = november()
+    fakeInstitutionsApi()
+    const accounts = fakeAccountsApi([{ name: 'Everyday', openingBalance: '5000000.00' }])
+    const everyday = accounts.accounts[0]!.id
+    fakeTransactionsApi(
+      [
+        { accountId: everyday, amount: '200000.00', date: '2026-11-03', categoryId: 'c-food', payee: 'Phở Thìn' },
+        {
+          accountId: everyday,
+          amount: '1500000.00',
+          date: '2026-11-08',
+          payee: 'Aeon',
+          lines: [
+            { categoryId: 'c-groceries', amount: '1300000.00', note: null },
+            { categoryId: 'c-transport', amount: '200000.00', note: null },
+          ],
+        },
+        { accountId: everyday, amount: '500000.00', date: '2026-11-12', categoryId: 'c-eating-out', payee: 'Pizza 4P’s' },
+        { accountId: everyday, amount: '50000.00', date: '2026-11-15', categoryId: 'c-groceries', payee: 'Co.opmart refund', isRefund: true },
+        { accountId: everyday, amount: '100000.00', date: '2026-11-16', categoryId: 'c-eating-out', payee: 'Refund', isRefund: true },
+        { accountId: everyday, amount: '80000.00', date: '2026-10-30', categoryId: 'c-groceries', payee: 'Last month' },
+        { accountId: everyday, amount: '250000.00', date: '2026-11-04', categoryId: 'c-transport', payee: 'Grab' },
+      ],
+      { accounts: accounts.accounts, categories: categories.categories },
+    )
+    const { user, router } = renderApp('/budgets/2026-11')
+
+    const food = await row('Food & drink')
+    expect(within(food).getByText('Spent').parentElement).toHaveTextContent('Spent₫1,850,000')
+    await user.click(within(food).getByRole('link', { name: 'Transactions behind Food & drink in November 2026' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Transactions' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/transactions')
+    expect(Object.fromEntries(new URLSearchParams(router.state.location.search))).toEqual({ categoryId: 'c-food', from: '2026-11-01', to: '2026-11-30' })
+    const list = await screen.findByRole('list', { name: 'Transactions' })
+    await waitFor(() =>
+      expect(within(list).getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['Refund', 'Co.opmart refund', 'Pizza 4P’s', 'Aeon', 'Phở Thìn']),
+    )
+    // 200,000 + 1,300,000 of the split + 500,000 - 50,000 - 100,000: the budget row's spent.
+    const total = within(screen.getByRole('region', { name: 'Total of these transactions' }))
+    expect(total.getByText('Spent in the category, as its budget counts it').parentElement).toHaveTextContent('₫1,850,000')
+  })
+
+  it('opens the transactions behind a budget from anywhere on its row but its controls', async () => {
+    november()
+    const { user, router } = renderApp('/budgets/2026-11')
+
+    const transport = await row('Transport')
+    await user.click(amountOf(transport, 'Transport'))
+    expect(router.state.location.pathname).toBe('/budgets/2026-11')
+    await user.click(within(transport).getByText('Remaining'))
+    expect(router.state.location.pathname).toBe('/transactions')
+    expect(Object.fromEntries(new URLSearchParams(router.state.location.search))).toEqual({ categoryId: 'c-transport', from: '2026-11-01', to: '2026-11-30' })
+  })
+
+  it('keeps a row with no budget where it is when clicked', async () => {
+    november()
+    const { user, router } = renderApp('/budgets/2026-11')
+
+    await user.click(within(await row('Groceries')).getByText('Groceries'))
+    expect(router.state.location.pathname).toBe('/budgets/2026-11')
+  })
+
+  it('offers no transactions to drill into from a category with no budget of its own', async () => {
+    november()
+    renderApp('/budgets/2026-11')
+
+    expect(within(await row('Groceries')).queryByRole('link')).not.toBeInTheDocument()
   })
 
   it('shows the latest budget when it was changed somewhere else, for the user to check and save again', async () => {

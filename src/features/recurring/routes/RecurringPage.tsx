@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import type { TFunction } from 'i18next'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
@@ -227,7 +228,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
 }
 
 /** When the rule next records: paused, on its next due date, or never again once it has ended. */
-function nextText(rule: RecurringRule, t: ReturnType<typeof useTranslation>['t'], format: (date: string) => string) {
+function nextText(rule: RecurringRule, t: TFunction, format: (date: string) => string): string {
   if (rule.isPaused) return t('recurring.paused')
   if (rule.nextRunDate) return t('recurring.nextOn', { date: format(rule.nextRunDate) })
   return rule.endDate ? t('recurring.endedOn', { date: format(rule.endDate) }) : t('recurring.ended')

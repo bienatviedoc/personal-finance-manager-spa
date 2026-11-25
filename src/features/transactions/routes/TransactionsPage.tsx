@@ -12,8 +12,9 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { isPending, isTransferLeg, listKey, transactionsQuery, type Transaction } from '../api/transactions'
+import { canBePicked, isPending, isTransferLeg, listKey, transactionsQuery, type Transaction } from '../api/transactions'
 import { EditTransaction } from '../components/EditTransaction'
+import { MarkAsTransfer } from '../components/MarkAsTransfer'
 import { ListSkeleton } from '../components/ListSkeleton'
 import { TransactionFilterBar } from '../components/TransactionFilterBar'
 import { TransactionRow } from '../components/TransactionRow'
@@ -35,12 +36,15 @@ type DrawerFor = { editing: Transaction } | { transferring: true } | { transferI
  * as the last row comes near. Recording and editing happen in a side drawer (spec section 12): editing and
  * transfers in this screen's own, recording a transaction in the one quick add opens on every screen. The list
  * shows a change to income or an expense as soon as it is sent. A transfer is listed as its two legs, each on
- * its own account and marked as a transfer; either opens the transfer form.
+ * its own account and marked as a transfer; either opens the transfer form. An expense and income picked in the
+ * list can be marked as one transfer.
  */
 export function TransactionsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.transactions'))
   const [drawer, setDrawer] = useState<DrawerFor>(null)
+  // The transactions picked to mark as a transfer, as they were when picked.
+  const [pickedRows, setPickedRows] = useState<Transaction[]>([])
   const addTransaction = useQuickAdd()
   const { baseCurrency } = useUserSettings()
   const locale = useLocale()
@@ -58,6 +62,16 @@ export function TransactionsPage() {
     drawer && 'editing' in drawer
       ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
       : undefined
+  // What is picked, as the list has it now where it shows it: one that has since become a leg or a refund is not.
+  // One a filter now hides stays picked as it was, so the expense can be picked under one account's filter and the
+  // income under the other's; the API checks the pair again when it is marked.
+  const picked = pickedRows
+    .map((row) => items?.find((transaction) => !isPending(transaction) && transaction.id === row.id) ?? row)
+    .filter(canBePicked)
+  const isPicked = (id: string) => pickedRows.some((row) => row.id === id)
+  const togglePicked = (transaction: Transaction) =>
+    setPickedRows((rows) => (rows.some((row) => row.id === transaction.id) ? rows.filter((row) => row.id !== transaction.id) : [...rows, transaction]))
+  const clearPicked = useCallback(() => setPickedRows([]), [])
   const open = accounts.data?.accounts.filter((account) => !account.isArchived) ?? []
   const canRecord = open.length > 0
   // A transfer is between two different accounts.
@@ -123,6 +137,8 @@ export function TransactionsPage() {
       {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('transactions.errors.generic')}</ErrorMessage>}
       {!loaded && !transactions.isError && <ListSkeleton label={t('transactions.loading')} />}
       {loaded && total && items.length > 0 && <TransactionTotal total={total} />}
+      {/* Started again for each new pick, so what the last attempt said is not shown for another pair. */}
+      {pickedRows.length > 0 && <MarkAsTransfer key={pickedRows.map((row) => row.id).join()} picked={picked} onClear={clearPicked} />}
       {loaded && items.length === 0 && isFiltered && <p className="text-muted-foreground">{t('transactions.filters.noMatch')}</p>}
       {loaded && items.length === 0 && !isFiltered && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
       {loaded && items.length > 0 && (
@@ -136,6 +152,7 @@ export function TransactionsPage() {
               category={findCategory(categories.data, transaction.categoryId)}
               categories={categories.data}
               onEdit={(editing) => setDrawer(isTransferLeg(editing) ? { transferId: editing.transferId } : { editing })}
+              pick={canBePicked(transaction) ? { picked: isPicked(transaction.id), onToggle: () => togglePicked(transaction) } : undefined}
             />
           )}
         </VirtualRows>
@@ -153,7 +170,7 @@ export function TransactionsPage() {
         )}
         {canOpenDrawer && drawer && 'transferring' in drawer && <AddTransfer accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />}
         {canOpenDrawer && drawer && 'transferId' in drawer && (
-          <OpenTransfer id={drawer.transferId} accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />
+          <OpenTransfer id={drawer.transferId} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
         )}
       </Drawer>
     </section>
