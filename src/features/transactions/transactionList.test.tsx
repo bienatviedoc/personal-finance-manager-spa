@@ -200,7 +200,21 @@ describe('the transaction list', () => {
 
     await waitFor(() => expect(payees()).toEqual(['Grab refund', 'Grab', 'Aeon']))
     // The split adds only its line in Transport, and the refund is money back: 180,000 + 90,000 - 40,000.
-    expect(total()).toBe('3 transactions' + 'VND' + 'Income₫0' + 'Expenses₫230,000' + 'Net-₫230,000')
+    expect(total()).toBe('3 transactions' + 'VND' + 'Income₫0' + 'Expenses₫230,000' + 'Net-₫230,000' + 'Spent in the category₫230,000')
+  })
+
+  it('says what a category spent, in the base currency as its budget counts it, and flags what is not converted', async () => {
+    fakeApis()
+    const { user } = renderApp('/transactions')
+    await listShown()
+    expect(total()).not.toContain('Spent')
+
+    await user.selectOptions(filterBar().getByLabelText('Category'), filterBar().getByRole('option', { name: 'Food & drink' }))
+
+    await waitFor(() => expect(payees()).toEqual(['Phở Thìn', 'Pizza 4P’s', 'Co.opmart']))
+    const spent = within(screen.getByRole('region', { name: 'Total of these transactions' }))
+    expect(spent.getByText('Spent in the category').parentElement).toHaveTextContent('Spent in the category₫215,000')
+    expect(spent.getByRole('note')).toHaveTextContent('1 expense is not converted yet and is left out of spent.')
   })
 
   it('lists the legs of a transfer, which can be filtered for, and leaves them out of the income and expenses of the total', async () => {

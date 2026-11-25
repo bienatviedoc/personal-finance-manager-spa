@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
-import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Copy, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Copy, List, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
@@ -9,7 +9,7 @@ import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { isStale } from '@/shared/api/versionedSave'
-import { formatMonth, isCalendarMonth, monthOf, shiftMonth, todayIn } from '@/shared/dates'
+import { daysOf, formatMonth, isCalendarMonth, monthOf, shiftMonth, todayIn } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
@@ -308,6 +308,7 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
           </p>
         )}
         {budget && <Progress budget={budget} name={category.name} currency={currency} />}
+        {budget && <TransactionsBehind categoryId={category.id} name={category.name} month={month} />}
 
         <FailureToast failed={set.isError} message={t('budgets.errors.notSaved')} retry={{ form: formId }} onDismiss={set.reset} />
         <FailureToast
@@ -326,6 +327,28 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
         </ul>
       )}
     </li>
+  )
+}
+
+/**
+ * Drills down from a budget to the transactions behind its spent (spec BUD-8): the transaction list filtered to
+ * its category, which takes in the subcategories, over the days of its month. The list then says what they spent
+ * there, which is this budget's spent.
+ */
+function TransactionsBehind({ categoryId, name, month }: { categoryId: string; name: string; month: BudgetMonth }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const filters = new URLSearchParams({ categoryId, ...daysOf(month) })
+
+  return (
+    <Link
+      className={cn('inline-flex items-center gap-1 rounded-md text-sm underline', focusRing)}
+      to={`/transactions?${filters}`}
+      aria-label={t('budgets.transactionsBehind', { name, month: formatMonth(month, locale) })}
+    >
+      <List aria-hidden className="size-4" />
+      {t('budgets.transactions')}
+    </Link>
   )
 }
 
