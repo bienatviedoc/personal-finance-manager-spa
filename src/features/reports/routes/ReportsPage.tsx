@@ -9,6 +9,7 @@ import { ReportFrame } from '../frame/ReportFrame'
 import type { ReportFilters } from '../frame/useReportFilters'
 import { spendingDrillDown } from '../spending/drillDown'
 import { SpendingByCategoryReport } from '../spending/SpendingByCategoryReport'
+import { NetWorthReport } from '../netWorth/NetWorthReport'
 import { TrendsReport } from '../trends/TrendsReport'
 
 /** A report: its address under `/reports`, its name, how the frame is set up for it, and the report itself. */
@@ -17,6 +18,8 @@ type Report = {
   title: ParseKeys
   categoryKind?: CategoryKind
   canCompare?: boolean
+  /** False for a report the category filter means nothing to. */
+  hasCategoryFilter?: boolean
   /** The names in the address the report keeps how far it is drilled down in. */
   drillDown?: readonly string[]
   render: (filters: ReportFilters) => ReactNode
@@ -37,6 +40,12 @@ const reports: Report[] = [
     title: 'reports.trends.title',
     canCompare: true,
     render: (filters) => <TrendsReport filters={filters} />,
+  },
+  {
+    path: 'net-worth',
+    title: 'reports.netWorth.title',
+    hasCategoryFilter: false,
+    render: (filters) => <NetWorthReport filters={filters} />,
   },
 ]
 
@@ -68,7 +77,14 @@ export function ReportsPage() {
       </nav>
       {report ? (
         // A report starts again when another is chosen: what was drilled into in one means nothing in the next.
-        <ReportFrame key={report.path} title={t(report.title)} categoryKind={report.categoryKind} canCompare={report.canCompare} drillDown={report.drillDown}>
+        <ReportFrame
+          key={report.path}
+          title={t(report.title)}
+          categoryKind={report.categoryKind}
+          canCompare={report.canCompare}
+          hasCategoryFilter={report.hasCategoryFilter}
+          drillDown={report.drillDown}
+        >
           {report.render}
         </ReportFrame>
       ) : (

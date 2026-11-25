@@ -54,7 +54,7 @@ type Options = {
 type Asked = Record<string, string>
 
 /**
- * A stand-in for the API's spending by category report, following the same rules as the real API (see the API's
+ * A stand-in for the API's reports (net worth from `holdings`, see the API's NetWorthTests), and its spending by category report, following the same rules as the real API (see the API's
  * SpendingByCategoryTests): spent per category in the report period, each top-level category with its
  * subcategories unless `parentId` breaks one down, ranked by spent then name, a share of the total to one
  * decimal, what is not converted left out and counted, and with `compare` the previous period (as many whole
@@ -194,6 +194,30 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         notConverted: items.filter((item) => item.spent === null).length,
         items,
       }
+      return HttpResponse.json(response)
+    }),
+    http.get(url('/api/v1/reports/net-worth'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      state.netWorthAsked.push(Object.fromEntries(query))
+      if (state.failWith) return problem(state.failWith)
+      const [from, to, accountId] = [query.get('from'), query.get('to'), query.get('accountId')]
+      if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
+
+      const items = monthsOf(from, to).map(({ to: day }) => {
+        const held = new Map<string, FakeHolding>()
+        for (const holding of state.holdings.toSorted((a, b) => a.from.localeCompare(b.from))) {
+          if (holding.from <= day && (accountId === null || holding.accountId === accountId)) held.set(holding.accountId, holding)
+        }
+        let [assets, liabilities, notConverted] = [0, 0, 0]
+        for (const holding of held.values()) {
+          if (holding.balance === null) notConverted++
+          else if (holding.holdsAmountOwed) liabilities -= Number(holding.balance)
+          else assets += Number(holding.balance)
+        }
+        return { date: day, assets: text(assets), liabilities: text(liabilities), netWorth: text(assets - liabilities), notConverted }
+      })
+
+      const response: NetWorthResponse = { from, to, currency: baseCurrency, items }
       return HttpResponse.json(response)
     }),
     http.get(url('/api/v1/reports/trends'), ({ request }) => {

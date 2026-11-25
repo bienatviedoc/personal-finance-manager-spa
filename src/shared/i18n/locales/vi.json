@@ -619,6 +619,16 @@
       "followByHint": "Theo dõi bên nhận theo khoản nào khi chưa chọn danh mục.",
       "spentWith": "Đã chi cho họ",
       "receivedFrom": "Đã nhận từ họ"
+    },
+    "netWorth": {
+      "title": "Giá trị tài sản ròng",
+      "on": "Giá trị tài sản ròng ngày {{date}}",
+      "chart": "Giá trị tài sản ròng: tài sản và nợ phải trả vào cuối mỗi tháng",
+      "table": "Giá trị tài sản ròng vào cuối mỗi tháng",
+      "date": "Cuối tháng",
+      "assets": "Tài sản",
+      "liabilities": "Nợ phải trả",
+      "netWorth": "Giá trị tài sản ròng"
     }
   },
   "institutions": {

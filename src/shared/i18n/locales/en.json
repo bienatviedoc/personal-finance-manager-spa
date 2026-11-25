@@ -619,6 +619,16 @@
       "followByHint": "What a payee is followed by when no category is chosen.",
       "spentWith": "Spent with them",
       "receivedFrom": "Received from them"
+    },
+    "netWorth": {
+      "title": "Net worth",
+      "on": "Net worth on {{date}}",
+      "chart": "Net worth: assets and liabilities at each month end",
+      "table": "Net worth at each month end",
+      "date": "Month end",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "netWorth": "Net worth"
     }
   },
   "institutions": {
