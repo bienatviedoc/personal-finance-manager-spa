@@ -336,7 +336,7 @@ describe('the budget screen', () => {
     )
     // 200,000 + 1,300,000 of the split + 500,000 - 50,000 - 100,000: the budget row's spent.
     const total = within(screen.getByRole('region', { name: 'Total of these transactions' }))
-    expect(total.getByText('Spent in the category').parentElement).toHaveTextContent('Spent in the category₫1,850,000')
+    expect(total.getByText('Spent in the category, as its budget counts it').parentElement).toHaveTextContent('₫1,850,000')
   })
 
   it('opens the transactions behind a budget from anywhere on its row but its controls', async () => {
