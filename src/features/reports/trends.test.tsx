@@ -110,6 +110,44 @@ describe('the trends report', () => {
     expect(screen.getByText('Change from the previous period').parentElement).toHaveTextContent('-₫150,000-20%')
   })
 
+  it('sets each month against the one at the same place in the previous period, also when the period is not whole months', async () => {
+    setUp([
+      { id: 't-jan', date: '2026-01-27', categoryId: 'c-groceries', spent: '100000' },
+      { id: 't-feb', date: '2026-02-18', categoryId: 'c-groceries', spent: '70000' },
+      { id: 't-mar', date: '2026-03-12', categoryId: 'c-groceries', spent: '90000' },
+    ])
+    renderApp(`${report}?period=custom&from=2026-03-10&to=2026-04-20&categoryId=c-food&compare=true&view=table`)
+
+    expect(await rowsOf()).toEqual([
+      ['March 2026', '₫90,000', '', '', '₫100,000Jan 27, 2026 to Feb 17, 2026'],
+      ['April 2026', '₫0', '-₫90,000', '-100%', '₫70,000Feb 18, 2026 to Mar 9, 2026'],
+    ])
+  })
+
+  it('follows a payee alone by what was received from it when asked', async () => {
+    const api = setUp([
+      { id: 't-pay', date: '2026-01-25', categoryId: 'c-salary', spent: '20000000', payee: 'Acme' },
+      { id: 't-lunch', date: '2026-01-26', categoryId: 'c-eating-out', spent: '100000', payee: 'Acme' },
+    ])
+    const { user, router } = renderApp(`${report}?${firstQuarter}&payee=Acme&view=table`)
+
+    expect((await rowsOf())[0]![1]).toBe('₫100,000')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Follow' }), 'Received from them')
+
+    await waitFor(() => expect(api.trendsAsked.at(-1)).toEqual({ from: '2026-01-01', to: '2026-03-31', payee: 'Acme', type: 'income' }))
+    expect(await screen.findByText('Total received')).toBeInTheDocument()
+    await waitFor(async () => expect((await rowsOf())[0]![1]).toBe('₫20,000,000'))
+    expect(new URLSearchParams(router.state.location.search).get('type')).toBe('income')
+  })
+
+  it('offers no choice of what to follow a payee by once a category says it', async () => {
+    setUp()
+    renderApp(`${report}?${firstQuarter}&categoryId=c-food&payee=Market&view=table`)
+
+    expect(await table()).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Follow' })).not.toBeInTheDocument()
+  })
+
   it('flags what is not converted, and says when the report cannot be loaded', async () => {
     const api = setUp([{ id: 't-abroad', date: '2026-01-03', categoryId: 'c-groceries', spent: null }])
     renderApp(`${report}?${firstQuarter}&categoryId=c-food&view=table`)

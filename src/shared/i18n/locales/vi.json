@@ -253,9 +253,8 @@
       "income": "Khoản thu",
       "expenses": "Khoản chi",
       "net": "Chênh lệch",
-      "spent": "Đã chi trong danh mục",
-      "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
-      "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi."
+      "spent": "Đã chi trong danh mục, như ngân sách tính",
+      "byCurrency": "Theo từng loại tiền, chưa quy đổi"
     },
     "type": "Loại",
     "types": {
@@ -612,7 +611,12 @@
       "total": "Tổng",
       "change": "Thay đổi",
       "changePercent": "Thay đổi %",
-      "previousTotal": "Kỳ trước"
+      "previousTotal": "Kỳ trước",
+      "days": "{{from}} đến {{to}}",
+      "followBy": "Theo dõi",
+      "followByHint": "Theo dõi bên nhận theo khoản nào khi chưa chọn danh mục.",
+      "spentWith": "Đã chi cho họ",
+      "receivedFrom": "Đã nhận từ họ"
     }
   },
   "institutions": {

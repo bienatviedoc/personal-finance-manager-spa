@@ -253,9 +253,8 @@
       "income": "Income",
       "expenses": "Expenses",
       "net": "Net",
-      "spent": "Spent in the category",
-      "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
-      "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent."
+      "spent": "Spent in the category, as its budget counts it",
+      "byCurrency": "By currency, before conversion"
     },
     "type": "Type",
     "types": {
@@ -612,7 +611,12 @@
       "total": "Total",
       "change": "Change",
       "changePercent": "Change %",
-      "previousTotal": "Previous period"
+      "previousTotal": "Previous period",
+      "days": "{{from}} to {{to}}",
+      "followBy": "Follow",
+      "followByHint": "What a payee is followed by when no category is chosen.",
+      "spentWith": "Spent with them",
+      "receivedFrom": "Received from them"
     }
   },
   "institutions": {

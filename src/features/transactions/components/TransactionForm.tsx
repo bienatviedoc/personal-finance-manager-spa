@@ -29,6 +29,7 @@ import {
   type Currency,
 } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
+import { maxPayeeLength } from '@/shared/api/limits'
 import { isStale } from '@/shared/api/versionedSave'
 import { isSplit, suggestedCategoryQuery, transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
@@ -54,7 +55,7 @@ const schemaFor = (today: CalendarDate, split: boolean) =>
     // Calendar dates as YYYY-MM-DD sort as text.
     date: calendarDate('transactions.errors.date').refine((date) => date <= today, { error: 'transactions.errors.dateInFuture' }),
     categoryId: z.string().refine((categoryId) => split || categoryId !== '', { error: 'transactions.errors.category' }),
-    payee: z.string().trim().max(200, { error: 'transactions.errors.payeeTooLong' }),
+    payee: z.string().trim().max(maxPayeeLength, { error: 'transactions.errors.payeeTooLong' }),
     note: z.string().trim().max(1000, { error: 'transactions.errors.noteTooLong' }),
     lines: z.array(
       z.object({

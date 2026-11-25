@@ -336,7 +336,27 @@ describe('the budget screen', () => {
     )
     // 200,000 + 1,300,000 of the split + 500,000 - 50,000 - 100,000: the budget row's spent.
     const total = within(screen.getByRole('region', { name: 'Total of these transactions' }))
-    expect(total.getByText('Spent in the category').parentElement).toHaveTextContent('Spent in the category₫1,850,000')
+    expect(total.getByText('Spent in the category, as its budget counts it').parentElement).toHaveTextContent('₫1,850,000')
+  })
+
+  it('opens the transactions behind a budget from anywhere on its row but its controls', async () => {
+    november()
+    const { user, router } = renderApp('/budgets/2026-11')
+
+    const transport = await row('Transport')
+    await user.click(amountOf(transport, 'Transport'))
+    expect(router.state.location.pathname).toBe('/budgets/2026-11')
+    await user.click(within(transport).getByText('Remaining'))
+    expect(router.state.location.pathname).toBe('/transactions')
+    expect(Object.fromEntries(new URLSearchParams(router.state.location.search))).toEqual({ categoryId: 'c-transport', from: '2026-11-01', to: '2026-11-30' })
+  })
+
+  it('keeps a row with no budget where it is when clicked', async () => {
+    november()
+    const { user, router } = renderApp('/budgets/2026-11')
+
+    await user.click(within(await row('Groceries')).getByText('Groceries'))
+    expect(router.state.location.pathname).toBe('/budgets/2026-11')
   })
 
   it('offers no transactions to drill into from a category with no budget of its own', async () => {

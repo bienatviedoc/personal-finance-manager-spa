@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { currencyOf, findAccount, useAccountChoices, type Account } from '@/features/accounts'
 import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
+import { maxPayeeLength } from '@/shared/api/limits'
 import { isStale } from '@/shared/api/versionedSave'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
@@ -48,7 +49,7 @@ const schema = z
     startDate: calendarDate('recurring.errors.startDate'),
     /** Empty for a rule that goes on. */
     endDate: calendarDate('recurring.errors.endDate').or(z.literal('')),
-    payee: z.string().trim().max(200, { error: 'recurring.errors.payeeTooLong' }),
+    payee: z.string().trim().max(maxPayeeLength, { error: 'recurring.errors.payeeTooLong' }),
     note: z.string().trim().max(1000, { error: 'recurring.errors.noteTooLong' }),
   })
   .superRefine((values, context) => {
