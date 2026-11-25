@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
-import type { TFunction } from 'i18next'
+import type { ParseKeys, TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
+import { maxPayeeLength } from '@/shared/api/limits'
 import { LineChart } from '@/shared/charts'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { SelectField } from '@/shared/components/SelectField'
@@ -14,7 +15,7 @@ import { useDebounced } from '@/shared/lib/useDebounced'
 import { cn } from '@/shared/lib/utils'
 import { Money, type Currency } from '@/shared/money'
 import { trendQuery, type PeriodChange, type Trend, type TrendMonth, type TrendType } from '../api/trends'
-import { formatChangePercent } from '../frame/formatShare'
+import { formatChangePercent } from '../frame/formatChangePercent'
 import { NotConverted } from '../frame/NotConverted'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
 
@@ -24,8 +25,8 @@ export const payeeName = 'payee'
 /** The name in the address that says a payee alone is followed by the income received from it. */
 const typeName = 'type'
 
-/** The lines of the chart: the period's, and the period before's, dashed, to compare with. */
-const lines = { total: { key: 'total', color: 'var(--chart-2)' }, previous: { key: 'previous', color: 'var(--chart-1)', dashed: true } }
+/** The series of the chart: the period's, and the period before's, dashed, to compare with. */
+const series = { total: { key: 'total', color: 'var(--chart-2)' }, previous: { key: 'previous', color: 'var(--chart-1)', dashed: true } }
 
 /** The months along the bottom of the chart, short: `Jan 2026`. */
 const shortMonths = (trend: Trend, locale: Language) => trend.months.map((month) => formatMonth(monthOf(month.from), locale, 'short'))
@@ -86,15 +87,31 @@ function PayeeFilter({ payee }: { payee: string }) {
 
   return (
     <div className="max-w-sm">
-      <TextField label={t('reports.trends.payee')} hint={t('reports.trends.payeeHint')} value={typed} maxLength={200} onChange={(event) => setTyped(event.target.value)} />
+      <TextField label={t('reports.trends.payee')} hint={t('reports.trends.payeeHint')} value={typed} maxLength={maxPayeeLength} onChange={(event) => setTyped(event.target.value)} />
     </div>
   )
 }
+
+/** What a payee alone can be followed by, each with its label. */
+const followChoices: { value: TrendType; label: ParseKeys }[] = [
+  { value: 'expense', label: 'reports.trends.spentWith' },
+  { value: 'income', label: 'reports.trends.receivedFrom' },
+]
 
 /** What a payee alone is followed by: what was spent with it, or what was received from it. Kept in the address. */
 function FollowBy({ type }: { type: TrendType }) {
   const { t } = useTranslation()
   const [, setParams] = useSearchParams()
+  const follow = (chosen: string) =>
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (chosen === 'income') next.set(typeName, chosen)
+        else next.delete(typeName)
+        return next
+      },
+      { replace: true },
+    )
 
   return (
     <div className="w-56">
@@ -102,21 +119,8 @@ function FollowBy({ type }: { type: TrendType }) {
         label={t('reports.trends.followBy')}
         hint={t('reports.trends.followByHint')}
         value={type}
-        onChange={(event) =>
-          setParams(
-            (current) => {
-              const next = new URLSearchParams(current)
-              if (event.target.value === 'income') next.set(typeName, 'income')
-              else next.delete(typeName)
-              return next
-            },
-            { replace: true },
-          )
-        }
-        options={[
-          { value: 'expense', label: t('reports.trends.spentWith') },
-          { value: 'income', label: t('reports.trends.receivedFrom') },
-        ]}
+        onChange={(event) => follow(event.target.value)}
+        options={followChoices.map(({ value, label }) => ({ value, label: t(label) }))}
       />
     </div>
   )
@@ -173,8 +177,8 @@ function TrendView({ trend, filters }: { trend: Trend; filters: ReportFilters })
           label={t('reports.trends.chart', { name })}
           points={shortMonths(trend, locale)}
           series={[
-            { ...lines.total, values: trend.months.map((month) => Number(month.total)) },
-            ...(previous ? [{ ...lines.previous, values: previous.months.map((month) => Number(month.total)) }] : []),
+            { ...series.total, values: trend.months.map((month) => Number(month.total)) },
+            ...(previous ? [{ ...series.previous, values: previous.months.map((month) => Number(month.total)) }] : []),
           ]}
           formatValue={compactAmount(locale)}
         />
