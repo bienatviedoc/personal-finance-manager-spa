@@ -3310,6 +3310,85 @@
           }
         }
       }
+    },
+    "/api/v1/reports/income-vs-expenses": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "description": "Am I saving: income, expenses and net in each calendar month of a period, with the savings rate, and the same over the whole period, in the user's base currency. Expenses are spent: refunds lower them. Net is income minus expenses; the savings rate is net as a percentage of income, to one decimal, and none when income is not above zero. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers are neither income nor expenses and never count. With categoryId, only the lines in that category and its subcategories count.",
+        "operationId": "GetIncomeVsExpenses",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "compare",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncomeVsExpensesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4071,6 +4150,87 @@
         "type": "string",
         "format": "binary"
       },
+      "IncomeAndExpensesResponse": {
+        "required": [
+          "income",
+          "expenses",
+          "net",
+          "savingsRate",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "income": {
+            "type": "string"
+          },
+          "expenses": {
+            "type": "string"
+          },
+          "net": {
+            "type": "string"
+          },
+          "savingsRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "IncomeVsExpensesResponse": {
+        "required": [
+          "from",
+          "to",
+          "currency",
+          "total",
+          "months",
+          "previous"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "total": {
+            "$ref": "#/components/schemas/IncomeAndExpensesResponse"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthIncomeAndExpensesResponse"
+            }
+          },
+          "previous": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PreviousIncomeVsExpensesResponse"
+              }
+            ]
+          }
+        }
+      },
       "InstitutionBaseCurrencyTotalResponse": {
         "required": [
           "institutionId",
@@ -4205,6 +4365,59 @@
           null
         ]
       },
+      "MonthIncomeAndExpensesResponse": {
+        "required": [
+          "month",
+          "from",
+          "to",
+          "income",
+          "expenses",
+          "net",
+          "savingsRate",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "format": "date"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "income": {
+            "type": "string"
+          },
+          "expenses": {
+            "type": "string"
+          },
+          "net": {
+            "type": "string"
+          },
+          "savingsRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "NewRecoveryCodesRequest": {
         "required": [
           "password"
@@ -4228,6 +4441,34 @@
           },
           "balance": {
             "type": "string"
+          }
+        }
+      },
+      "PreviousIncomeVsExpensesResponse": {
+        "required": [
+          "from",
+          "to",
+          "total",
+          "months"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "total": {
+            "$ref": "#/components/schemas/IncomeAndExpensesResponse"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthIncomeAndExpensesResponse"
+            }
           }
         }
       },

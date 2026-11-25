@@ -570,6 +570,18 @@
       "amount": "Amount",
       "refund": "Refund",
       "split": "Split transaction"
+    },
+    "income": {
+      "title": "Income vs expenses",
+      "wholePeriod": "Whole period",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net",
+      "savingsRate": "Savings rate",
+      "month": "Month",
+      "chart": "Income and expenses per month, with net",
+      "table": "Income vs expenses",
+      "previousTable": "Income vs expenses, previous period"
     }
   },
   "institutions": {

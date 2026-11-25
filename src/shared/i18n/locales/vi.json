@@ -570,6 +570,18 @@
       "amount": "Số tiền",
       "refund": "Hoàn tiền",
       "split": "Giao dịch chia nhiều danh mục"
+    },
+    "income": {
+      "title": "Thu nhập và chi tiêu",
+      "wholePeriod": "Cả kỳ",
+      "income": "Thu nhập",
+      "expenses": "Chi tiêu",
+      "net": "Chênh lệch",
+      "savingsRate": "Tỷ lệ tiết kiệm",
+      "month": "Tháng",
+      "chart": "Thu nhập và chi tiêu theo tháng, kèm chênh lệch",
+      "table": "Thu nhập và chi tiêu",
+      "previousTable": "Thu nhập và chi tiêu, kỳ trước"
     }
   },
   "institutions": {

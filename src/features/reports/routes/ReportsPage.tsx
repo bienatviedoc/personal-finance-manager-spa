@@ -8,6 +8,7 @@ import type { CategoryKind } from '@/features/categories'
 import { ReportFrame } from '../frame/ReportFrame'
 import type { ReportFilters } from '../frame/useReportFilters'
 import { spendingDrillDown } from '../spending/drillDown'
+import { IncomeVsExpensesReport } from '../income/IncomeVsExpensesReport'
 import { SpendingByCategoryReport } from '../spending/SpendingByCategoryReport'
 
 /** A report: its address under `/reports`, its name, how the frame is set up for it, and the report itself. */
@@ -30,6 +31,12 @@ const reports: Report[] = [
     canCompare: true,
     drillDown: spendingDrillDown,
     render: (filters) => <SpendingByCategoryReport filters={filters} />,
+  },
+  {
+    path: 'income-vs-expenses',
+    title: 'reports.income.title',
+    canCompare: true,
+    render: (filters) => <IncomeVsExpensesReport filters={filters} />,
   },
 ]
 
