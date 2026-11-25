@@ -252,7 +252,10 @@
       "count_other": "{{count}} transactions",
       "income": "Income",
       "expenses": "Expenses",
-      "net": "Net"
+      "net": "Net",
+      "spent": "Spent in the category",
+      "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
+      "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent."
     },
     "type": "Type",
     "types": {
@@ -480,6 +483,8 @@
     "percent": "{{percent}}%",
     "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
     "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
+    "transactions": "See transactions",
+    "transactionsBehind": "Transactions behind {{name}} in {{month}}",
     "copy": {
       "action": "Copy budgets from {{month}}",
       "done_zero": "No budgets copied from {{month}}: every category with a budget there already has one this month or takes none.",
