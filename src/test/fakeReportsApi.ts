@@ -6,6 +6,7 @@ import { apiUrl as url, problem, server, testUser } from './server'
 type SpendingByCategoryResponse = components['schemas']['SpendingByCategoryResponse']
 type SpendingTransactionsResponse = components['schemas']['SpendingTransactionsResponse']
 type IncomeVsExpensesResponse = components['schemas']['IncomeVsExpensesResponse']
+type NetWorthResponse = components['schemas']['NetWorthResponse']
 type TrendResponse = components['schemas']['TrendResponse']
 type TrendMonthResponse = components['schemas']['TrendMonthResponse']
 type Currency = components['schemas']['Currency']
@@ -43,11 +44,26 @@ export type FakeIncome = {
   amount: string | null
 }
 
+/**
+ * An account's balance from a day on, until a later holding of the same account, as net worth counts it: already
+ * in the base currency. An account has no balance before its first holding, as before its opening date.
+ */
+export type FakeHolding = {
+  accountId: string
+  /** The first day the balance holds on. */
+  from: string
+  /** In the base currency, negative while something is owed; null while it is not converted. */
+  balance: string | null
+  /** A credit card or loan: a liability. */
+  holdsAmountOwed?: boolean
+}
+
 type Options = {
   categories?: FakeCategory[]
   expenses?: FakeExpense[]
   income?: FakeIncome[]
   budgets?: FakeBudget[]
+  holdings?: FakeHolding[]
   baseCurrency?: Currency
   /** The user's budget warning threshold, in percent. */
   warningPercent?: number
@@ -57,16 +73,19 @@ type Options = {
 type Asked = Record<string, string>
 
 /**
- * A stand-in for the API's spending by category report, following the same rules as the real API (see the API's
+ * A stand-in for the API's reports (net worth from `holdings`, see the API's NetWorthTests), and its spending by category report, following the same rules as the real API (see the API's
  * SpendingByCategoryTests): spent per category in the report period, each top-level category with its
  * subcategories unless `parentId` breaks one down, ranked by spent then name, a share of the total to one
  * decimal, what is not converted left out and counted, and with `compare` the previous period (as many whole
  * months before whole months, otherwise as many days). A test fake may do arithmetic on amounts; the app never does.
  */
-export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], income = [], budgets = [], baseCurrency = testUser.baseCurrency, warningPercent = 80 }: Options = {}) {
+export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], income = [], budgets = [], holdings = [], baseCurrency = testUser.baseCurrency, warningPercent = 80 }: Options = {}) {
   const state = {
     expenses: [...expenses],
     income: [...income],
+    holdings: [...holdings],
+    /** Every query of the net worth report, as sent. */
+    netWorthAsked: [] as Asked[],
     /** Every query of the report, as sent. */
     reportsAsked: [] as Asked[],
     /** Every query of a category's transactions, as sent. */
@@ -245,6 +264,30 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         notConverted: items.filter((item) => item.spent === null).length,
         items,
       }
+      return HttpResponse.json(response)
+    }),
+    http.get(url('/api/v1/reports/net-worth'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      state.netWorthAsked.push(Object.fromEntries(query))
+      if (state.failWith) return problem(state.failWith)
+      const [from, to, accountId] = [query.get('from'), query.get('to'), query.get('accountId')]
+      if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
+
+      const items = monthsOf(from, to).map(({ to: day }) => {
+        const held = new Map<string, FakeHolding>()
+        for (const holding of state.holdings.toSorted((a, b) => a.from.localeCompare(b.from))) {
+          if (holding.from <= day && (accountId === null || holding.accountId === accountId)) held.set(holding.accountId, holding)
+        }
+        let [assets, liabilities, notConverted] = [0, 0, 0]
+        for (const holding of held.values()) {
+          if (holding.balance === null) notConverted++
+          else if (holding.holdsAmountOwed) liabilities -= Number(holding.balance)
+          else assets += Number(holding.balance)
+        }
+        return { date: day, assets: text(assets), liabilities: text(liabilities), netWorth: text(assets - liabilities), notConverted }
+      })
+
+      const response: NetWorthResponse = { from, to, currency: baseCurrency, items }
       return HttpResponse.json(response)
     }),
     http.get(url('/api/v1/reports/trends'), ({ request }) => {

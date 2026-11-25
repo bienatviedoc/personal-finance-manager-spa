@@ -656,6 +656,16 @@
       "noBudgets": "Chưa đặt ngân sách nào trong các tháng này.",
       "unbudgeted": "Đã chi không có ngân sách",
       "unbudgetedHint": "Đã chi trong tháng mà cả danh mục lẫn danh mục cha đều không có ngân sách."
+    },
+    "netWorth": {
+      "title": "Giá trị tài sản ròng",
+      "on": "Giá trị tài sản ròng ngày {{date}}",
+      "chart": "Giá trị tài sản ròng: tài sản và nợ phải trả vào cuối mỗi tháng",
+      "table": "Giá trị tài sản ròng vào cuối mỗi tháng",
+      "date": "Cuối tháng",
+      "assets": "Tài sản",
+      "liabilities": "Nợ phải trả",
+      "netWorth": "Giá trị tài sản ròng"
     }
   },
   "institutions": {

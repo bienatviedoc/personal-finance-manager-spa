@@ -3682,6 +3682,70 @@
           }
         }
       }
+    },
+    "/api/v1/reports/net-worth": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "description": "What the user is worth over a period: at each month end in it, and on its last day when it ends inside a month, the balances of the assets (every account but credit cards and loans) and the amount owed on the liabilities (credit cards and loans), and the assets minus the liabilities, in the user's base currency. Archived accounts count; an account counts from its opening date. Each balance is converted at the exchange rate of the day it is shown on, or the nearest earlier one; one with no rate on or before that day is left out and counted in notConverted. Not paged: one item per month.",
+        "operationId": "GetNetWorth",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetWorthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4887,6 +4951,67 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "NetWorthPointResponse": {
+        "required": [
+          "date",
+          "assets",
+          "liabilities",
+          "netWorth",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "assets": {
+            "type": "string"
+          },
+          "liabilities": {
+            "type": "string"
+          },
+          "netWorth": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "NetWorthResponse": {
+        "required": [
+          "from",
+          "to",
+          "currency",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetWorthPointResponse"
+            }
           }
         }
       },

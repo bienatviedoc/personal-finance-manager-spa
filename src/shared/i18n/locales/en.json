@@ -656,6 +656,16 @@
       "noBudgets": "No budget was set in these months.",
       "unbudgeted": "Spent with no budget",
       "unbudgetedHint": "Spent in a month when neither the category nor its parent had a budget."
+    },
+    "netWorth": {
+      "title": "Net worth",
+      "on": "Net worth on {{date}}",
+      "chart": "Net worth: assets and liabilities at each month end",
+      "table": "Net worth at each month end",
+      "date": "Month end",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "netWorth": "Net worth"
     }
   },
   "institutions": {
