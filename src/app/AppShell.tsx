@@ -1,8 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { Ellipsis, X } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { matchPath, NavLink, Outlet, useLocation } from 'react-router'
-import { DeletionCancelledNotice, UserMenu } from '@/features/auth'
+import { matchPath, NavLink, useLocation, useOutlet } from 'react-router'
+import { DeletionCancelledNotice, signedInUserQuery, UserMenu } from '@/features/auth'
 import { useProfileLocale, useSaveLocale } from '@/features/settings'
 import { QuickAdd } from '@/features/transactions'
 import { cn, focusRing } from '@/shared/lib/utils'
@@ -32,12 +33,24 @@ export function AppShell() {
         <DeletionCancelledNotice />
         {/* N on any screen opens the drawer that records a transaction. */}
         <QuickAdd>
-          <Outlet />
+          <Screen />
         </QuickAdd>
       </main>
       {!wide && <TabBar />}
     </div>
   )
+}
+
+/**
+ * The screen the address points to, while someone is signed in. Signing out or deleting the user forgets them
+ * a moment before leaving for the sign-in screen, and screens read the signed-in user's settings, so in
+ * between there is no screen. It reads the outlet itself so that the router's last render of the screen
+ * passes through here, before the cache has told the shell the user is gone.
+ */
+function Screen() {
+  const outlet = useOutlet()
+  const { data: user } = useQuery(signedInUserQuery)
+  return user ? outlet : null
 }
 
 function Sidebar() {

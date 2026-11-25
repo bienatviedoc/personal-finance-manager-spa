@@ -614,6 +614,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/budgets/{month}/copy-from/{sourceMonth}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount. */
+        post: operations["CopyBudgets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/spending-by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Where the money went over a period: what the expenses in each category came to, minus refunds, with each one's share of the total, in the user's base currency and ranked, most first. Each expense counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers and income never count, and each line of a split counts in its own category. Without parentId each top-level category stands for itself and its subcategories; with it, each of that category's subcategories stands for itself, and the category for what was spent on it directly. */
+        get: operations["GetSpendingByCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/spending-by-category/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The last step of drilling down spending by category: the expenses with a line on one category itself (not on its subcategories) over a period, newest first, each with what it spent there in the base currency, so they add up to that category's spent in the report. A split shows only its lines on the category; a refund spends a negative amount; one that is not converted spends nothing yet and is counted in notConverted. Not paged: one category's expenses over one period. */
+        get: operations["GetSpendingTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -771,6 +822,10 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        CopiedBudgetsResponse: {
+            /** Format: int32 */
+            copied: number | string;
+        };
         /** @enum {unknown} */
         Currency: "VND" | "USD" | "EUR";
         CurrencyTotalResponse: {
@@ -837,6 +892,15 @@ export interface components {
         NotConvertedAmountResponse: {
             currency: components["schemas"]["Currency"];
             balance: string;
+        };
+        PreviousSpendingResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            total: string;
+            /** Format: int32 */
+            notConverted: number | string;
         };
         ProblemDetails: {
             type?: null | string;
@@ -916,6 +980,16 @@ export interface components {
             password: string;
             locale?: null | string;
         };
+        ReportCategoryResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            parentId: null | string;
+            name: string;
+            icon: string;
+            color: string;
+            isArchived: boolean;
+        };
         RequestPasswordResetRequest: {
             email: string;
         };
@@ -936,6 +1010,58 @@ export interface components {
         };
         SignInResponse: {
             deletionCancelled: boolean;
+        };
+        SpendingByCategoryItemResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            spent: string;
+            /** Format: double */
+            share: null | number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+            drillsInto: components["schemas"]["SpendingDrillDown"];
+            previousSpent: null | string;
+        };
+        SpendingByCategoryResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            parent: null | components["schemas"]["ReportCategoryResponse"];
+            total: string;
+            /** Format: int32 */
+            notConverted: number | string;
+            items: components["schemas"]["SpendingByCategoryItemResponse"][];
+            previous: null | components["schemas"]["PreviousSpendingResponse"];
+        };
+        /** @enum {unknown} */
+        SpendingDrillDown: "subcategories" | "transactions";
+        SpendingTransactionResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            accountId: string;
+            payee: null | string;
+            note: null | string;
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            isRefund: boolean;
+            isSplit: boolean;
+            spent: null | string;
+        };
+        SpendingTransactionsResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            category: components["schemas"]["ReportCategoryResponse"];
+            total: string;
+            /** Format: int32 */
+            notConverted: number | string;
+            items: components["schemas"]["SpendingTransactionResponse"][];
         };
         TransactionLineRequest: {
             /** Format: uuid */
@@ -3579,6 +3705,149 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CopyBudgets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                month: string;
+                sourceMonth: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CopiedBudgetsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSpendingByCategory: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+                parentId?: string;
+                compare?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpendingByCategoryResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetSpendingTransactions: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                categoryId?: string;
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpendingTransactionsResponse"];
+                };
             };
             /** @description Bad Request */
             400: {

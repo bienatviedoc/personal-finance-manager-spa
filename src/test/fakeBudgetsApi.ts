@@ -6,6 +6,7 @@ import { apiUrl as url, problem, refuseWithoutToken, server, testUser } from './
 type BudgetResponse = components['schemas']['BudgetResponse']
 type BudgetMonthResponse = components['schemas']['BudgetMonthResponse']
 type ProfileResponse = components['schemas']['ProfileResponse']
+type CopiedBudgetsResponse = components['schemas']['CopiedBudgetsResponse']
 
 /** A budget as the fake keeps it: what was spent against it is worked out each time it is asked for. */
 export type FakeBudget = { month: string; categoryId: string; amount: string; rowVersion: string }
@@ -27,14 +28,17 @@ type Options = {
  * A stand-in for the API's budget endpoints, keeping state across requests and following the same rules as
  * the real API (see the API's BudgetTests): only an expense category takes a budget, a parent and its
  * subcategory never both have one in a month, spending in a subcategory counts toward a budget on its parent,
- * a change of amount must name the row version in `If-Match` (412 when stale, 428 when missing), and the
- * first budget locks the base currency. A test fake may do arithmetic on amounts; the app never does.
+ * a change of amount must name the row version in `If-Match` (412 when stale, 428 when missing), the
+ * first budget locks the base currency, and copying a month leaves alone every category that takes no new
+ * budget in it (already budgeted, archived, or its parent or a subcategory budgeted). A test fake may do arithmetic on amounts; the app never does.
  */
 export function fakeBudgetsApi({ categories = defaultTestCategories, profile = { profile: { ...testUser } }, budgets = [], spending = {} }: Options = {}) {
   const state = {
     budgets: budgets.map((budget): FakeBudget => ({ ...budget, rowVersion: '1' })),
     /** Every change sent, in the order they arrived. */
     requests: [] as { method: string; month: string; categoryId: string; body?: unknown; ifMatch?: string | null }[],
+    /** Every copy asked for, in the order they arrived. */
+    copies: [] as { month: string; sourceMonth: string }[],
     /** Every month the list was asked for; null when it was asked for without one. */
     monthsRead: [] as (string | null)[],
     /** When set, every change is answered with this status instead of being made. */
@@ -127,6 +131,27 @@ export function fakeBudgetsApi({ categories = defaultTestCategories, profile = {
       state.budgets.push(created)
       profile.profile.baseCurrencyLocked = true
       return HttpResponse.json(view(created), { status: 201, headers: { ETag: '"1"' } })
+    }),
+    http.post(url('/api/v1/budgets/:month/copy-from/:sourceMonth'), ({ request, params }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const month = String(params.month)
+      const sourceMonth = String(params.sourceMonth)
+      state.copies.push({ month, sourceMonth })
+      if (state.failWith) return problem(state.failWith)
+      if (!isMonth(month)) return invalid('month', 'Enter a month as YYYY-MM.')
+      if (!isMonth(sourceMonth) || sourceMonth === month) return invalid('sourceMonth', 'Copy from another month.')
+      let copied = 0
+      for (const source of state.budgets.filter((budget) => budget.month === sourceMonth)) {
+        const category = categories.find((each) => each.id === source.categoryId)
+        if (!category || category.isArchived || find(month, category.id)) continue
+        if (category.parentId && find(month, category.parentId)) continue
+        if (family(category.id).slice(1).some((id) => find(month, id))) continue
+        state.budgets.push({ month, categoryId: category.id, amount: source.amount, rowVersion: '1' })
+        copied++
+      }
+      profile.profile.baseCurrencyLocked = state.budgets.length > 0
+      return HttpResponse.json({ copied } satisfies CopiedBudgetsResponse)
     }),
     http.delete(url('/api/v1/budgets/:month/:categoryId'), ({ request, params }) => {
       const refused = refuseWithoutToken(request)

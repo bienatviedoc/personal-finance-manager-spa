@@ -80,3 +80,20 @@ export function useRemoveBudget(month: BudgetMonth) {
     onSuccess: () => refresh(queryClient),
   })
 }
+
+/**
+ * Copies the budgets of another month (last month's, on the budget screen) into the month in one action. The
+ * API leaves alone every category that takes no new budget in the month (one already budgeted there, an
+ * archived one, one whose parent or subcategory is budgeted there) and answers how many it copied.
+ */
+export function useCopyBudgets(month: BudgetMonth) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (sourceMonth: BudgetMonth): Promise<{ copied: number }> => {
+      const { data, response } = await api.POST('/api/v1/budgets/{month}/copy-from/{sourceMonth}', { params: { path: { month, sourceMonth } } })
+      if (!data) throw new Error(`Copying budgets failed: ${response.status}`)
+      return { copied: Number(data.copied) }
+    },
+    onSuccess: () => refresh(queryClient),
+  })
+}
