@@ -635,7 +635,8 @@
         "onTrack": "Đúng kế hoạch",
         "warning": "Cảnh báo",
         "over": "Vượt ngân sách"
-      }
+      },
+      "chart": "Ngân sách so với đã chi theo danh mục"
     }
   },
   "institutions": {

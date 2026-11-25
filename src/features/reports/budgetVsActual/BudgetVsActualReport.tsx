@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useId } from 'react'
 import type { ParseKeys } from 'i18next'
 import { useTranslation } from 'react-i18next'
+import { BarChart } from '@/shared/charts'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
-import { Money, type Currency } from '@/shared/money'
+import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { budgetVsActualQuery, type BudgetVsActual, type BudgetVsActualState } from '../api/budgetVsActual'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
@@ -28,11 +30,29 @@ export function BudgetVsActualReport({ filters }: { filters: ReportFilters }) {
 
   if (report.isError) return <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>
   if (!report.data) return <ReportLoading />
-  return <BudgetVsActualView report={report.data} />
+  return <BudgetVsActualView report={report.data} filters={filters} />
 }
 
-function BudgetVsActualView({ report }: { report: BudgetVsActual }) {
-  return <BudgetTable report={report} />
+/** The bars: what was budgeted, and what was spent beside it. */
+const series = { budgeted: { key: 'budgeted', color: 'var(--chart-1)' }, spent: { key: 'spent', color: 'var(--chart-2)' } }
+
+function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filters: ReportFilters }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+
+  return filters.view === 'chart' ? (
+    <BarChart
+      label={t('reports.budgetVsActual.chart')}
+      categories={report.items.map((item) => item.category.name)}
+      series={[
+        { ...series.budgeted, name: t('reports.budgetVsActual.budgeted'), values: report.items.map((item) => Number(item.budgeted)) },
+        { ...series.spent, name: t('reports.budgetVsActual.spent'), values: report.items.map((item) => Number(item.spent)) },
+      ]}
+      formatValue={(value) => formatAxisAmount(value, locale)}
+    />
+  ) : (
+    <BudgetTable report={report} />
+  )
 }
 
 /** Each budgeted category's figures, and their totals, for reading out and copying (spec section 7). */

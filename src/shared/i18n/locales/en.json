@@ -635,7 +635,8 @@
         "onTrack": "On track",
         "warning": "Warning",
         "over": "Over budget"
-      }
+      },
+      "chart": "Budgeted against spent per category"
     }
   },
   "institutions": {

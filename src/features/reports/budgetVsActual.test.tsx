@@ -45,4 +45,15 @@ describe('the budget vs actual report', () => {
     ])
     expect(api.budgetVsActualAsked.at(-1)).toEqual({ from: '2026-03-01', to: '2026-03-31' })
   })
+
+  it('draws budgeted and spent as horizontal bars, with the same numbers in the table view', async () => {
+    setUp()
+    const { user } = renderApp(`${report}?${march}`)
+
+    expect(await screen.findByRole('img', { name: 'Budgeted against spent per category' })).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Budget vs actual' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'Table' }))
+    expect(await rowsOf('Budget vs actual')).toHaveLength(3)
+  })
 })
