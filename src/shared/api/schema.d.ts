@@ -706,7 +706,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description One category or one payee over time: what it came to in each month of a period, in the user's base currency, and how each month changed from the one before, as an amount and a percentage. A category with its subcategories adds up spent (its expenses minus refunds) when it is an expense category, and the income received in it when it is an income one; a payee adds up what was spent with it, matched in any case, and with categoryId too only in that category. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers never count. With compare, the period before is worked out the same way, and change says how the total moved from it. */
+        /** @description One category or one payee over time: what it came to in each month of a period, in the user's base currency, and how each month changed from the one before, as an amount and a percentage. A category with its subcategories adds up spent (its expenses minus refunds) when it is an expense category, and the income received in it when it is an income one; a payee adds up what was spent with it, or with type income the income received from it, matched in any case, and with categoryId too only in that category. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers never count. With compare, the period before is worked out the same way, and change says how the total moved from it. */
         get: operations["GetTrend"];
         put?: never;
         post?: never;
@@ -4092,6 +4092,7 @@ export interface operations {
                 accountId?: string;
                 categoryId?: string;
                 payee?: string;
+                type?: string;
                 compare?: boolean;
             };
             header?: never;

@@ -612,7 +612,12 @@
       "total": "Tổng",
       "change": "Thay đổi",
       "changePercent": "Thay đổi %",
-      "previousTotal": "Kỳ trước"
+      "previousTotal": "Kỳ trước",
+      "days": "{{from}} đến {{to}}",
+      "followBy": "Theo dõi",
+      "followByHint": "Theo dõi bên nhận theo khoản nào khi chưa chọn danh mục.",
+      "spentWith": "Đã chi cho họ",
+      "receivedFrom": "Đã nhận từ họ"
     }
   },
   "institutions": {

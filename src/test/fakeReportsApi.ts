@@ -187,25 +187,24 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
       if (categoryId === null && payee === null) return problem(400, { errors: { categoryId: ['Choose a category or a payee.'] } })
       const followed = categoryId === null ? null : category(categoryId)
       if (categoryId !== null && !followed) return problem(404)
-      const isIncome = followed?.kind === 'income'
+      const isIncome = followed ? followed.kind === 'income' : query.get('type') === 'income'
 
       const counts = (expense: FakeExpense) => {
         const of = category(expense.categoryId)
         if (!of) return false
         if (followed && expense.categoryId !== followed.id && of.parentId !== followed.id) return false
-        if (!followed && of.kind === 'income') return false
+        if (!followed && (of.kind === 'income') !== isIncome) return false
         return payee === null || expense.payee?.trim().toLowerCase() === payee
       }
       const sum = (expenses: FakeExpense[]) => ({
         total: expenses.reduce((total, expense) => total + Number(expense.spent ?? 0), 0),
         notConverted: new Set(expenses.filter((expense) => expense.spent === null).map((expense) => expense.id)).size,
       })
-      const trend = (from: string, to: string) => {
+      const trend = (from: string, to: string, buckets = monthsOf(from, to)) => {
         const followedHere = inPeriod(from, to, accountId).filter(counts)
         const months: TrendMonthResponse[] = []
         let before: number | null = null
-        for (let start = from; start <= to; start = firstOfNextMonth(start)) {
-          const end = [lastOfMonth(start), to].toSorted()[0]!
+        for (const { from: start, to: end } of buckets) {
           const month = sum(followedHere.filter((expense) => expense.date >= start && expense.date <= end))
           months.push({ from: start, to: end, total: text(month.total), notConverted: month.notConverted, change: before === null ? null : changeOf(month.total, before) })
           before = month.total
@@ -215,7 +214,7 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
 
       const current = trend(from, to)
       const previousPeriod = query.get('compare') === 'true' ? previous(from, to) : null
-      const before = previousPeriod && trend(previousPeriod.from, previousPeriod.to)
+      const before = previousPeriod && trend(previousPeriod.from, previousPeriod.to, previousMonths(from, to))
       const response: TrendResponse = {
         from,
         to,
@@ -249,6 +248,25 @@ function firstOfNextMonth(date: string) {
 function lastOfMonth(date: string) {
   const [year, month] = date.split('-').map(Number)
   return new Date(Date.UTC(year!, month!, 0)).toISOString().slice(0, 10)
+}
+
+/** The calendar months a period touches, each cut to it, as the API's ReportPeriod.Months has them. */
+function monthsOf(from: string, to: string): { from: string; to: string }[] {
+  const months = []
+  for (let start = from; start <= to; start = firstOfNextMonth(start)) months.push({ from: start, to: [lastOfMonth(start), to].toSorted()[0]! })
+  return months
+}
+
+/**
+ * The months of the period compared with, one at the same place as each of the period's, as the API's
+ * ReportPeriod.PreviousMonths has them: calendar months before whole months, otherwise each moved back by the days.
+ */
+function previousMonths(from: string, to: string): { from: string; to: string }[] {
+  const before = previous(from, to)
+  const wholeMonths = from.endsWith('-01') && to === lastOfMonth(to)
+  if (wholeMonths) return monthsOf(before.from, before.to)
+  const shift = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - (Date.parse(`${from}T00:00:00Z`) - Date.parse(`${before.from}T00:00:00Z`))).toISOString().slice(0, 10)
+  return monthsOf(from, to).map((month) => ({ from: shift(month.from), to: shift(month.to) }))
 }
 
 /** The period a report period is compared with, as the API's ReportPeriod.Previous works it out. */
