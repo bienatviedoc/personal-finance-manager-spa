@@ -665,6 +665,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/net-worth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What the user is worth over a period: at each month end in it, and on its last day when it ends inside a month, the balances of the assets (every account but credit cards and loans) and the amount owed on the liabilities (credit cards and loans), and the assets minus the liabilities, in the user's base currency. Archived accounts count; an account counts from its opening date. Each balance is converted at the exchange rate of the day it is shown on, or the nearest earlier one; one with no rate on or before that day is left out and counted in notConverted. Not paged: one item per month. */
+        get: operations["GetNetWorth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -886,6 +903,23 @@ export interface components {
         };
         /** @enum {unknown} */
         Locale: "en" | "vi" | null;
+        NetWorthPointResponse: {
+            /** Format: date */
+            date: string;
+            assets: string;
+            liabilities: string;
+            netWorth: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        NetWorthResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            items: components["schemas"]["NetWorthPointResponse"][];
+        };
         NewRecoveryCodesRequest: {
             password: string;
         };
@@ -3873,6 +3907,48 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetNetWorth: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetWorthResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

@@ -5,6 +5,7 @@ import { apiUrl as url, problem, server, testUser } from './server'
 
 type SpendingByCategoryResponse = components['schemas']['SpendingByCategoryResponse']
 type SpendingTransactionsResponse = components['schemas']['SpendingTransactionsResponse']
+type NetWorthResponse = components['schemas']['NetWorthResponse']
 type Currency = components['schemas']['Currency']
 
 /**
@@ -26,9 +27,24 @@ export type FakeExpense = {
   isRefund?: boolean
 }
 
+/**
+ * An account's balance from a day on, until a later holding of the same account, as net worth counts it: already
+ * in the base currency. An account has no balance before its first holding, as before its opening date.
+ */
+export type FakeHolding = {
+  accountId: string
+  /** The first day the balance holds on. */
+  from: string
+  /** In the base currency, negative while something is owed; null while it is not converted. */
+  balance: string | null
+  /** A credit card or loan: a liability. */
+  holdsAmountOwed?: boolean
+}
+
 type Options = {
   categories?: FakeCategory[]
   expenses?: FakeExpense[]
+  holdings?: FakeHolding[]
   baseCurrency?: Currency
 }
 
@@ -42,9 +58,12 @@ type Asked = Record<string, string>
  * decimal, what is not converted left out and counted, and with `compare` the previous period (as many whole
  * months before whole months, otherwise as many days). A test fake may do arithmetic on amounts; the app never does.
  */
-export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], baseCurrency = testUser.baseCurrency }: Options = {}) {
+export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], holdings = [], baseCurrency = testUser.baseCurrency }: Options = {}) {
   const state = {
     expenses: [...expenses],
+    holdings: [...holdings],
+    /** Every query of the net worth report, as sent. */
+    netWorthAsked: [] as Asked[],
     /** Every query of the report, as sent. */
     reportsAsked: [] as Asked[],
     /** Every query of a category's transactions, as sent. */
