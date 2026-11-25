@@ -338,6 +338,23 @@
     "save": "Lưu",
     "cancel": "Hủy",
     "deleteExplained": "Xóa chuyển khoản này? Cả hai vế sẽ không còn trong danh sách này, và số dư của hai tài khoản trở lại như trước.",
+    "markAs": "Đánh dấu là chuyển khoản",
+    "markTitle": "Đã chọn để đánh dấu là chuyển khoản",
+    "markExplained": "Chọn một khoản chi ở một tài khoản và khoản thu tương ứng ở tài khoản khác, như hai dòng sao kê nhập vào khi thanh toán thẻ. Sau khi đánh dấu, cả hai không còn được tính là chi tiêu hay thu nhập.",
+    "pick": "Chọn {{name}}",
+    "clearPicked": "Bỏ chọn",
+    "whyNot": {
+      "types": "Chọn một khoản chi và một khoản thu.",
+      "sameAccount": "Chuyển khoản phải giữa hai tài khoản khác nhau.",
+      "date": "Hai giao dịch phải cùng ngày.",
+      "amount": "Giữa hai tài khoản cùng loại tiền, hai giao dịch phải có cùng số tiền."
+    },
+    "unmark": "Bỏ đánh dấu chuyển khoản",
+    "unmarkExplained": "Chuyển chuyển khoản này trở lại thành một khoản chi và một khoản thu. Vế chuyển khoản không có danh mục, nên hãy chọn danh mục cho mỗi vế.",
+    "unmarkConfirm": "Bỏ đánh dấu",
+    "expenseCategory": "Danh mục của khoản chi ({{account}})",
+    "incomeCategory": "Danh mục của khoản thu ({{account}})",
+    "chooseCategory": "Chọn danh mục",
     "errors": {
       "account": "Chọn một tài khoản của bạn chưa bị lưu trữ.",
       "sameAccount": "Chọn một tài khoản khác với tài khoản chuyển tiền đi.",
@@ -351,7 +368,11 @@
       "stale": "Chuyển khoản này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "notLoaded": "Chưa tải được chuyển khoản. Hãy thử lại.",
       "notSaved": "Chưa lưu được chuyển khoản.",
-      "notDeleted": "Chưa xóa được chuyển khoản."
+      "notDeleted": "Chưa xóa được chuyển khoản.",
+      "markRefused": "Không thể đánh dấu hai giao dịch này là chuyển khoản: một trong hai đã được thay đổi ở nơi khác. Hãy kiểm tra và thử lại.",
+      "notMarked": "Chưa đánh dấu được hai giao dịch là chuyển khoản.",
+      "categoryArchived": "Chọn một danh mục của bạn chưa bị lưu trữ.",
+      "notUnmarked": "Chưa bỏ đánh dấu được chuyển khoản."
     }
   },
   "attachments": {

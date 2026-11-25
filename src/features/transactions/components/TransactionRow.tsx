@@ -23,6 +23,8 @@ type RowProps = {
   /** The user's category tree, to name the category of each line of a split. */
   categories: Category[]
   onEdit: (transaction: Transaction) => void
+  /** Whether it is picked to mark as a transfer, and how to pick it or not; none when it cannot be. */
+  pick?: { picked: boolean; onToggle: () => void }
   /** Where the list has the row, and how it measures it. */
   row: VirtualRow
 }
@@ -30,8 +32,9 @@ type RowProps = {
 /**
  * One transaction in the list: what it was for, on which account and when, its amount with its sign, a split's
  * lines, and editing and deleting it. A leg of a transfer is marked as one, and edits and deletes the transfer.
+ * Income or an expense can be picked, to mark it and another as a transfer.
  */
-export function TransactionRow({ transaction, account, category, categories, onEdit, row }: RowProps) {
+export function TransactionRow({ transaction, account, category, categories, onEdit, pick, row }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const removeTransaction = useDeleteTransaction()
@@ -55,6 +58,9 @@ export function TransactionRow({ transaction, account, category, categories, onE
   return (
     <li {...row} className="space-y-2 border-b p-3 last:border-b-0" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
+        {pick && (
+          <input type="checkbox" className="size-4" aria-label={t('transfers.pick', { name: title })} checked={pick.picked} onChange={pick.onToggle} />
+        )}
         {category && !split && <CategoryBadge icon={category.icon} color={category.color} />}
         {leg && (
           <span aria-hidden data-testid="transfer-mark" className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
