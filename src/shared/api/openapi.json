@@ -2042,7 +2042,7 @@
         "tags": [
           "Transfers"
         ],
-        "description": "Moves money between two of the user's accounts. It records two linked transactions, a transferOut leg on the source account and a transferIn leg on the destination, and both balances follow at once; a transfer is neither income nor spending. Between accounts in different currencies send both amounts: no exchange rate is looked up. Send an Idempotency-Key the client made up for this transfer: a retry with the same key answers the transfer the first request recorded and records nothing, and anything else sent with a key already used answers 422.",
+        "description": "Moves money between two of the user's accounts. It records two linked transactions, a transferOut leg on the source account and a transferIn leg on the destination, and both balances follow at once; a transfer is neither income nor spending. Between accounts in different currencies send both amounts: no exchange rate is looked up. Send an Idempotency-Key the client made up for this transfer: a retry with the same key answers the transfer the first request recorded and records nothing, and anything else sent with a key already used answers 422. A retry after the transfer was unmarked answers 409 with the problem type urn:pfm:problem:transfer-unmarked and records nothing: a new transfer needs a new key.",
         "operationId": "CreateTransfer",
         "parameters": [
           {
@@ -2086,6 +2086,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {

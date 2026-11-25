@@ -445,7 +445,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Moves money between two of the user's accounts. It records two linked transactions, a transferOut leg on the source account and a transferIn leg on the destination, and both balances follow at once; a transfer is neither income nor spending. Between accounts in different currencies send both amounts: no exchange rate is looked up. Send an Idempotency-Key the client made up for this transfer: a retry with the same key answers the transfer the first request recorded and records nothing, and anything else sent with a key already used answers 422. */
+        /** @description Moves money between two of the user's accounts. It records two linked transactions, a transferOut leg on the source account and a transferIn leg on the destination, and both balances follow at once; a transfer is neither income nor spending. Between accounts in different currencies send both amounts: no exchange rate is looked up. Send an Idempotency-Key the client made up for this transfer: a retry with the same key answers the transfer the first request recorded and records nothing, and anything else sent with a key already used answers 422. A retry after the transfer was unmarked answers 409 with the problem type urn:pfm:problem:transfer-unmarked and records nothing: a new transfer needs a new key. */
         post: operations["CreateTransfer"];
         delete?: never;
         options?: never;
@@ -3081,6 +3081,15 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
