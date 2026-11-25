@@ -10,6 +10,13 @@ export type ChartSeries = {
   values: number[]
 }
 
+/** A line over the bars. Its values may stop short of the points, or be null, where it has none. */
+export type ChartLine = Omit<ChartSeries, 'values'> & {
+  values: (number | null)[]
+  /** Drawn dashed: a line to compare with, not the one the chart is about. */
+  dashed?: boolean
+}
+
 type Props = {
   /** What the chart shows, read out in place of the drawing. The numbers are in the table view. */
   label: string
@@ -17,8 +24,8 @@ type Props = {
   points: string[]
   /** Drawn side by side as bars at each point. */
   bars: ChartSeries[]
-  /** Drawn as a line over the bars. */
-  line: ChartSeries
+  /** Each drawn as a line over the bars. */
+  lines: ChartLine[]
   /** Writes a value in the tooltip, in full. */
   formatValue: (value: number) => string
   /** Writes a value on the side axis, short (`formatAxisAmount`). */
@@ -31,10 +38,11 @@ type Props = {
  * Grouped bars with a line over them (spec section 12, Charts): the one place the app draws one, over the charting
  * library, so the library can be swapped without touching a feature.
  */
-export function BarsWithLineChart({ label, points, bars, line, formatValue, formatAxis, height = 300 }: Props) {
+export function BarsWithLineChart({ label, points, bars, lines, formatValue, formatAxis, height = 300 }: Props) {
   const data = points.map((point, index) => ({
     point,
-    ...Object.fromEntries([...bars, line].map((series) => [series.key, series.values[index] ?? 0])),
+    ...Object.fromEntries(bars.map((series) => [series.key, series.values[index] ?? 0])),
+    ...Object.fromEntries(lines.map((series) => [series.key, series.values[index] ?? null])),
   }))
 
   return (
@@ -49,7 +57,18 @@ export function BarsWithLineChart({ label, points, bars, line, formatValue, form
           {bars.map((series) => (
             <Bar key={series.key} dataKey={series.key} name={series.name} fill={series.color} isAnimationActive={false} />
           ))}
-          <Line dataKey={line.key} name={line.name} stroke={line.color} strokeWidth={2} isAnimationActive={false} />
+          {lines.map((series) => (
+            <Line
+              key={series.key}
+              dataKey={series.key}
+              name={series.name}
+              stroke={series.color}
+              strokeWidth={2}
+              strokeDasharray={series.dashed ? '6 4' : undefined}
+              isAnimationActive={false}
+              connectNulls={false}
+            />
+          ))}
         </ComposedChart>
       </ResponsiveContainer>
     </figure>

@@ -19,6 +19,7 @@ const series = {
   income: { key: 'income', color: 'var(--color-success)' },
   expenses: { key: 'expenses', color: 'var(--color-destructive)' },
   net: { key: 'net', color: 'var(--color-foreground)' },
+  previousNet: { key: 'previousNet', color: 'var(--color-muted-foreground)', dashed: true },
 }
 
 /**
@@ -45,7 +46,7 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
       <NotConverted count={Number(total.notConverted)} />
 
       {filters.view === 'chart' ? (
-        <MonthsChart months={months} currency={currency} />
+        <MonthsChart months={months} previousMonths={previous?.months} currency={currency} />
       ) : (
         <>
           <MonthsTable caption={t('reports.income.table')} months={months} total={total} currency={currency} />
@@ -90,8 +91,11 @@ function SavingsRate({ rate }: { rate: number | string | null }) {
   return rate === null ? <>–</> : <Share share={rate} />
 }
 
-/** The months as grouped bars of income and expenses, with net as a line over them. */
-function MonthsChart({ months, currency }: { months: MonthIncomeAndExpenses[]; currency: Currency }) {
+/**
+ * The months as grouped bars of income and expenses, with net as a line over them; when compared, the period
+ * before's net as a dashed line, its months set against these by place: its first month at the first, and so on.
+ */
+function MonthsChart({ months, previousMonths, currency }: { months: MonthIncomeAndExpenses[]; previousMonths?: MonthIncomeAndExpenses[]; currency: Currency }) {
   const { t } = useTranslation()
   const locale = useLocale()
 
@@ -103,7 +107,12 @@ function MonthsChart({ months, currency }: { months: MonthIncomeAndExpenses[]; c
         { ...series.income, name: t('reports.income.income'), values: months.map((month) => Number(month.income)) },
         { ...series.expenses, name: t('reports.income.expenses'), values: months.map((month) => Number(month.expenses)) },
       ]}
-      line={{ ...series.net, name: t('reports.income.net'), values: months.map((month) => Number(month.net)) }}
+      lines={[
+        { ...series.net, name: t('reports.income.net'), values: months.map((month) => Number(month.net)) },
+        ...(previousMonths
+          ? [{ ...series.previousNet, name: t('reports.income.previousNet'), values: months.map((_, index) => (previousMonths[index] ? Number(previousMonths[index].net) : null)) }]
+          : []),
+      ]}
       formatValue={(value) => formatMoney(String(value), currency, locale)}
       formatAxis={(value) => formatAxisAmount(value, locale)}
     />
