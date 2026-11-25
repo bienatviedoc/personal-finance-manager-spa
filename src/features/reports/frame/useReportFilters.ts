@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { useUserSettings } from '@/features/settings'
 import { calendarDatePattern, todayIn, type CalendarDate } from '@/shared/dates'
@@ -42,38 +42,42 @@ export function useReportFilters(drillDown: readonly string[] = []) {
   const { timeZone } = useUserSettings()
   const today = todayIn(timeZone)
   const filters = useMemo(() => read(params, today), [params, today])
+  // What the address was last set to. The router's own `current` is the address as of the last render, so a
+  // second change made before the screen renders again (picking a category, then ticking compare) would
+  // otherwise undo the first.
+  const latest = useRef(params)
+  useLayoutEffect(() => {
+    latest.current = params
+  }, [params])
 
   const change = useCallback(
     (changes: ReportFilterChanges) => {
-      setParams(
-        (current) => {
-          const next = new URLSearchParams(current)
-          const now = read(current, today)
-          const set = (name: string, value: string | undefined) => (value ? next.set(name, value) : next.delete(name))
+      const current = latest.current
+      const next = new URLSearchParams(current)
+      const now = read(current, today)
+      const set = (name: string, value: string | undefined) => (value ? next.set(name, value) : next.delete(name))
 
-          if ('period' in changes) {
-            set('period', changes.period === defaultPeriod ? undefined : changes.period)
-            // Choosing dates starts from the ones the report shows; a preset needs none.
-            set('from', changes.period === 'custom' ? now.from : undefined)
-            set('to', changes.period === 'custom' ? now.to : undefined)
-          }
-          if (changes.from !== undefined || changes.to !== undefined) {
-            set('period', 'custom')
-            set('from', changes.from ?? now.from)
-            set('to', changes.to ?? now.to)
-          }
-          if ('accountId' in changes) set('accountId', changes.accountId)
-          if ('categoryId' in changes && changes.categoryId !== now.categoryId) {
-            set('categoryId', changes.categoryId)
-            for (const name of drillDown) next.delete(name)
-          }
-          if ('compare' in changes) set('compare', changes.compare ? 'true' : undefined)
-          if ('view' in changes) set('view', changes.view === 'table' ? 'table' : undefined)
-          return next
-        },
-        // A report is one screen, however many filters it took to get to it: Back leaves it.
-        { replace: true },
-      )
+      if ('period' in changes) {
+        set('period', changes.period === defaultPeriod ? undefined : changes.period)
+        // Choosing dates starts from the ones the report shows; a preset needs none.
+        set('from', changes.period === 'custom' ? now.from : undefined)
+        set('to', changes.period === 'custom' ? now.to : undefined)
+      }
+      if (changes.from !== undefined || changes.to !== undefined) {
+        set('period', 'custom')
+        set('from', changes.from ?? now.from)
+        set('to', changes.to ?? now.to)
+      }
+      if ('accountId' in changes) set('accountId', changes.accountId)
+      if ('categoryId' in changes && changes.categoryId !== now.categoryId) {
+        set('categoryId', changes.categoryId)
+        for (const name of drillDown) next.delete(name)
+      }
+      if ('compare' in changes) set('compare', changes.compare ? 'true' : undefined)
+      if ('view' in changes) set('view', changes.view === 'table' ? 'table' : undefined)
+      latest.current = next
+      // A report is one screen, however many filters it took to get to it: Back leaves it.
+      setParams(next, { replace: true })
     },
     [setParams, today, drillDown],
   )
