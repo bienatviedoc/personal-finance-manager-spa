@@ -147,7 +147,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   out again on the day the view is opened (`periodOf`, in whole calendar months), so a bookmark of "this month"
   always shows the month it is. A report draws what the filters ask for and keeps its own state in the address
   beside them (how far spending by category is drilled down: `parentId`, `transactionsOf`, where Back goes up a
-  step; the payee trends follows: `payee`). A new report is an entry in the list in `ReportsPage`. Every figure, share and the period compared with
+  step; the payee trends follows: `payee`, and `type` when it is followed by what was received from it). A new report is an entry in the list in `ReportsPage`. Every figure, share and the period compared with
   are the API's; the screen adds nothing up. What is not converted is flagged next to the figure it is left out of
   (`NotConverted`). A change to a transaction loads the reports again (`refreshReports`).
 - **Charts are drawn through wrappers** in `src/shared/charts` (`DonutChart`, `LineChart`), over
