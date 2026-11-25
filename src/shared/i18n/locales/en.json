@@ -619,6 +619,23 @@
       "followByHint": "What a payee is followed by when no category is chosen.",
       "spentWith": "Spent with them",
       "receivedFrom": "Received from them"
+    },
+    "budgetVsActual": {
+      "title": "Budget vs actual",
+      "table": "Budget vs actual",
+      "category": "Category",
+      "budgeted": "Budgeted",
+      "spent": "Spent",
+      "remaining": "Remaining",
+      "percentSpent": "Spent %",
+      "percent": "{{percent}}%",
+      "state": "State",
+      "total": "Total",
+      "states": {
+        "onTrack": "On track",
+        "warning": "Warning",
+        "over": "Over budget"
+      }
     }
   },
   "institutions": {

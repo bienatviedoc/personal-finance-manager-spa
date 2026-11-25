@@ -619,6 +619,23 @@
       "followByHint": "Theo dõi bên nhận theo khoản nào khi chưa chọn danh mục.",
       "spentWith": "Đã chi cho họ",
       "receivedFrom": "Đã nhận từ họ"
+    },
+    "budgetVsActual": {
+      "title": "Ngân sách so với thực tế",
+      "table": "Ngân sách so với thực tế",
+      "category": "Danh mục",
+      "budgeted": "Ngân sách",
+      "spent": "Đã chi",
+      "remaining": "Còn lại",
+      "percentSpent": "% đã chi",
+      "percent": "{{percent}}%",
+      "state": "Trạng thái",
+      "total": "Tổng",
+      "states": {
+        "onTrack": "Đúng kế hoạch",
+        "warning": "Cảnh báo",
+        "over": "Vượt ngân sách"
+      }
     }
   },
   "institutions": {
