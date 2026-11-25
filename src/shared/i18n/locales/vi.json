@@ -510,6 +510,7 @@
   "reports": {
     "choose": "Chọn báo cáo",
     "notFound": "Không có báo cáo này.",
+    "loading": "Đang tải báo cáo…",
     "filters": {
       "title": "Bộ lọc báo cáo",
       "period": "Khoảng thời gian",
@@ -519,7 +520,9 @@
       "allAccounts": "Tất cả tài khoản",
       "category": "Danh mục",
       "allCategories": "Tất cả danh mục",
-      "compare": "So sánh với kỳ trước"
+      "compare": "So sánh với kỳ trước",
+      "fromAfterTo": "Ngày bắt đầu phải trước hoặc trùng ngày kết thúc.",
+      "toBeforeFrom": "Ngày kết thúc phải sau hoặc trùng ngày bắt đầu."
     },
     "periods": {
       "thisMonth": "Tháng này",
@@ -548,6 +551,7 @@
       "title": "Chi tiêu theo danh mục",
       "total": "Tổng chi",
       "empty": "Không có khoản chi nào trong kỳ này.",
+      "nothingToDraw": "Không có gì để vẽ: ở mọi danh mục, số tiền hoàn lại nhiều hơn số đã chi.",
       "allCategories": "Tất cả danh mục",
       "drillDown": "Xem chi tiết",
       "directly": "{{name}} (không thuộc danh mục con)",
@@ -565,7 +569,7 @@
       "account": "Tài khoản",
       "amount": "Số tiền",
       "refund": "Hoàn tiền",
-      "split": "Chia nhiều danh mục"
+      "split": "Giao dịch chia nhiều danh mục"
     }
   },
   "institutions": {

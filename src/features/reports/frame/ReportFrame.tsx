@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { accountsQuery } from '@/features/accounts'
 import { categoriesQuery, useCategoryChoices, type CategoryKind } from '@/features/categories'
@@ -17,6 +17,8 @@ type Props = {
   categoryKind?: CategoryKind
   /** Whether the report can be compared with the period before (spec section 7: RPT-2, RPT-3 and RPT-7). */
   canCompare?: boolean
+  /** The names in the address the report keeps how far it is drilled down in, started again by another category filter. */
+  drillDown?: readonly string[]
   /** The report itself, under the filters it is shown with. */
   children: (filters: ReportFilters) => ReactNode
 }
@@ -26,17 +28,18 @@ type Props = {
  * preset or dates the user chooses, the account and category filters, comparing with the period before, and
  * a choice of chart or table, all kept in the address. The report inside draws what the filters ask for.
  */
-export function ReportFrame({ title, categoryKind, canCompare = false, children }: Props) {
+export function ReportFrame({ title, categoryKind, canCompare = false, drillDown, children }: Props) {
   const { t } = useTranslation()
-  const { filters, change } = useReportFilters()
+  const titleId = useId()
+  const { filters, change } = useReportFilters(drillDown)
   // Archived ones too: what happened on them is still in the reports.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
   const categoryChoices = useCategoryChoices((categories.data ?? []).filter((category) => !categoryKind || category.kind === categoryKind))
 
   return (
-    <section aria-labelledby="report-title" className="space-y-6">
-      <h2 id="report-title" className="text-xl font-semibold">
+    <section aria-labelledby={titleId} className="space-y-6">
+      <h2 id={titleId} className="text-xl font-semibold">
         {title}
       </h2>
 
@@ -47,8 +50,14 @@ export function ReportFrame({ title, categoryKind, canCompare = false, children 
           onChange={(event) => change({ period: event.target.value as PeriodChoice })}
           options={periodChoices.map((period) => ({ value: period, label: t(`reports.periods.${period}`) }))}
         />
-        <DateFilter label={t('reports.filters.from')} date={filters.from} max={filters.to} onChange={(from) => change({ from })} />
-        <DateFilter label={t('reports.filters.to')} date={filters.to} min={filters.from} onChange={(to) => change({ to })} />
+        <DateFilter
+          label={t('reports.filters.from')}
+          date={filters.from}
+          max={filters.to}
+          outOfRange={t('reports.filters.fromAfterTo')}
+          onChange={(from) => change({ from })}
+        />
+        <DateFilter label={t('reports.filters.to')} date={filters.to} min={filters.from} outOfRange={t('reports.filters.toBeforeFrom')} onChange={(to) => change({ to })} />
         <SelectField
           label={t('reports.filters.account')}
           value={filters.accountId ?? ''}
@@ -75,13 +84,22 @@ export function ReportFrame({ title, categoryKind, canCompare = false, children 
   )
 }
 
-type DateFilterProps = { label: string; date: CalendarDate; min?: CalendarDate; max?: CalendarDate; onChange: (date: CalendarDate) => void }
+type DateFilterProps = {
+  label: string
+  date: CalendarDate
+  min?: CalendarDate
+  max?: CalendarDate
+  /** Already translated: said when a whole date is typed on the wrong side of the other end. */
+  outOfRange: string
+  onChange: (date: CalendarDate) => void
+}
 
 /**
  * One end of the period. What is typed shows at once and becomes the period once it is a whole date, on the right
- * side of the other end; it follows the period when that changes anywhere else (a preset chosen, another address).
+ * side of the other end, and is said to be wrong when it is on the other side; it follows the period when that
+ * changes anywhere else (a preset chosen, another address).
  */
-function DateFilter({ label, date, min, max, onChange }: DateFilterProps) {
+function DateFilter({ label, date, min, max, outOfRange, onChange }: DateFilterProps) {
   const [typed, setTyped] = useState(date)
   const [followed, setFollowed] = useState(date)
   if (followed !== date) {
@@ -89,11 +107,15 @@ function DateFilter({ label, date, min, max, onChange }: DateFilterProps) {
     setTyped(date)
   }
 
+  const whole = calendarDatePattern.test(typed)
+  const inRange = (!min || typed >= min) && (!max || typed <= max)
+
   return (
     <TextField
       type="date"
       label={label}
       value={typed}
+      error={whole && !inRange ? outOfRange : undefined}
       min={min}
       max={max}
       required

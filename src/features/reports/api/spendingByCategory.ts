@@ -1,23 +1,14 @@
-import { queryOptions, type QueryClient } from '@tanstack/react-query'
+import { queryOptions } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
 import type { ReportQuery } from '../frame/useReportFilters'
+import { reportsKey } from './reports'
 
 export type SpendingByCategory = components['schemas']['SpendingByCategoryResponse']
 export type CategorySpending = components['schemas']['SpendingByCategoryItemResponse']
 export type SpendingTransactions = components['schemas']['SpendingTransactionsResponse']
 export type SpendingTransaction = components['schemas']['SpendingTransactionResponse']
 export type ReportCategory = components['schemas']['ReportCategoryResponse']
-
-const reportsKey = ['reports']
-
-/**
- * Loads every report again, for a change made elsewhere that moves what they show: recording, editing or
- * deleting a transaction or a transfer.
- */
-export function refreshReports(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({ queryKey: reportsKey })
-}
 
 /**
  * Where the money went over the report period (spec RPT-2): each category's spent and share of the total, ranked,

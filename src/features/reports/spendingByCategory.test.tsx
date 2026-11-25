@@ -129,6 +129,19 @@ describe('the spending by category report', () => {
     expect(await rowsOf()).toHaveLength(2)
   })
 
+  it('says so when a date chosen is on the wrong side of the other end of the period, and keeps the period it had', async () => {
+    const api = setUp()
+    const { user } = renderApp(`${report}?period=custom&from=2026-03-01&to=2026-03-31&view=table`)
+    const filters = await screen.findByRole('search', { name: 'Report filters' })
+    await rowsOf()
+
+    await user.clear(within(filters).getByLabelText('To'))
+    await user.type(within(filters).getByLabelText('To'), '2026-02-01')
+
+    expect(within(filters).getByLabelText('To')).toHaveAccessibleDescription('End the period on or after the day it starts.')
+    expect(api.reportsAsked.at(-1)).toEqual({ from: '2026-03-01', to: '2026-03-31' })
+  })
+
   it('opens a bookmarked view as it was, and leaves out what the address holds that is not a filter', async () => {
     const api = setUp()
     renderApp(`${report}?period=lastYear&accountId=a-card&compare=true&view=table`)
@@ -172,7 +185,8 @@ describe('drilling down', () => {
     await user.click(within(screen.getByRole('navigation', { name: 'Drill-down' })).getByRole('button', { name: 'Food & drink' }))
     expect(await rowsOf()).toHaveLength(3)
     await user.click(within(screen.getByRole('navigation', { name: 'Drill-down' })).getByRole('button', { name: 'All categories' }))
-    expect(await rowsOf()).toHaveLength(2)
+    // The table of the level above stays until the top level has loaded.
+    await waitFor(async () => expect(await rowsOf()).toHaveLength(2))
   })
 
   it('goes straight to the transactions of a category whose subcategories spent nothing, and Back goes up a step', async () => {
@@ -184,6 +198,20 @@ describe('drilling down', () => {
     expect(await screen.findByRole('table', { name: 'Transactions in Transport' })).toBeInTheDocument()
     await router.navigate(-1)
     expect(await screen.findByRole('list', { name: 'Categories' })).toBeInTheDocument()
+  })
+
+  it('starts the drill-down again when another category is chosen to filter by', async () => {
+    setUp()
+    const { user, router } = renderApp(`${report}?period=custom&from=2026-03-01&to=2026-03-31&view=table&parentId=c-food&transactionsOf=c-groceries`)
+    const filters = await screen.findByRole('search', { name: 'Report filters' })
+    await screen.findByRole('table', { name: 'Transactions in Groceries' })
+    await within(filters).findByRole('option', { name: 'Transport' })
+
+    await user.selectOptions(within(filters).getByRole('combobox', { name: 'Category' }), 'c-transport')
+
+    expect(await rowsOf()).toEqual([['Transport', '₫200,000', '100%']])
+    const search = new URLSearchParams(router.state.location.search)
+    expect([search.get('parentId'), search.get('transactionsOf')]).toEqual([null, null])
   })
 
   it('shows what each part of a split and each refund spent in the category, adding up to its total', async () => {
@@ -225,6 +253,28 @@ describe('comparing and what is left out', () => {
 
     expect(await rowsOf()).toEqual([['Food & drink', '₫500,0001 not converted', '100%']])
     expect(screen.getByText('1 amount is not converted into your base currency yet and is left out.')).toHaveAttribute('role', 'note')
+  })
+
+  it('flags what is not converted in the legend of the chart and in the period compared with', async () => {
+    setUp([
+      { id: 't-market', date: '2026-03-02', categoryId: 'c-groceries', spent: '500000' },
+      { id: 't-abroad', date: '2026-03-03', categoryId: 'c-groceries', spent: null, amount: '40.00', currency: 'USD' },
+      { id: 't-before', date: '2026-02-03', categoryId: 'c-transport', spent: null, amount: '10.00', currency: 'USD' },
+    ])
+    renderApp(`${report}?period=custom&from=2026-03-01&to=2026-03-31&compare=true`)
+
+    const legend = await screen.findByRole('list', { name: 'Categories' })
+    expect(within(legend).getByRole('button', { name: /Food & drink/ })).toHaveTextContent('1 not converted')
+    expect(screen.getByText('Previous period, Feb 1, 2026 to Feb 28, 2026').parentElement).toHaveTextContent('1 not converted')
+  })
+
+  it('says why there is no chart when more came back than was spent', async () => {
+    setUp([{ id: 't-back', date: '2026-03-05', categoryId: 'c-groceries', spent: '-30000', amount: '30000', isRefund: true }])
+    renderApp(`${report}?period=custom&from=2026-03-01&to=2026-03-31`)
+
+    expect(await screen.findByText('Nothing to draw: more came back than was spent in every category.')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('list', { name: 'Categories' })).getByRole('button')).toHaveTextContent('-₫30,000')
   })
 
   it('says when nothing was spent, and when the report cannot be loaded', async () => {

@@ -24,15 +24,7 @@ export type ReportFilters = ReportPeriod & {
 export type ReportQuery = Pick<ReportFilters, 'from' | 'to' | 'accountId' | 'categoryId'> & { compare?: true }
 
 /** A filter changed; undefined takes it out of the address. */
-export type ReportFilterChanges = Partial<{
-  period: PeriodChoice
-  from: CalendarDate
-  to: CalendarDate
-  accountId: string
-  categoryId: string
-  compare: boolean
-  view: ReportView
-}>
+export type ReportFilterChanges = Partial<ReportFilters>
 
 const defaultPeriod = 'thisMonth'
 
@@ -41,9 +33,11 @@ const defaultPeriod = 'thisMonth'
  * be bookmarked and opened again. A preset is kept by name and worked out again on the day it is opened, so a
  * bookmark of this month always shows the month it is; dates the user chose are kept as they are. What the
  * address holds that is not a filter (a hand-edited date, a period that does not exist) is left out, as if it
- * were not there. Anything else in the address, such as how far a report is drilled down, is left as it is.
+ * were not there. Anything else in the address is left as it is, except how far the report is drilled down
+ * (`drillDown`, the names it keeps that in): another category filter starts that again, since what was drilled
+ * into may no longer be in the report.
  */
-export function useReportFilters() {
+export function useReportFilters(drillDown: readonly string[] = []) {
   const [params, setParams] = useSearchParams()
   const { timeZone } = useUserSettings()
   const today = todayIn(timeZone)
@@ -69,7 +63,10 @@ export function useReportFilters() {
             set('to', changes.to ?? now.to)
           }
           if ('accountId' in changes) set('accountId', changes.accountId)
-          if ('categoryId' in changes) set('categoryId', changes.categoryId)
+          if ('categoryId' in changes && changes.categoryId !== now.categoryId) {
+            set('categoryId', changes.categoryId)
+            for (const name of drillDown) next.delete(name)
+          }
           if ('compare' in changes) set('compare', changes.compare ? 'true' : undefined)
           if ('view' in changes) set('view', changes.view === 'table' ? 'table' : undefined)
           return next
@@ -78,7 +75,7 @@ export function useReportFilters() {
         { replace: true },
       )
     },
-    [setParams, today],
+    [setParams, today, drillDown],
   )
 
   return { filters, change }

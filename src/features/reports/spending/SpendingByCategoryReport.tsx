@@ -10,14 +10,13 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
-import { Money, type Currency } from '@/shared/money'
+import { Money } from '@/shared/money'
 import { spendingByCategoryQuery, spendingTransactionsQuery, type CategorySpending, type ReportCategory, type SpendingByCategory } from '../api/spendingByCategory'
 import { NotConverted } from '../frame/NotConverted'
 import { Share } from '../frame/Share'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
+import { drillNames, type DrillStep } from './drillDown'
 
-/** How far the report is drilled down, kept in the address next to the filters, so Back goes up a step. */
-const drillNames = { parentId: 'parentId', transactionsOf: 'transactionsOf' } as const
 
 /**
  * Where the money went (spec RPT-2): the expense total and each category's spent and share, as a donut or a
@@ -32,7 +31,7 @@ export function SpendingByCategoryReport({ filters }: { filters: ReportFilters }
   const query = reportQuery(filters)
   const report = useQuery(spendingByCategoryQuery(query, parentId))
 
-  const drill = (to: { parentId?: string; transactionsOf?: string }) =>
+  const drill = (to: DrillStep) =>
     setParams((current) => {
       const next = new URLSearchParams(current)
       for (const [step, name] of Object.entries(drillNames)) {
@@ -53,7 +52,7 @@ export function SpendingByCategoryReport({ filters }: { filters: ReportFilters }
       ) : (
         <>
           {report.isError && <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>}
-          {report.isPending && <p aria-busy className="text-muted-foreground">…</p>}
+          {report.isPending && <Loading />}
           {report.data && <Breakdown report={report.data} filters={filters} onChoose={choose} />}
         </>
       )}
@@ -64,7 +63,7 @@ export function SpendingByCategoryReport({ filters }: { filters: ReportFilters }
 type BreadcrumbProps = {
   parent: ReportCategory | undefined
   transactionsOf: string | undefined
-  onDrill: (to: { parentId?: string; transactionsOf?: string }) => void
+  onDrill: (to: DrillStep) => void
 }
 
 /** Where in the drill-down the report is, each step above the current one a way back up. */
@@ -103,6 +102,8 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
   const labelOf = (item: CategorySpending) =>
     report.parent && item.category.id === report.parent.id ? t('reports.spending.directly', { name: item.category.name }) : item.category.name
   const colors = distinctColors(report.items.map((item) => item.category.color))
+  const colorOf = (index: number) => colors[index] ?? report.items[index]!.category.color
+  const slices = report.items.map((item, index) => ({ key: item.category.id, value: Number(item.spent), color: colorOf(index) }))
 
   return (
     <>
@@ -120,6 +121,7 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
             </dt>
             <dd className="text-lg font-medium tabular-nums">
               <Money amount={report.previous.total} currency={report.currency} />
+              <NotConverted count={Number(report.previous.notConverted)} short />
             </dd>
           </div>
         )}
@@ -132,11 +134,15 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
         <p className="text-muted-foreground">{t('reports.spending.empty')}</p>
       ) : filters.view === 'chart' ? (
         <div className="grid items-start gap-6 md:grid-cols-[auto_1fr]">
-          <DonutChart
-            label={t('reports.spending.chart', { name: report.parent?.name ?? t('reports.spending.allCategories') })}
-            slices={report.items.map((item, index) => ({ key: item.category.id, value: Number(item.spent), color: colors[index] ?? item.category.color }))}
-            onSelect={(key) => onChoose(report.items.find((item) => item.category.id === key)!)}
-          />
+          {slices.some((slice) => slice.value > 0) ? (
+            <DonutChart
+              label={t('reports.spending.chart', { name: report.parent?.name ?? t('reports.spending.allCategories') })}
+              slices={slices}
+              onSelect={(key) => onChoose(report.items.find((item) => item.category.id === key)!)}
+            />
+          ) : (
+            <p className="max-w-60 text-muted-foreground">{t('reports.spending.nothingToDraw')}</p>
+          )}
           <ul aria-label={t('reports.spending.legend')} className="divide-y rounded-lg border">
             {report.items.map((item, index) => (
               <li key={item.category.id}>
@@ -145,9 +151,12 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
                   className={cn('flex w-full flex-wrap items-center gap-x-3 gap-y-1 p-3 text-left hover:bg-muted', focusRing)}
                   onClick={() => onChoose(item)}
                 >
-                  <span aria-hidden className="size-3 shrink-0 rounded-full" style={{ backgroundColor: colors[index] ?? item.category.color }} />
+                  <span aria-hidden className="size-3 shrink-0 rounded-full" style={{ backgroundColor: colorOf(index) }} />
                   <span className="min-w-24 flex-1 break-words">{labelOf(item)}</span>
-                  <Money className="tabular-nums" amount={item.spent} currency={report.currency} />
+                  <span className="text-right">
+                    <Money className="tabular-nums" amount={item.spent} currency={report.currency} />
+                    <NotConverted count={Number(item.notConverted)} short />
+                  </span>
                   <span className="w-14 text-right text-sm tabular-nums text-muted-foreground">
                     <Share share={item.share} />
                   </span>
@@ -237,7 +246,7 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
   const number = cn(cell, 'text-right tabular-nums')
 
   if (list.isError) return <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>
-  if (!list.data) return <p aria-busy className="text-muted-foreground">…</p>
+  if (!list.data) return <Loading />
   const { category, currency, items } = list.data
 
   return (
@@ -293,7 +302,7 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
                   </td>
                   <td className={cell}>{findAccount(accounts.data?.accounts ?? [], item.accountId)?.name ?? ''}</td>
                   <td className={number}>
-                    <Money amount={item.amount} currency={item.currency as Currency} />
+                    <Money amount={item.amount} currency={item.currency} />
                   </td>
                   <td className={number}>
                     {item.spent === null ? <NotConverted count={1} short /> : <Money amount={item.spent} currency={currency} />}
@@ -305,5 +314,16 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
         </div>
       )}
     </>
+  )
+}
+
+/** Stands in for the report while it loads. */
+function Loading() {
+  const { t } = useTranslation()
+  return (
+    <div aria-busy aria-label={t('reports.loading')} role="status" className="space-y-3">
+      <div className="h-16 animate-pulse rounded-lg bg-muted" />
+      <div className="h-40 animate-pulse rounded-lg bg-muted" />
+    </div>
   )
 }

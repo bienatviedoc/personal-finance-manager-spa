@@ -510,6 +510,7 @@
   "reports": {
     "choose": "Choose a report",
     "notFound": "There is no such report.",
+    "loading": "Loading the report…",
     "filters": {
       "title": "Report filters",
       "period": "Period",
@@ -519,7 +520,9 @@
       "allAccounts": "All accounts",
       "category": "Category",
       "allCategories": "All categories",
-      "compare": "Compare with the previous period"
+      "compare": "Compare with the previous period",
+      "fromAfterTo": "Start the period on or before the day it ends.",
+      "toBeforeFrom": "End the period on or after the day it starts."
     },
     "periods": {
       "thisMonth": "This month",
@@ -548,6 +551,7 @@
       "title": "Spending by category",
       "total": "Total spent",
       "empty": "Nothing was spent in this period.",
+      "nothingToDraw": "Nothing to draw: more came back than was spent in every category.",
       "allCategories": "All categories",
       "drillDown": "Drill-down",
       "directly": "{{name}} (no subcategory)",
