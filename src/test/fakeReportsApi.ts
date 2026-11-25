@@ -86,8 +86,10 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
     holdings: [...holdings],
     /** Every query of the net worth report, as sent. */
     netWorthAsked: [] as Asked[],
-    /** Every query of the report, as sent. */
+    /** Every query of the spending by category report, as sent. */
     reportsAsked: [] as Asked[],
+    /** Every query of the income vs expenses report, as sent. */
+    incomeVsExpensesAsked: [] as Asked[],
     /** Every query of a category's transactions, as sent. */
     transactionsAsked: [] as Asked[],
     /** Every query of the trends report, as sent. */
@@ -182,7 +184,7 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
     }),
     http.get(url('/api/v1/reports/income-vs-expenses'), ({ request }) => {
       const query = new URL(request.url).searchParams
-      state.reportsAsked.push(Object.fromEntries(query))
+      state.incomeVsExpensesAsked.push(Object.fromEntries(query))
       if (state.failWith) return problem(state.failWith)
       const [from, to] = [query.get('from'), query.get('to')]
       if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })

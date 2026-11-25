@@ -57,7 +57,7 @@ describe('the income vs expenses report', () => {
       ['March 2026', '₫10,000,000', '₫12,500,000', '-₫2,500,000', '-25%'],
       ['Whole period', '₫30,000,000', '₫27,500,000', '₫2,500,000', '8.3%'],
     ])
-    expect(api.reportsAsked.at(-1)).toEqual({ from: '2026-01-01', to: '2026-03-31' })
+    expect(api.incomeVsExpensesAsked.at(-1)).toEqual({ from: '2026-01-01', to: '2026-03-31' })
   })
 
   it('shows the savings rate of the whole period beside its income, expenses and net', async () => {
@@ -90,7 +90,7 @@ describe('the income vs expenses report', () => {
     expect(previous).toHaveTextContent('Expenses₫6,000,000')
     expect(previous).toHaveTextContent('Net₫2,000,000')
     expect(previous).toHaveTextContent('Savings rate25%')
-    expect(api.reportsAsked.at(-1)).toMatchObject({ compare: 'true' })
+    expect(api.incomeVsExpensesAsked.at(-1)).toMatchObject({ compare: 'true' })
     expect(await rowsOf('Income vs expenses, previous period')).toEqual([
       ['October 2025', '₫0', '₫0', '₫0', '–'],
       ['November 2025', '₫0', '₫6,000,000', '-₫6,000,000', '–'],
