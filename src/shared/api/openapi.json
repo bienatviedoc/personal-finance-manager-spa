@@ -3437,6 +3437,77 @@
         }
       }
     },
+    "/api/v1/reports/budget-vs-actual": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "description": "Am I within budget: each category's budgets against what was spent against them, in the user's base currency, over the whole budget months the period touches (one month, or several summed). A budget counts what was spent in its own month, in its category and, for a top-level one, in its subcategories, as on the budget screen; the account filter narrows what counts as spent, never the budgets. What was spent in a month where no budget covered its category is listed apart under unbudgeted. An expense that is not converted is left out of spent and counted in notConverted. Not compared with the previous period.",
+        "operationId": "GetBudgetVsActual",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetVsActualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/trends": {
       "get": {
         "tags": [
@@ -4079,6 +4150,157 @@
         ]
       },
       "BudgetTotalsResponse": {
+        "required": [
+          "budgeted",
+          "spent",
+          "remaining",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "BudgetVsActualItemResponse": {
+        "required": [
+          "category",
+          "months",
+          "budgeted",
+          "spent",
+          "remaining",
+          "percentSpent",
+          "state",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ReportCategoryResponse"
+          },
+          "months": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetVsActualState"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "BudgetVsActualResponse": {
+        "required": [
+          "from",
+          "to",
+          "months",
+          "currency",
+          "warningPercent",
+          "items",
+          "totals",
+          "unbudgeted",
+          "unbudgetedTotal"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "months": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "warningPercent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetVsActualItemResponse"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/BudgetVsActualTotalsResponse"
+          },
+          "unbudgeted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnbudgetedSpendingResponse"
+            }
+          },
+          "unbudgetedTotal": {
+            "$ref": "#/components/schemas/UnbudgetedTotalResponse"
+          }
+        }
+      },
+      "BudgetVsActualState": {
+        "enum": [
+          "onTrack",
+          "warning",
+          "over"
+        ]
+      },
+      "BudgetVsActualTotalsResponse": {
         "required": [
           "budgeted",
           "spent",
@@ -5994,6 +6216,50 @@
           },
           "authenticatorUri": {
             "type": "string"
+          }
+        }
+      },
+      "UnbudgetedSpendingResponse": {
+        "required": [
+          "category",
+          "spent",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ReportCategoryResponse"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "UnbudgetedTotalResponse": {
+        "required": [
+          "spent",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "spent": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

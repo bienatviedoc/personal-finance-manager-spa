@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { refreshReports } from '@/features/reports'
 import { refreshProfile } from '@/features/settings'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
@@ -40,9 +41,12 @@ export function refreshBudgets(queryClient: QueryClient) {
   return queryClient.invalidateQueries({ queryKey: budgetsKey })
 }
 
-/** A category's first budget locks the base currency and its last one leaving unlocks it, which the profile says. */
+/**
+ * A category's first budget locks the base currency and its last one leaving unlocks it, which the profile says;
+ * budget vs actual sets every budget against what was spent.
+ */
 function refresh(queryClient: QueryClient) {
-  return Promise.all([refreshBudgets(queryClient), refreshProfile(queryClient)])
+  return Promise.all([refreshBudgets(queryClient), refreshProfile(queryClient), refreshReports(queryClient)])
 }
 
 /**

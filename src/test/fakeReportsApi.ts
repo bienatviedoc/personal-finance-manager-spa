@@ -9,6 +9,10 @@ type IncomeVsExpensesResponse = components['schemas']['IncomeVsExpensesResponse'
 type TrendResponse = components['schemas']['TrendResponse']
 type TrendMonthResponse = components['schemas']['TrendMonthResponse']
 type Currency = components['schemas']['Currency']
+type BudgetVsActualResponse = components['schemas']['BudgetVsActualResponse']
+
+/** One budget as the fake keeps it: an amount for one category in one budget month (`YYYY-MM`). */
+export type FakeBudget = { month: string; categoryId: string; amount: string }
 
 /**
  * One expense, or one line of a split expense, as the fake keeps it. The lines of a split share an `id` and
@@ -43,7 +47,10 @@ type Options = {
   categories?: FakeCategory[]
   expenses?: FakeExpense[]
   income?: FakeIncome[]
+  budgets?: FakeBudget[]
   baseCurrency?: Currency
+  /** The user's budget warning threshold, in percent. */
+  warningPercent?: number
 }
 
 /** Every query the report and its transactions were asked with, in the order they arrived. */
@@ -56,7 +63,7 @@ type Asked = Record<string, string>
  * decimal, what is not converted left out and counted, and with `compare` the previous period (as many whole
  * months before whole months, otherwise as many days). A test fake may do arithmetic on amounts; the app never does.
  */
-export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], income = [], baseCurrency = testUser.baseCurrency }: Options = {}) {
+export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], income = [], budgets = [], baseCurrency = testUser.baseCurrency, warningPercent = 80 }: Options = {}) {
   const state = {
     expenses: [...expenses],
     income: [...income],
@@ -66,6 +73,8 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
     transactionsAsked: [] as Asked[],
     /** Every query of the trends report, as sent. */
     trendsAsked: [] as Asked[],
+    /** Every query of the budget vs actual report, as sent. */
+    budgetVsActualAsked: [] as Asked[],
     /** When set, every request is answered with this status. */
     failWith: undefined as number | undefined,
   }
@@ -288,6 +297,82 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         months: current.months,
         previous: before && { ...before, total: text(before.total) },
         change: before && changeOf(current.total, before.total),
+      }
+      return HttpResponse.json(response)
+    }),
+    http.get(url('/api/v1/reports/budget-vs-actual'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      state.budgetVsActualAsked.push(Object.fromEntries(query))
+      if (state.failWith) return problem(state.failWith)
+      const [asked, until, accountId, onlyIn] = [query.get('from'), query.get('to'), query.get('accountId'), query.get('categoryId')]
+      if (!isDate(asked) || !isDate(until) || until < asked) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
+      // The whole budget months the period touches, as the API's ReportPeriod.WholeMonths.
+      const [from, to] = [`${asked.slice(0, 8)}01`, lastOfMonth(until)]
+      const months = monthsOf(from, to).map((month) => month.from.slice(0, 7))
+      const shown = (categoryId: string) => onlyIn === null || categoryId === onlyIn || category(categoryId)?.parentId === onlyIn
+      const budgetOn = (month: string, categoryId: string) => budgets.find((budget) => budget.month === month && budget.categoryId === categoryId)
+
+      const items = new Map<string, { months: number; budgeted: number; spent: number; notConverted: Set<string> }>()
+      const unbudgeted = new Map<string, { spent: number; notConverted: Set<string> }>()
+      for (const budget of budgets.filter((each) => months.includes(each.month) && shown(each.categoryId))) {
+        const item = items.get(budget.categoryId) ?? { months: 0, budgeted: 0, spent: 0, notConverted: new Set<string>() }
+        item.months += 1
+        item.budgeted += Number(budget.amount)
+        items.set(budget.categoryId, item)
+      }
+      for (const expense of inPeriod(from, to, accountId)) {
+        const of = category(expense.categoryId)
+        if (!of || of.kind !== 'expense' || !shown(of.id)) continue
+        const month = expense.date.slice(0, 7)
+        // A budget on the category itself, or on its parent, counts it (spec section 3, rule 6).
+        const coveredBy = budgetOn(month, of.id) ? of.id : of.parentId && budgetOn(month, of.parentId) ? of.parentId : null
+        const sum = coveredBy ? items.get(coveredBy) : (unbudgeted.get(of.id) ?? { spent: 0, notConverted: new Set<string>() })
+        if (!sum) continue
+        if (expense.spent === null) sum.notConverted.add(expense.id)
+        else sum.spent += Number(expense.spent)
+        if (!coveredBy) unbudgeted.set(of.id, sum)
+      }
+
+      const stateOf = (budgeted: number, spent: number) =>
+        spent > budgeted ? ('over' as const) : budgeted > 0 && (spent * 100) / budgeted >= warningPercent ? ('warning' as const) : ('onTrack' as const)
+      const treeOrder = (id: string) => {
+        const of = category(id)!
+        const top = of.parentId ? category(of.parentId)! : of
+        return [top.name, of.parentId ? of.name : '']
+      }
+      const itemRows = [...items.entries()]
+        .toSorted(([a], [b]) => treeOrder(a)[0]!.localeCompare(treeOrder(b)[0]!) || treeOrder(a)[1]!.localeCompare(treeOrder(b)[1]!))
+        .map(([id, item]) => ({
+          category: view(category(id)!),
+          months: item.months,
+          budgeted: text(item.budgeted),
+          spent: text(item.spent),
+          remaining: text(item.budgeted - item.spent),
+          percentSpent: item.budgeted === 0 ? null : Math.floor((item.spent * 100) / item.budgeted),
+          state: stateOf(item.budgeted, item.spent),
+          notConverted: item.notConverted.size,
+        }))
+      const unbudgetedRows = [...unbudgeted.entries()]
+        .map(([id, sum]) => ({ category: view(category(id)!), spent: text(sum.spent), notConverted: sum.notConverted.size }))
+        .toSorted((a, b) => Number(b.spent) - Number(a.spent) || a.category.name.localeCompare(b.category.name))
+      const counted = (sums: Iterable<{ notConverted: Set<string> }>) => new Set([...sums].flatMap((sum) => [...sum.notConverted])).size
+      const add = (values: number[]) => values.reduce((total, value) => total + value, 0)
+
+      const response: BudgetVsActualResponse = {
+        from,
+        to,
+        months: months.length,
+        currency: baseCurrency,
+        warningPercent,
+        items: itemRows,
+        totals: {
+          budgeted: text(add([...items.values()].map((item) => item.budgeted))),
+          spent: text(add([...items.values()].map((item) => item.spent))),
+          remaining: text(add([...items.values()].map((item) => item.budgeted - item.spent))),
+          notConverted: counted(items.values()),
+        },
+        unbudgeted: unbudgetedRows,
+        unbudgetedTotal: { spent: text(add([...unbudgeted.values()].map((sum) => sum.spent))), notConverted: counted(unbudgeted.values()) },
       }
       return HttpResponse.json(response)
     }),

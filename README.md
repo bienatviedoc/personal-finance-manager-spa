@@ -153,8 +153,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   are the API's; the screen adds nothing up. What is not converted is flagged next to the figure it is left out of
   (`NotConverted`). A change to a transaction loads the reports again (`refreshReports`). Income vs expenses
   (`income/IncomeVsExpensesReport`) shows each month's income, expenses, net and savings rate as grouped bars with a
-  net line or a table, the whole period beside them, and the period before when compared.
-- **Charts are drawn through wrappers** in `src/shared/charts` (`DonutChart`, `LineChart`, `BarsWithLineChart`), over
+  net line or a table, the whole period beside them, and the period before when compared. Budget vs actual
+  (`budgetVsActual/BudgetVsActualReport`) sets each category's budget against what was spent as horizontal bars or a
+  table with the totals, and lists apart what was spent with no budget.
+- **Charts are drawn through wrappers** in `src/shared/charts` (`DonutChart`, `LineChart`, `BarsWithLineChart`, `BarChart`), over
   [Recharts](https://recharts.org), so the library can be swapped without touching a feature; ESLint refuses an
   import of `recharts` anywhere else. A chart is a picture of numbers a table or legend beside it also gives, which
   a keyboard can use: a chart's slice is chosen with a pointer only. Amounts become JavaScript numbers there for
@@ -245,7 +247,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
-| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, and `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it as the API does, and can fail an answer |
+| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it) and `/api/v1/reports/budget-vs-actual`; it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, and sets them against the `budgets` it gives, as the API does, and can fail an answer |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 

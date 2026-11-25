@@ -5,6 +5,7 @@ import { Navigate, NavLink, useParams } from 'react-router'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
 import type { CategoryKind } from '@/features/categories'
+import { BudgetVsActualReport } from '../budgetVsActual/BudgetVsActualReport'
 import { ReportFrame } from '../frame/ReportFrame'
 import type { ReportFilters } from '../frame/useReportFilters'
 import { spendingDrillDown } from '../spending/drillDown'
@@ -44,6 +45,12 @@ const reports: Report[] = [
     title: 'reports.income.title',
     canCompare: true,
     render: (filters) => <IncomeVsExpensesReport filters={filters} />,
+  },
+  {
+    path: 'budget-vs-actual',
+    title: 'reports.budgetVsActual.title',
+    categoryKind: 'expense',
+    render: (filters) => <BudgetVsActualReport filters={filters} />,
   },
 ]
 

@@ -631,6 +631,31 @@
       "chart": "Income and expenses per month, with net",
       "table": "Income vs expenses",
       "previousTable": "Income vs expenses, previous period"
+    },
+    "budgetVsActual": {
+      "title": "Budget vs actual",
+      "table": "Budget vs actual",
+      "category": "Category",
+      "budgeted": "Budgeted",
+      "spent": "Spent",
+      "remaining": "Remaining",
+      "percentSpent": "Spent %",
+      "percent": "{{percent}}%",
+      "state": "State",
+      "total": "Total",
+      "states": {
+        "onTrack": "On track",
+        "warning": "Warning",
+        "over": "Over budget"
+      },
+      "chart": "Budgeted against spent per category",
+      "oneMonth": "Budget month {{month}}",
+      "months": "Budget months {{first}} to {{last}}, summed",
+      "budgetedMonths_one": "{{count}} of {{total}} months",
+      "budgetedMonths_other": "{{count}} of {{total}} months",
+      "noBudgets": "No budget was set in these months.",
+      "unbudgeted": "Spent with no budget",
+      "unbudgetedHint": "Spent in a month when neither the category nor its parent had a budget."
     }
   },
   "institutions": {

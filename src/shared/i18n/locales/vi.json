@@ -631,6 +631,31 @@
       "chart": "Thu nhập và chi tiêu theo tháng, kèm chênh lệch",
       "table": "Thu nhập và chi tiêu",
       "previousTable": "Thu nhập và chi tiêu, kỳ trước"
+    },
+    "budgetVsActual": {
+      "title": "Ngân sách so với thực tế",
+      "table": "Ngân sách so với thực tế",
+      "category": "Danh mục",
+      "budgeted": "Ngân sách",
+      "spent": "Đã chi",
+      "remaining": "Còn lại",
+      "percentSpent": "% đã chi",
+      "percent": "{{percent}}%",
+      "state": "Trạng thái",
+      "total": "Tổng",
+      "states": {
+        "onTrack": "Đúng kế hoạch",
+        "warning": "Cảnh báo",
+        "over": "Vượt ngân sách"
+      },
+      "chart": "Ngân sách so với đã chi theo danh mục",
+      "oneMonth": "Tháng ngân sách {{month}}",
+      "months": "Các tháng ngân sách từ {{first}} đến {{last}}, cộng dồn",
+      "budgetedMonths_one": "{{count}} trên {{total}} tháng",
+      "budgetedMonths_other": "{{count}} trên {{total}} tháng",
+      "noBudgets": "Chưa đặt ngân sách nào trong các tháng này.",
+      "unbudgeted": "Đã chi không có ngân sách",
+      "unbudgetedHint": "Đã chi trong tháng mà cả danh mục lẫn danh mục cha đều không có ngân sách."
     }
   },
   "institutions": {
