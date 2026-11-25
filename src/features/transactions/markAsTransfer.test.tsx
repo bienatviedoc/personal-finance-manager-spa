@@ -59,6 +59,20 @@ describe('marking as a transfer', () => {
     expect(screen.queryByRole('button', { name: 'Mark as transfer' })).not.toBeInTheDocument()
   })
 
+  it('keeps what was picked under one account filter while the other is picked under another', async () => {
+    const transactionsApi = fakeApis(cardPayment)
+    const { user, router } = renderApp(`/transactions?accountId=${everyday}`)
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Pick VISA PAYMENT' }))
+    await router.navigate(`/transactions?accountId=${visa}`)
+    await user.click(await screen.findByRole('checkbox', { name: 'Pick PAYMENT RECEIVED' }))
+    expect(screen.queryByText('Pick one expense and one income.')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Mark as transfer' }))
+
+    const [expense, income] = cardPayment.map((_, index) => transactionsApi.transactions[index]!.id)
+    await waitFor(() => expect(transactionsApi.markRequests).toEqual([{ expenseId: expense, incomeId: income }]))
+  })
+
   it('is offered for income and expenses only: not for a refund or a leg of a transfer, and once one expense and one income are picked', async () => {
     fakeApis([
       ...cardPayment,
@@ -141,7 +155,7 @@ describe('unmarking a transfer', () => {
     { type: 'transferIn', accountId: visa, amount: '1500000.00', date: '2026-11-02', transferId: 't-1' },
   ]
 
-  it('splits it back into an expense and income, on the categories the user chooses', async () => {
+  it('unmarks it into an expense and income, on the categories the user chooses', async () => {
     const transactionsApi = fakeApis(marked)
     const { user } = renderApp('/transactions')
     await user.click(await screen.findByRole('button', { name: 'Edit Transfer out' }))

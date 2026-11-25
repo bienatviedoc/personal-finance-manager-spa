@@ -28,3 +28,12 @@ export function formatMoney(amount: DecimalString, currency: Currency, locale: L
   if (!decimalPattern.test(amount)) throw new Error('formatMoney expects a decimal string such as "125000.00".')
   return currencyFormat(currency, locale, signed).format(amount as Intl.StringNumericLiteral)
 }
+
+/**
+ * Writes a number on a chart's axis short, as the locale does: `1.2M`, `1,2 Tr`. The one place an amount is a
+ * JavaScript number is a chart, for drawing alone, and its ticks are a scale, not amounts anyone reads exactly:
+ * the table or legend beside the chart gives those with `<Money>`.
+ */
+export function formatAxisAmount(value: number, locale: Language): string {
+  return new Intl.NumberFormat(locale, { notation: 'compact' }).format(value)
+}

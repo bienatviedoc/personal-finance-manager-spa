@@ -156,7 +156,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   [Recharts](https://recharts.org), so the library can be swapped without touching a feature; ESLint refuses an
   import of `recharts` anywhere else. A chart is a picture of numbers a table or legend beside it also gives, which
   a keyboard can use: a chart's slice is chosen with a pointer only. Amounts become JavaScript numbers there for
-  drawing alone.
+  drawing alone, and an axis writes its ticks with `formatAxisAmount` from `@/shared/money` (`1.2M`).
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
@@ -239,7 +239,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
-| `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeTransactionsApi` | `/api/v1/transactions`, and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |

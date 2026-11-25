@@ -13,6 +13,7 @@ import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { spendingByCategoryQuery, spendingTransactionsQuery, type CategorySpending, type ReportCategory, type SpendingByCategory } from '../api/spendingByCategory'
 import { NotConverted } from '../frame/NotConverted'
+import { ReportLoading } from '../frame/ReportLoading'
 import { Share } from '../frame/Share'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
 import { drillNames, type DrillStep } from './drillDown'
@@ -52,7 +53,7 @@ export function SpendingByCategoryReport({ filters }: { filters: ReportFilters }
       ) : (
         <>
           {report.isError && <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>}
-          {report.isPending && <Loading />}
+          {report.isPending && <ReportLoading />}
           {report.data && <Breakdown report={report.data} filters={filters} onChoose={choose} />}
         </>
       )}
@@ -246,7 +247,7 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
   const number = cn(cell, 'text-right tabular-nums')
 
   if (list.isError) return <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>
-  if (!list.data) return <Loading />
+  if (!list.data) return <ReportLoading />
   const { category, currency, items } = list.data
 
   return (
@@ -314,16 +315,5 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
         </div>
       )}
     </>
-  )
-}
-
-/** Stands in for the report while it loads. */
-function Loading() {
-  const { t } = useTranslation()
-  return (
-    <div aria-busy aria-label={t('reports.loading')} role="status" className="space-y-3">
-      <div className="h-16 animate-pulse rounded-lg bg-muted" />
-      <div className="h-40 animate-pulse rounded-lg bg-muted" />
-    </div>
   )
 }

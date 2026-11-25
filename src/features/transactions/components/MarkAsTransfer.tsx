@@ -2,12 +2,10 @@ import type { ParseKeys } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
+import { sameAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import type { Transaction } from '../api/transactions'
 import { useMarkAsTransfer } from '../api/transfers'
-
-/** An amount's digits without the zeros that end its decimals, so 100.00 and 100 read the same. Nothing is added up. */
-const digitsOf = (amount: string) => (amount.includes('.') ? amount.replace(/\.?0+$/, '') : amount)
 
 /** The expense and the income among what was picked: the two legs it would become. */
 type Legs = { expense: Transaction | undefined; income: Transaction | undefined }
@@ -21,11 +19,11 @@ const legsOf = (picked: Transaction[]): Legs => ({
  * Why the picked transactions cannot be marked as a transfer, or null when they can: the API's rules (see
  * `Transfer.Mark` in the API) repeated for fast feedback only, as the API checks them again.
  */
-function whyNot(picked: Transaction[], { expense, income }: Legs): ParseKeys | null {
-  if (picked.length !== 2 || !expense || !income) return 'transfers.whyNot.types'
+function whyNot(count: number, { expense, income }: Legs): ParseKeys | null {
+  if (count !== 2 || !expense || !income) return 'transfers.whyNot.types'
   if (expense.accountId === income.accountId) return 'transfers.whyNot.sameAccount'
   if (expense.date !== income.date) return 'transfers.whyNot.date'
-  if (expense.currency === income.currency && digitsOf(expense.amount) !== digitsOf(income.amount)) return 'transfers.whyNot.amount'
+  if (expense.currency === income.currency && !sameAmount(expense.amount, income.amount)) return 'transfers.whyNot.amount'
   return null
 }
 
@@ -44,7 +42,7 @@ export function MarkAsTransfer({ picked, onClear }: Props) {
   const { t } = useTranslation()
   const mark = useMarkAsTransfer()
   const { expense, income } = legsOf(picked)
-  const reason = whyNot(picked, { expense, income })
+  const reason = whyNot(picked.length, { expense, income })
   const send = () => expense && income && mark.mutate({ expenseId: expense.id, incomeId: income.id }, { onSuccess: (outcome) => outcome.saved && onClear() })
 
   return (

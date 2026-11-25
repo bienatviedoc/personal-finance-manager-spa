@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMoney } from './formatMoney'
+import { formatAxisAmount, formatMoney } from './formatMoney'
 
 // Intl separates a number from its currency symbol with a no-break space.
 const nbsp = ' '
@@ -35,5 +35,12 @@ describe('formatMoney', () => {
     expect(() => formatMoney('1,500', 'USD', 'en')).toThrow()
     expect(() => formatMoney('', 'USD', 'en')).toThrow()
     expect(() => formatMoney('NaN', 'USD', 'en')).toThrow()
+  })
+})
+
+describe('formatAxisAmount', () => {
+  it('writes a tick short, in the locale', () => {
+    expect(formatAxisAmount(1_200_000, 'en')).toBe('1.2M')
+    expect(formatAxisAmount(0, 'en')).toBe('0')
   })
 })

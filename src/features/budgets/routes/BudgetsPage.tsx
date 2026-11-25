@@ -223,13 +223,13 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
   const set = useSetBudget(month)
   const remove = useRemoveBudget(month)
   const navigate = useNavigate()
-  const behind = budget ? transactionsBehind(category.id, month) : undefined
+  const transactionsLink = budget ? transactionsBehind(category.id, month) : undefined
 
   // A click anywhere on a budget's row but its controls opens the transactions behind it (spec BUD-8). It is a
   // shortcut for the pointer only: the link in the row is how a keyboard or a screen reader gets there.
-  const openBehind = (event: MouseEvent<HTMLDivElement>) => {
-    if (!behind || (event.target as Element).closest('a, button, input, select, textarea, label, form')) return
-    void navigate(behind)
+  const openTransactions = (event: MouseEvent<HTMLDivElement>) => {
+    if (!transactionsLink || (event.target as Element).closest('a, button, input, select, textarea, label, form')) return
+    void navigate(transactionsLink)
   }
 
   // The amount as the user has it; it follows the saved budget whenever that changes (saved, removed, or
@@ -264,7 +264,7 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
   return (
     <li aria-label={category.name} className={nested ? 'pt-3' : 'p-3'}>
       {/* eslint-disable-next-line jsx-a11y-x/click-events-have-key-events, jsx-a11y-x/no-static-element-interactions -- the row's link is the keyboard's way */}
-      <div className={cn('space-y-2', behind && '-m-1 cursor-pointer rounded-md p-1 hover:bg-muted/40')} onClick={openBehind}>
+      <div className={cn('space-y-2', transactionsLink && '-m-1 cursor-pointer rounded-md p-1 hover:bg-muted/40')} onClick={openTransactions}>
         {/* The amount wraps under a name it does not fit beside, so a phone never scrolls sideways. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <CategoryBadge icon={category.icon} color={category.color} />
@@ -318,7 +318,7 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
           </p>
         )}
         {budget && <Progress budget={budget} name={category.name} currency={currency} />}
-        {behind && <TransactionsBehind to={behind} name={category.name} month={month} />}
+        {transactionsLink && <TransactionsBehind to={transactionsLink} name={category.name} month={month} />}
 
         <FailureToast failed={set.isError} message={t('budgets.errors.notSaved')} retry={{ form: formId }} onDismiss={set.reset} />
         <FailureToast

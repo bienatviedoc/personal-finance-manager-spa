@@ -254,6 +254,8 @@
       "expenses": "Khoản chi",
       "net": "Chênh lệch",
       "spent": "Đã chi trong danh mục, như ngân sách tính",
+      "spentNotConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+      "spentNotConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
       "byCurrency": "Theo từng loại tiền, chưa quy đổi"
     },
     "type": "Loại",

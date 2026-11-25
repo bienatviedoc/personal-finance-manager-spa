@@ -25,7 +25,7 @@ export function TransactionTotal({ total }: { total: FilteredTotal }) {
           </dl>
           {Number(total.spent.notConverted) > 0 && (
             <p role="note" className="font-medium">
-              {t('budgets.notConverted', { count: Number(total.spent.notConverted) })}
+              {t('transactions.total.spentNotConverted', { count: Number(total.spent.notConverted) })}
             </p>
           )}
         </div>

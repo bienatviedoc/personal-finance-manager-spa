@@ -11,31 +11,26 @@ import { TextField } from '@/shared/components/TextField'
 import { daysOf, formatDate, formatMonth, monthOf } from '@/shared/dates'
 import type { Language } from '@/shared/i18n'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { useDebounced } from '@/shared/lib/useDebounced'
+import { typingSettles, useDebounced } from '@/shared/lib/useDebounced'
 import { cn } from '@/shared/lib/utils'
-import { Money, type Currency } from '@/shared/money'
+import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { trendQuery, type PeriodChange, type Trend, type TrendMonth, type TrendType } from '../api/trends'
 import { formatChangePercent } from '../frame/formatChangePercent'
 import { NotConverted } from '../frame/NotConverted'
+import { ReportLoading } from '../frame/ReportLoading'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
 
 /** The name in the address the payee followed is kept in, next to the filters. */
-export const payeeName = 'payee'
+const payeeParam = 'payee'
 
 /** The name in the address that says a payee alone is followed by the income received from it. */
-const typeName = 'type'
+const typeParam = 'type'
 
 /** The series of the chart: the period's, and the period before's, dashed, to compare with. */
 const series = { total: { key: 'total', color: 'var(--chart-2)' }, previous: { key: 'previous', color: 'var(--chart-1)', dashed: true } }
 
 /** The months along the bottom of the chart, short: `Jan 2026`. */
 const shortMonths = (trend: Trend, locale: Language) => trend.months.map((month) => formatMonth(monthOf(month.from), locale, 'short'))
-
-/** An amount on the side of the chart, short: `1.2M`. */
-const compactAmount = (locale: Language) => (value: number) => new Intl.NumberFormat(locale, { notation: 'compact' }).format(value)
-
-/** How long the payee is left alone, in milliseconds, before the report follows it. */
-const payeeSettles = 300
 
 /**
  * One category or one payee over time (spec RPT-7): its total in each month of the period, as a line or a table,
@@ -45,9 +40,9 @@ const payeeSettles = 300
 export function TrendsReport({ filters }: { filters: ReportFilters }) {
   const { t } = useTranslation()
   const [params] = useSearchParams()
-  const payee = params.get(payeeName)?.trim() || undefined
+  const payee = params.get(payeeParam)?.trim() || undefined
   // A category's kind says what it adds up; only a payee alone is followed by what the user chooses.
-  const type: TrendType | undefined = payee && !filters.categoryId && params.get(typeName) === 'income' ? 'income' : undefined
+  const type: TrendType | undefined = payee && !filters.categoryId && params.get(typeParam) === 'income' ? 'income' : undefined
 
   return (
     <div className="space-y-6">
@@ -60,13 +55,28 @@ export function TrendsReport({ filters }: { filters: ReportFilters }) {
   )
 }
 
+/** Sets one name in the address, or takes it out when there is no value, keeping the rest; Back skips the change. */
+function useSetParam() {
+  const [, setParams] = useSearchParams()
+  return (name: string, value: string | undefined) =>
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (value) next.set(name, value)
+        else next.delete(name)
+        return next
+      },
+      { replace: true },
+    )
+}
+
 /** The payee to follow, typed; the report follows it once the user stops typing, and the address keeps it. */
 function PayeeFilter({ payee }: { payee: string }) {
   const { t } = useTranslation()
-  const [, setParams] = useSearchParams()
+  const setParam = useSetParam()
   const [typed, setTyped] = useState(payee)
   const [followed, setFollowed] = useState(payee)
-  const settled = useDebounced(typed, payeeSettles)
+  const settled = useDebounced(typed, typingSettles)
   // Follows the address when it changes anywhere else (Back, a bookmark).
   if (followed !== payee) {
     setFollowed(payee)
@@ -74,15 +84,7 @@ function PayeeFilter({ payee }: { payee: string }) {
   }
   if (settled.trim() !== payee && settled === typed) {
     setFollowed(settled.trim())
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current)
-        if (settled.trim()) next.set(payeeName, settled.trim())
-        else next.delete(payeeName)
-        return next
-      },
-      { replace: true },
-    )
+    setParam(payeeParam, settled.trim() || undefined)
   }
 
   return (
@@ -101,17 +103,8 @@ const followChoices: { value: TrendType; label: ParseKeys }[] = [
 /** What a payee alone is followed by: what was spent with it, or what was received from it. Kept in the address. */
 function FollowBy({ type }: { type: TrendType }) {
   const { t } = useTranslation()
-  const [, setParams] = useSearchParams()
-  const follow = (chosen: string) =>
-    setParams(
-      (current) => {
-        const next = new URLSearchParams(current)
-        if (chosen === 'income') next.set(typeName, chosen)
-        else next.delete(typeName)
-        return next
-      },
-      { replace: true },
-    )
+  const setParam = useSetParam()
+  const follow = (chosen: string) => setParam(typeParam, chosen === 'income' ? chosen : undefined)
 
   return (
     <div className="w-56">
@@ -131,7 +124,7 @@ function TrendOf({ filters, payee, type }: { filters: ReportFilters; payee: stri
   const trend = useQuery(trendQuery(reportQuery(filters), payee, type))
 
   if (trend.isError) return <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>
-  if (!trend.data) return <Loading />
+  if (!trend.data) return <ReportLoading />
   return <TrendView trend={trend.data} filters={filters} />
 }
 
@@ -180,7 +173,7 @@ function TrendView({ trend, filters }: { trend: Trend; filters: ReportFilters })
             { ...series.total, values: trend.months.map((month) => Number(month.total)) },
             ...(previous ? [{ ...series.previous, values: previous.months.map((month) => Number(month.total)) }] : []),
           ]}
-          formatValue={compactAmount(locale)}
+          formatValue={(value) => formatAxisAmount(value, locale)}
         />
       ) : (
         <TrendTable trend={trend} name={name} />
@@ -244,7 +237,7 @@ function TrendTable({ trend, name }: { trend: Trend; name: string }) {
                     {before && (
                       <>
                         <Money amount={before.total} currency={currency} />
-                        <span className="block text-xs text-muted-foreground">{nameOf(before, locale, t)}</span>
+                        <span className="block text-xs text-muted-foreground">{previousMonthName(before, locale, t)}</span>
                       </>
                     )}
                   </td>
@@ -263,7 +256,7 @@ function TrendTable({ trend, name }: { trend: Trend; name: string }) {
  * before a period that is not whole months, the days at the same place, which need not be one (see the API's
  * `ReportPeriod.PreviousMonths`).
  */
-function nameOf(month: TrendMonth, locale: Language, t: TFunction): string {
+function previousMonthName(month: TrendMonth, locale: Language, t: TFunction): string {
   const calendar = daysOf(monthOf(month.from))
   return month.from === calendar.from && month.to === calendar.to
     ? formatMonth(monthOf(month.from), locale)
@@ -278,16 +271,5 @@ function Change({ change, currency }: { change: PeriodChange; currency: Currency
       <Money amount={change.amount} currency={currency} signed />
       {change.percent != null && <span className="ml-2 text-sm text-muted-foreground">{formatChangePercent(change.percent, locale)}</span>}
     </>
-  )
-}
-
-/** Stands in for the report while it loads. */
-function Loading() {
-  const { t } = useTranslation()
-  return (
-    <div aria-busy aria-label={t('reports.loading')} role="status" className="space-y-3">
-      <div className="h-16 animate-pulse rounded-lg bg-muted" />
-      <div className="h-40 animate-pulse rounded-lg bg-muted" />
-    </div>
   )
 }

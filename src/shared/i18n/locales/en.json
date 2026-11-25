@@ -254,6 +254,8 @@
       "expenses": "Expenses",
       "net": "Net",
       "spent": "Spent in the category, as its budget counts it",
+      "spentNotConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
+      "spentNotConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
       "byCurrency": "By currency, before conversion"
     },
     "type": "Type",
