@@ -33,6 +33,37 @@ const rowsOf = async (name: string | RegExp) =>
     .map((row) => [...within(row).queryAllByRole('rowheader'), ...within(row).getAllByRole('cell')].map((cell) => cell.textContent))
 
 describe('the budget vs actual report', () => {
+  it('asks for what the account and category filters narrow it to, and offers only expense categories', async () => {
+    const api = setUp()
+    renderApp(`${report}?${march}&accountId=a-everyday&categoryId=c-food&view=table`)
+
+    await rowsOf('Budget vs actual')
+    expect(api.budgetVsActualAsked.at(-1)).toEqual({ from: '2026-03-01', to: '2026-03-31', accountId: 'a-everyday', categoryId: 'c-food' })
+    const category = within(screen.getByRole('search', { name: 'Report filters' })).getByRole('combobox', { name: 'Category' })
+    expect(within(category).queryByRole('option', { name: 'Salary' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: 'Compare with the previous period' })).not.toBeInTheDocument()
+  })
+
+  it('says when no budget was set in the months', async () => {
+    setUp({ budgets: [] })
+    renderApp(`${report}?${march}`)
+
+    expect(await screen.findByText('No budget was set in these months.')).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Budgeted against spent per category' })).not.toBeInTheDocument()
+  })
+
+  it('flags what is not converted, and says when the report cannot be loaded', async () => {
+    const api = setUp({ expenses: [{ id: 't-abroad', date: '2026-03-03', categoryId: 'c-groceries', spent: null }] })
+    renderApp(`${report}?${march}&view=table`)
+
+    expect((await rowsOf('Budget vs actual'))[0]).toEqual(['Food & drink', '₫3,000,000', '₫01 not converted', '₫3,000,000', '0%', 'On track'])
+    expect(screen.getByText('1 amount is not converted into your base currency yet and is left out.')).toBeInTheDocument()
+
+    api.failWith = 500
+    renderApp(`${report}?period=custom&from=2026-04-01&to=2026-04-30`)
+    expect(await screen.findByRole('alert')).toHaveTextContent('The report could not be loaded.')
+  })
+
   it('sets each budget of a month against what was spent in its category and subcategories, with the totals', async () => {
     const api = setUp()
     renderApp(`${report}?${march}&view=table`)
