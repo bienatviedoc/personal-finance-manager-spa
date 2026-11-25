@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
 import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Copy, List, TriangleAlert, type LucideIcon } from 'lucide-react'
-import { useId, useState, type FormEvent, type ReactNode } from 'react'
+import { useId, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { categoriesQuery, CategoryBadge, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
@@ -222,6 +222,15 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
   const errorId = useId()
   const set = useSetBudget(month)
   const remove = useRemoveBudget(month)
+  const navigate = useNavigate()
+  const behind = budget ? transactionsBehind(category.id, month) : undefined
+
+  // A click anywhere on a budget's row but its controls opens the transactions behind it (spec BUD-8). It is a
+  // shortcut for the pointer only: the link in the row is how a keyboard or a screen reader gets there.
+  const openBehind = (event: MouseEvent<HTMLDivElement>) => {
+    if (!behind || (event.target as Element).closest('a, button, input, select, textarea, label, form')) return
+    void navigate(behind)
+  }
 
   // The amount as the user has it; it follows the saved budget whenever that changes (saved, removed, or
   // loaded again after it was changed somewhere else).
@@ -254,7 +263,8 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
 
   return (
     <li aria-label={category.name} className={nested ? 'pt-3' : 'p-3'}>
-      <div className="space-y-2">
+      {/* eslint-disable-next-line jsx-a11y-x/click-events-have-key-events, jsx-a11y-x/no-static-element-interactions -- the row's link is the keyboard's way */}
+      <div className={cn('space-y-2', behind && '-m-1 cursor-pointer rounded-md p-1 hover:bg-muted/40')} onClick={openBehind}>
         {/* The amount wraps under a name it does not fit beside, so a phone never scrolls sideways. */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <CategoryBadge icon={category.icon} color={category.color} />
@@ -308,7 +318,7 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
           </p>
         )}
         {budget && <Progress budget={budget} name={category.name} currency={currency} />}
-        {budget && <TransactionsBehind categoryId={category.id} name={category.name} month={month} />}
+        {behind && <TransactionsBehind to={behind} name={category.name} month={month} />}
 
         <FailureToast failed={set.isError} message={t('budgets.errors.notSaved')} retry={{ form: formId }} onDismiss={set.reset} />
         <FailureToast
@@ -331,19 +341,20 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
 }
 
 /**
- * Drills down from a budget to the transactions behind its spent (spec BUD-8): the transaction list filtered to
- * its category, which takes in the subcategories, over the days of its month. The list then says what they spent
- * there, which is this budget's spent.
+ * Where a budget drills down to (spec BUD-8): the transaction list filtered to its category, which takes in the
+ * subcategories, over the days of its month. The list then says what they spent there, which is this budget's spent.
  */
-function TransactionsBehind({ categoryId, name, month }: { categoryId: string; name: string; month: BudgetMonth }) {
+const transactionsBehind = (categoryId: string, month: BudgetMonth) => `/transactions?${new URLSearchParams({ categoryId, ...daysOf(month) })}`
+
+/** The link from a budget to the transactions behind its spent: the row's way there for a keyboard and a screen reader. */
+function TransactionsBehind({ to, name, month }: { to: string; name: string; month: BudgetMonth }) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const filters = new URLSearchParams({ categoryId, ...daysOf(month) })
 
   return (
     <Link
       className={cn('inline-flex items-center gap-1 rounded-md text-sm underline', focusRing)}
-      to={`/transactions?${filters}`}
+      to={to}
       aria-label={t('budgets.transactionsBehind', { name, month: formatMonth(month, locale) })}
     >
       <List aria-hidden className="size-4" />
