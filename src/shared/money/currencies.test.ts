@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isNegativeAmount, isZeroAmount, signedAmount, unsignedAmount } from './currencies'
+import { isNegativeAmount, isZeroAmount, sameAmount, signedAmount, unsignedAmount } from './currencies'
 
 describe('isZeroAmount', () => {
   it.each(['0', '0.00', '0.0000', '-0.00', '000'])('reads %s as zero', (amount) => {
@@ -27,5 +27,14 @@ describe('isNegativeAmount and unsignedAmount', () => {
   ])('reads %s as negative: %s, and without its sign as %s', (amount, negative, unsigned) => {
     expect(isNegativeAmount(amount)).toBe(negative)
     expect(unsignedAmount(amount)).toBe(unsigned)
+  })
+})
+
+describe('sameAmount', () => {
+  it('reads two amounts as the same whatever zeros end their decimals', () => {
+    expect(sameAmount('100.00', '100')).toBe(true)
+    expect(sameAmount('100.50', '100.5')).toBe(true)
+    expect(sameAmount('100', '1000')).toBe(false)
+    expect(sameAmount('100.01', '100')).toBe(false)
   })
 })

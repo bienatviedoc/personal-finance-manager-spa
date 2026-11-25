@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMonth, isCalendarMonth, monthOf, shiftMonth, type CalendarMonth } from './calendarMonth'
+import { daysOf, formatMonth, isCalendarMonth, monthOf, shiftMonth, type CalendarMonth } from './calendarMonth'
 
 const november = '2026-11' as CalendarMonth
 
@@ -16,6 +16,12 @@ describe('calendar months', () => {
   it('moves across the turn of a year either way', () => {
     expect(shiftMonth(november, 2)).toBe('2027-01')
     expect(shiftMonth(november, -11)).toBe('2025-12')
+  })
+
+  it('runs from its 1st to its last day, a leap day included', () => {
+    expect(daysOf(november)).toEqual({ from: '2026-11-01', to: '2026-11-30' })
+    expect(daysOf('2028-02' as CalendarMonth)).toEqual({ from: '2028-02-01', to: '2028-02-29' })
+    expect(daysOf('2026-12' as CalendarMonth)).toEqual({ from: '2026-12-01', to: '2026-12-31' })
   })
 
   it('writes the month in the locale', () => {
