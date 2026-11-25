@@ -4000,7 +4000,8 @@
       "FilteredTotalResponse": {
         "required": [
           "count",
-          "currencies"
+          "currencies",
+          "spent"
         ],
         "type": "object",
         "properties": {
@@ -4017,6 +4018,16 @@
             "items": {
               "$ref": "#/components/schemas/CurrencyTotalResponse"
             }
+          },
+          "spent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SpentTotalResponse"
+              }
+            ]
           }
         }
       },
@@ -4916,6 +4927,30 @@
             "items": {
               "$ref": "#/components/schemas/SpendingTransactionResponse"
             }
+          }
+        }
+      },
+      "SpentTotalResponse": {
+        "required": [
+          "currency",
+          "amount",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

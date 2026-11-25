@@ -40,7 +40,9 @@ type Options = {
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
  * account a transaction is on follows it. Quick add answers the account, not archived, recorded on last, and the
  * category, not archived, on the most lines of a payee's transactions that are not refunds (see the API's QuickAddTests).
- * Search finds a line's note too, and filtered by a category the total adds only the lines in it.
+ * Search finds a line's note too, and filtered by a category the total adds only the lines in it, and says what
+ * they spent there in the base currency, VND, as a budget counts it: an expense in another currency has no rate
+ * here, so it is not converted and left out.
  *
  * It answers the transfer endpoints too (see the API's TransferTests), since a transfer is two of these
  * transactions: a `transferOut` leg and a `transferIn` leg sharing a `transferId`, with no category. A transfer
@@ -191,6 +193,17 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
           expenses: text(inCurrency.filter((transaction) => transaction.type === 'expense').reduce((total, transaction) => total - signed(transaction), 0)),
           net: text(inCurrency.reduce((total, transaction) => total + signed(transaction), 0)),
         })),
+      spent: categoryId === null ? null : spentOf(passing.filter((transaction) => transaction.type === 'expense')),
+    }
+  }
+
+  /** What expenses, already cut to their lines in a category, spent in the base currency: refunds take away. */
+  function spentOf(expenses: Transaction[]): NonNullable<TransactionList['total']['spent']> {
+    const converted = expenses.filter((expense) => expense.currency === 'VND')
+    return {
+      currency: 'VND',
+      amount: text(converted.reduce((total, expense) => total - signed(expense), 0)),
+      notConverted: expenses.length - converted.length,
     }
   }
 

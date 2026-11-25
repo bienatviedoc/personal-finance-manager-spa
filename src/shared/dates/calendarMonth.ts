@@ -25,6 +25,14 @@ export function shiftMonth(month: CalendarMonth, by: number): CalendarMonth {
   return `${String(Math.floor(months / 12)).padStart(4, '0')}-${String((months % 12) + 1).padStart(2, '0')}` as CalendarMonth
 }
 
+/** The days a month runs over, from its 1st to its last, as a range of dates is filtered by. */
+export function daysOf(month: CalendarMonth): { from: CalendarDate; to: CalendarDate } {
+  const [, year, monthOfYear] = pattern.exec(month)!
+  // Day 0 of the month after is this month's last day, read in UTC so no time zone moves it.
+  const last = new Date(Date.UTC(Number(year), Number(monthOfYear), 0)).getUTCDate()
+  return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, '0')}` }
+}
+
 /** Writes a month the way the locale does: `November 2026`, `tháng 11 năm 2026`. */
 export function formatMonth(month: CalendarMonth, locale: Language): string {
   // Read and written in UTC, so the browser's own time zone cannot move it into the month before.
