@@ -665,6 +665,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One category or one payee over time: what it came to in each month of a period, in the user's base currency, and how each month changed from the one before, as an amount and a percentage. A category with its subcategories adds up spent (its expenses minus refunds) when it is an expense category, and the income received in it when it is an income one; a payee adds up what was spent with it, matched in any case, and with categoryId too only in that category. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers never count. With compare, the period before is worked out the same way, and change says how the total moved from it. */
+        get: operations["GetTrend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -893,6 +910,11 @@ export interface components {
             currency: components["schemas"]["Currency"];
             balance: string;
         };
+        PeriodChangeResponse: {
+            amount: string;
+            /** Format: double */
+            percent: null | number | string;
+        };
         PreviousSpendingResponse: {
             /** Format: date */
             from: string;
@@ -901,6 +923,16 @@ export interface components {
             total: string;
             /** Format: int32 */
             notConverted: number | string;
+        };
+        PreviousTrendResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            total: string;
+            /** Format: int32 */
+            notConverted: number | string;
+            months: components["schemas"]["TrendMonthResponse"][];
         };
         ProblemDetails: {
             type?: null | string;
@@ -1147,6 +1179,32 @@ export interface components {
             /** Format: uuid */
             inTransactionId: string;
             rowVersion: string;
+        };
+        TrendMonthResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            total: string;
+            /** Format: int32 */
+            notConverted: number | string;
+            change: null | components["schemas"]["PeriodChangeResponse"];
+        };
+        TrendResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            category: null | components["schemas"]["ReportCategoryResponse"];
+            payee: null | string;
+            isIncome: boolean;
+            total: string;
+            /** Format: int32 */
+            notConverted: number | string;
+            months: components["schemas"]["TrendMonthResponse"][];
+            previous: null | components["schemas"]["PreviousTrendResponse"];
+            change: null | components["schemas"]["PeriodChangeResponse"];
         };
         TurnOffTwoFactorRequest: {
             password: string;
@@ -3847,6 +3905,58 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SpendingTransactionsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetTrend: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+                payee?: string;
+                compare?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrendResponse"];
                 };
             };
             /** @description Bad Request */
