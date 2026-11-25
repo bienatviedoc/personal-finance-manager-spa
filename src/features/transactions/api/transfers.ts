@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/client'
 import type { components } from '@/shared/api/schema'
+import { refusedFields } from '@/shared/api/refusedFields'
 import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome } from '@/shared/api/versionedSave'
 import { refreshTransactions, transactionsKey } from './transactions'
 
@@ -62,6 +63,57 @@ export function useEditTransfer({ id, rowVersion }: Pick<Transfer, 'id' | 'rowVe
         await api.PUT('/api/v1/transfers/{id}', { params: { path: { id }, header: { 'If-Match': ifMatch(rowVersion) } }, body: fields }),
         transferFields,
       ),
+    onSettled: () => refreshTransactions(queryClient),
+  })
+}
+
+/** The expense and the income a user picked to mark as one transfer. */
+export type MarkAsTransferFields = components['schemas']['MarkAsTransferRequest']
+
+/**
+ * What marking answers: the transfer the two became, or that the API refused one of them (changed somewhere
+ * else since the list was loaded, as the screen checks every rule it can see before sending).
+ */
+export type MarkOutcome = { marked: true; transfer: Transfer } | { marked: false }
+
+/**
+ * Marks an expense on one account and income on another as one transfer (spec IMP-7): the expense becomes its
+ * Transfer out leg and the income its Transfer in leg, so neither counts as spending or income any more.
+ * Nothing is matched automatically; the user picks both. Not optimistic: the list changes once the API has answered.
+ */
+export function useMarkAsTransfer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (fields: MarkAsTransferFields): Promise<MarkOutcome> => {
+      const { data, error, response } = await api.POST('/api/v1/transfers/mark', { body: fields })
+      if (data) return { marked: true, transfer: data }
+      if (refusedFields(response, error, ['expenseId', 'incomeId'] as const)) return { marked: false }
+      throw new Error(`Marking as a transfer failed: ${response.status}`)
+    },
+    // A request that failed may still have been saved, and a refused one means the list is out of date.
+    onSettled: () => refreshTransactions(queryClient),
+  })
+}
+
+/** The categories the two legs take once unmarked, as a leg has none: an expense category and an income category. */
+export type UnmarkFields = components['schemas']['UnmarkTransferRequest']
+const unmarkFields = ['expenseCategoryId', 'incomeCategoryId'] as const
+export type UnmarkField = (typeof unmarkFields)[number]
+
+/**
+ * Unmarks the transfer: its Transfer out leg becomes an expense and its Transfer in leg income again, on the
+ * categories chosen, each keeping its account, amount, date and note. Any transfer can be unmarked, marked or recorded.
+ */
+export function useUnmarkTransfer(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (fields: UnmarkFields): Promise<{ saved: true } | { saved: false; fields: UnmarkField[] }> => {
+      const { data, error, response } = await api.POST('/api/v1/transfers/{id}/unmark', { params: { path: { id } }, body: fields })
+      if (data) return { saved: true }
+      const refused = refusedFields(response, error, unmarkFields)
+      if (refused) return { saved: false, fields: refused }
+      throw new Error(`Unmarking a transfer failed: ${response.status}`)
+    },
     onSettled: () => refreshTransactions(queryClient),
   })
 }

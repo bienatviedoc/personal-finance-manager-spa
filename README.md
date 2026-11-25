@@ -100,6 +100,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the transfer by that id (`transferQuery`) and saves both legs through `/transfers` (`features/transactions/api/transfers.ts`).
   Between accounts in different currencies the form asks for both amounts; nothing converts one into the other.
   Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
+- **Marking as a transfer** (spec IMP-7; see the glossary). Income and expenses in the list can be picked
+  (`canBePicked`: not a refund, not a leg); once one expense and one income are, `MarkAsTransfer` sends them to
+  `POST /transfers/mark` and both become the legs of one transfer. The screen says why it cannot before asking
+  (one account, two dates, two amounts in one currency), and the API checks again; a refusal means one of them
+  changed, so the list is loaded again. Nothing is matched automatically. The transfer drawer unmarks any transfer
+  (`useUnmarkTransfer`): the user chooses an expense category and an income category, as a leg has none.
 - **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
   `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
   the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change

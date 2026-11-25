@@ -472,6 +472,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/transfers/mark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, or a transaction that is a leg of a transfer already, is refused. Nothing is matched automatically. */
+        post: operations["MarkAsTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transfers/{id}/unmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded. Answers the two transactions; the transfer is no more. */
+        post: operations["UnmarkTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transactions/{id}/attachments": {
         parameters: {
             query?: never;
@@ -887,6 +921,12 @@ export interface components {
         };
         /** @enum {unknown} */
         Locale: "en" | "vi" | null;
+        MarkAsTransferRequest: {
+            /** Format: uuid */
+            expenseId: string;
+            /** Format: uuid */
+            incomeId: string;
+        };
         NewRecoveryCodesRequest: {
             password: string;
         };
@@ -1169,6 +1209,16 @@ export interface components {
         TwoFactorSetupResponse: {
             key: string;
             authenticatorUri: string;
+        };
+        UnmarkedTransferResponse: {
+            expense: components["schemas"]["TransactionResponse"];
+            income: components["schemas"]["TransactionResponse"];
+        };
+        UnmarkTransferRequest: {
+            /** Format: uuid */
+            expenseCategoryId: string;
+            /** Format: uuid */
+            incomeCategoryId: string;
         };
         UpdateProfileRequest: {
             baseCurrency?: null | string;
@@ -3058,6 +3108,99 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MarkAsTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkAsTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UnmarkTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnmarkTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnmarkedTransferResponse"];
+                };
             };
             /** @description Bad Request */
             400: {

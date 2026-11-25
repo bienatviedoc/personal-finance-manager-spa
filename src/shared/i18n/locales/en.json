@@ -341,6 +341,23 @@
     "save": "Save",
     "cancel": "Cancel",
     "deleteExplained": "Delete this transfer? Both of its legs leave this list, and both accounts get their balance back.",
+    "markAs": "Mark as transfer",
+    "markTitle": "Picked to mark as a transfer",
+    "markExplained": "Pick an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
+    "pick": "Pick {{name}}",
+    "clearPicked": "Clear",
+    "whyNot": {
+      "types": "Pick one expense and one income.",
+      "sameAccount": "A transfer is between two different accounts.",
+      "date": "The two must be on the same date.",
+      "amount": "Between accounts in one currency, the two must be of the same amount."
+    },
+    "unmark": "Unmark transfer",
+    "unmarkExplained": "Turn this transfer back into an expense and income. A leg of a transfer has no category, so choose one for each.",
+    "unmarkConfirm": "Unmark",
+    "expenseCategory": "Category of the expense ({{account}})",
+    "incomeCategory": "Category of the income ({{account}})",
+    "chooseCategory": "Choose a category",
     "errors": {
       "account": "Choose one of your accounts that is not archived.",
       "sameAccount": "Choose a different account from the one the money leaves.",
@@ -354,7 +371,11 @@
       "stale": "This transfer was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "notLoaded": "The transfer could not be loaded. Try again.",
       "notSaved": "The transfer was not saved.",
-      "notDeleted": "The transfer was not deleted."
+      "notDeleted": "The transfer was not deleted.",
+      "markRefused": "These two could not be marked as a transfer: one of them changed somewhere else. Check them and try again.",
+      "notMarked": "The two were not marked as a transfer.",
+      "categoryArchived": "Choose one of your categories that is not archived.",
+      "notUnmarked": "The transfer was not unmarked."
     }
   },
   "attachments": {
