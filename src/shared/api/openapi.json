@@ -2288,6 +2288,122 @@
         }
       }
     },
+    "/api/v1/transfers/mark": {
+      "post": {
+        "tags": [
+          "Transfers"
+        ],
+        "description": "Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, or a transaction that is a leg of a transfer already, is refused. Nothing is matched automatically.",
+        "operationId": "MarkAsTransfer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkAsTransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transfers/{id}/unmark": {
+      "post": {
+        "tags": [
+          "Transfers"
+        ],
+        "description": "Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded. Answers the two transactions; the transfer is no more.",
+        "operationId": "UnmarkTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnmarkTransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnmarkedTransferResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/transactions/{id}/attachments": {
       "get": {
         "tags": [
@@ -3311,6 +3427,102 @@
         }
       }
     },
+    "/api/v1/reports/trends": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "description": "One category or one payee over time: what it came to in each month of a period, in the user's base currency, and how each month changed from the one before, as an amount and a percentage. A category with its subcategories adds up spent (its expenses minus refunds) when it is an expense category, and the income received in it when it is an income one; a payee adds up what was spent with it, or with type income the income received from it, matched in any case, and with categoryId too only in that category. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers never count. With compare, the period before is worked out the same way, and change says how the total moved from it.",
+        "operationId": "GetTrend",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "payee",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "compare",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/reports/net-worth": {
       "get": {
         "tags": [
@@ -4064,7 +4276,8 @@
       "FilteredTotalResponse": {
         "required": [
           "count",
-          "currencies"
+          "currencies",
+          "spent"
         ],
         "type": "object",
         "properties": {
@@ -4081,6 +4294,16 @@
             "items": {
               "$ref": "#/components/schemas/CurrencyTotalResponse"
             }
+          },
+          "spent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SpentTotalResponse"
+              }
+            ]
           }
         }
       },
@@ -4269,6 +4492,23 @@
           null
         ]
       },
+      "MarkAsTransferRequest": {
+        "required": [
+          "expenseId",
+          "incomeId"
+        ],
+        "type": "object",
+        "properties": {
+          "expenseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "incomeId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "NetWorthPointResponse": {
         "required": [
           "date",
@@ -4356,6 +4596,27 @@
           }
         }
       },
+      "PeriodChangeResponse": {
+        "required": [
+          "amount",
+          "percent"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string"
+          },
+          "percent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        }
+      },
       "PreviousSpendingResponse": {
         "required": [
           "from",
@@ -4383,6 +4644,43 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "PreviousTrendResponse": {
+        "required": [
+          "from",
+          "to",
+          "total",
+          "notConverted",
+          "months"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "total": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendMonthResponse"
+            }
           }
         }
       },
@@ -5044,6 +5342,30 @@
           }
         }
       },
+      "SpentTotalResponse": {
+        "required": [
+          "currency",
+          "amount",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "TransactionLineRequest": {
         "required": [
           "categoryId",
@@ -5366,6 +5688,132 @@
           }
         }
       },
+      "TrendMonthResponse": {
+        "required": [
+          "from",
+          "to",
+          "total",
+          "notConverted",
+          "change"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "total": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "change": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PeriodChangeResponse"
+              }
+            ]
+          }
+        }
+      },
+      "TrendResponse": {
+        "required": [
+          "from",
+          "to",
+          "currency",
+          "category",
+          "payee",
+          "isIncome",
+          "total",
+          "notConverted",
+          "months",
+          "previous",
+          "change"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "category": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReportCategoryResponse"
+              }
+            ]
+          },
+          "payee": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isIncome": {
+            "type": "boolean"
+          },
+          "total": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendMonthResponse"
+            }
+          },
+          "previous": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PreviousTrendResponse"
+              }
+            ]
+          },
+          "change": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PeriodChangeResponse"
+              }
+            ]
+          }
+        }
+      },
       "TurnOffTwoFactorRequest": {
         "required": [
           "password"
@@ -5420,6 +5868,38 @@
           },
           "authenticatorUri": {
             "type": "string"
+          }
+        }
+      },
+      "UnmarkedTransferResponse": {
+        "required": [
+          "expense",
+          "income"
+        ],
+        "type": "object",
+        "properties": {
+          "expense": {
+            "$ref": "#/components/schemas/TransactionResponse"
+          },
+          "income": {
+            "$ref": "#/components/schemas/TransactionResponse"
+          }
+        }
+      },
+      "UnmarkTransferRequest": {
+        "required": [
+          "expenseCategoryId",
+          "incomeCategoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "expenseCategoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "incomeCategoryId": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },

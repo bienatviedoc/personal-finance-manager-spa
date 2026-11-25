@@ -252,7 +252,11 @@
       "count_other": "{{count}} transactions",
       "income": "Income",
       "expenses": "Expenses",
-      "net": "Net"
+      "net": "Net",
+      "spent": "Spent in the category, as its budget counts it",
+      "spentNotConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
+      "spentNotConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
+      "byCurrency": "By currency, before conversion"
     },
     "type": "Type",
     "types": {
@@ -338,6 +342,23 @@
     "save": "Save",
     "cancel": "Cancel",
     "deleteExplained": "Delete this transfer? Both of its legs leave this list, and both accounts get their balance back.",
+    "markAs": "Mark as transfer",
+    "markTitle": "Picked to mark as a transfer",
+    "markExplained": "Pick an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
+    "pick": "Pick {{name}}",
+    "clearPicked": "Clear",
+    "whyNot": {
+      "types": "Pick one expense and one income.",
+      "sameAccount": "A transfer is between two different accounts.",
+      "date": "The two must be on the same date.",
+      "amount": "Between accounts in one currency, the two must be of the same amount."
+    },
+    "unmark": "Unmark transfer",
+    "unmarkExplained": "Turn this transfer back into an expense and income. A leg of a transfer has no category, so choose one for each.",
+    "unmarkConfirm": "Unmark",
+    "expenseCategory": "Category of the expense ({{account}})",
+    "incomeCategory": "Category of the income ({{account}})",
+    "chooseCategory": "Choose a category",
     "errors": {
       "account": "Choose one of your accounts that is not archived.",
       "sameAccount": "Choose a different account from the one the money leaves.",
@@ -351,7 +372,11 @@
       "stale": "This transfer was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "notLoaded": "The transfer could not be loaded. Try again.",
       "notSaved": "The transfer was not saved.",
-      "notDeleted": "The transfer was not deleted."
+      "notDeleted": "The transfer was not deleted.",
+      "markRefused": "These two could not be marked as a transfer: one of them changed somewhere else. Check them and try again.",
+      "notMarked": "The two were not marked as a transfer.",
+      "categoryArchived": "Choose one of your categories that is not archived.",
+      "notUnmarked": "The transfer was not unmarked."
     }
   },
   "attachments": {
@@ -480,6 +505,8 @@
     "percent": "{{percent}}%",
     "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
     "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
+    "transactions": "See transactions",
+    "transactionsBehind": "Transactions behind {{name}} in {{month}}",
     "copy": {
       "action": "Copy budgets from {{month}}",
       "done_zero": "No budgets copied from {{month}}: every category with a budget there already has one this month or takes none.",
@@ -570,6 +597,28 @@
       "amount": "Amount",
       "refund": "Refund",
       "split": "Split transaction"
+    },
+    "trends": {
+      "title": "Trends",
+      "chooseWhat": "Choose a category or type a payee to follow it month by month.",
+      "payee": "Payee",
+      "payeeHint": "Follow one payee, only in the category chosen when there is one.",
+      "categoryAndPayee": "{{category}}, {{payee}}",
+      "totalSpent": "Total spent",
+      "totalReceived": "Total received",
+      "changeFromPrevious": "Change from the previous period",
+      "chart": "Trend of {{name}}",
+      "table": "Trend of {{name}}",
+      "month": "Month",
+      "total": "Total",
+      "change": "Change",
+      "changePercent": "Change %",
+      "previousTotal": "Previous period",
+      "days": "{{from}} to {{to}}",
+      "followBy": "Follow",
+      "followByHint": "What a payee is followed by when no category is chosen.",
+      "spentWith": "Spent with them",
+      "receivedFrom": "Received from them"
     }
   },
   "institutions": {
