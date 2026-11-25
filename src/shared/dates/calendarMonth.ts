@@ -33,8 +33,8 @@ export function daysOf(month: CalendarMonth): { from: CalendarDate; to: Calendar
   return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, '0')}` }
 }
 
-/** Writes a month the way the locale does: `November 2026`, `tháng 11 năm 2026`. */
-export function formatMonth(month: CalendarMonth, locale: Language): string {
+/** Writes a month the way the locale does: `November 2026`, `tháng 11 năm 2026`; short, `Nov 2026`, `thg 11 2026`. */
+export function formatMonth(month: CalendarMonth, locale: Language, style: 'long' | 'short' = 'long'): string {
   // Read and written in UTC, so the browser's own time zone cannot move it into the month before.
-  return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))
+  return new Intl.DateTimeFormat(locale, { month: style, year: 'numeric', timeZone: 'UTC' }).format(new Date(`${month}-01T00:00:00Z`))
 }

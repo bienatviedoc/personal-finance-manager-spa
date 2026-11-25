@@ -596,6 +596,23 @@
       "amount": "Amount",
       "refund": "Refund",
       "split": "Split transaction"
+    },
+    "trends": {
+      "title": "Trends",
+      "chooseWhat": "Choose a category or type a payee to follow it month by month.",
+      "payee": "Payee",
+      "payeeHint": "Follow one payee, only in the category chosen when there is one.",
+      "categoryAndPayee": "{{category}}, {{payee}}",
+      "totalSpent": "Total spent",
+      "totalReceived": "Total received",
+      "changeFromPrevious": "Change from the previous period",
+      "chart": "Trend of {{name}}",
+      "table": "Trend of {{name}}",
+      "month": "Month",
+      "total": "Total",
+      "change": "Change",
+      "changePercent": "Change %",
+      "previousTotal": "Previous period"
     }
   },
   "institutions": {

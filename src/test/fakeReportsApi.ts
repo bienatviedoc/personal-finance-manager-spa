@@ -5,11 +5,13 @@ import { apiUrl as url, problem, server, testUser } from './server'
 
 type SpendingByCategoryResponse = components['schemas']['SpendingByCategoryResponse']
 type SpendingTransactionsResponse = components['schemas']['SpendingTransactionsResponse']
+type TrendResponse = components['schemas']['TrendResponse']
+type TrendMonthResponse = components['schemas']['TrendMonthResponse']
 type Currency = components['schemas']['Currency']
 
 /**
  * One expense, or one line of a split expense, as the fake keeps it. The lines of a split share an `id` and
- * each has its own category and part.
+ * each has its own category and part. One in an income category is income received, for the trends report.
  */
 export type FakeExpense = {
   id: string
@@ -49,6 +51,8 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
     reportsAsked: [] as Asked[],
     /** Every query of a category's transactions, as sent. */
     transactionsAsked: [] as Asked[],
+    /** Every query of the trends report, as sent. */
+    trendsAsked: [] as Asked[],
     /** When set, every request is answered with this status. */
     failWith: undefined as number | undefined,
   }
@@ -173,9 +177,78 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
       }
       return HttpResponse.json(response)
     }),
+    http.get(url('/api/v1/reports/trends'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      state.trendsAsked.push(Object.fromEntries(query))
+      if (state.failWith) return problem(state.failWith)
+      const [from, to, categoryId, accountId] = [query.get('from'), query.get('to'), query.get('categoryId'), query.get('accountId')]
+      const payee = query.get('payee')?.trim().toLowerCase() || null
+      if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
+      if (categoryId === null && payee === null) return problem(400, { errors: { categoryId: ['Choose a category or a payee.'] } })
+      const followed = categoryId === null ? null : category(categoryId)
+      if (categoryId !== null && !followed) return problem(404)
+      const isIncome = followed?.kind === 'income'
+
+      const counts = (expense: FakeExpense) => {
+        const of = category(expense.categoryId)
+        if (!of) return false
+        if (followed && expense.categoryId !== followed.id && of.parentId !== followed.id) return false
+        if (!followed && of.kind === 'income') return false
+        return payee === null || expense.payee?.trim().toLowerCase() === payee
+      }
+      const sum = (expenses: FakeExpense[]) => ({
+        total: expenses.reduce((total, expense) => total + Number(expense.spent ?? 0), 0),
+        notConverted: new Set(expenses.filter((expense) => expense.spent === null).map((expense) => expense.id)).size,
+      })
+      const trend = (from: string, to: string) => {
+        const followedHere = inPeriod(from, to, accountId).filter(counts)
+        const months: TrendMonthResponse[] = []
+        let before: number | null = null
+        for (let start = from; start <= to; start = firstOfNextMonth(start)) {
+          const end = [lastOfMonth(start), to].toSorted()[0]!
+          const month = sum(followedHere.filter((expense) => expense.date >= start && expense.date <= end))
+          months.push({ from: start, to: end, total: text(month.total), notConverted: month.notConverted, change: before === null ? null : changeOf(month.total, before) })
+          before = month.total
+        }
+        return { from, to, ...sum(followedHere), months }
+      }
+
+      const current = trend(from, to)
+      const previousPeriod = query.get('compare') === 'true' ? previous(from, to) : null
+      const before = previousPeriod && trend(previousPeriod.from, previousPeriod.to)
+      const response: TrendResponse = {
+        from,
+        to,
+        currency: baseCurrency,
+        category: followed ? view(followed) : null,
+        payee: query.get('payee')?.trim() || null,
+        isIncome,
+        total: text(current.total),
+        notConverted: current.notConverted,
+        months: current.months,
+        previous: before && { ...before, total: text(before.total) },
+        change: before && changeOf(current.total, before.total),
+      }
+      return HttpResponse.json(response)
+    }),
   )
 
   return state
+}
+
+/** How a total moved from the one before, as the API's PeriodChange works it out: none as a percentage from zero. */
+function changeOf(total: number, before: number) {
+  return { amount: (total - before).toFixed(2), percent: before === 0 ? null : Math.round(((total - before) * 1000) / Math.abs(before)) / 10 }
+}
+
+function firstOfNextMonth(date: string) {
+  const [year, month] = date.split('-').map(Number)
+  return new Date(Date.UTC(year!, month!, 1)).toISOString().slice(0, 10)
+}
+
+function lastOfMonth(date: string) {
+  const [year, month] = date.split('-').map(Number)
+  return new Date(Date.UTC(year!, month!, 0)).toISOString().slice(0, 10)
 }
 
 /** The period a report period is compared with, as the API's ReportPeriod.Previous works it out. */
