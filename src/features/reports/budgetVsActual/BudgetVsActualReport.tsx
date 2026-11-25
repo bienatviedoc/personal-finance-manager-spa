@@ -61,14 +61,14 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
         <p className="text-muted-foreground">{t('reports.budgetVsActual.noBudgets')}</p>
       ) : filters.view === 'chart' ? (
         <BarChart
-      label={t('reports.budgetVsActual.chart')}
-      categories={report.items.map((item) => item.category.name)}
-      series={[
-        { ...series.budgeted, name: t('reports.budgetVsActual.budgeted'), values: report.items.map((item) => Number(item.budgeted)) },
-        { ...series.spent, name: t('reports.budgetVsActual.spent'), values: report.items.map((item) => Number(item.spent)) },
-      ]}
-      formatValue={(value) => formatAxisAmount(value, locale)}
-    />
+          label={t('reports.budgetVsActual.chart')}
+          categories={report.items.map((item) => item.category.name)}
+          series={[
+            { ...series.budgeted, name: t('reports.budgetVsActual.budgeted'), values: report.items.map((item) => Number(item.budgeted)) },
+            { ...series.spent, name: t('reports.budgetVsActual.spent'), values: report.items.map((item) => Number(item.spent)) },
+          ]}
+          formatValue={(value) => formatAxisAmount(value, locale)}
+        />
       ) : (
         <BudgetTable report={report} />
       )}

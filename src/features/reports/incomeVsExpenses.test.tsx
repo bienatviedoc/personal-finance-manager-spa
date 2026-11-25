@@ -57,7 +57,7 @@ describe('the income vs expenses report', () => {
       ['March 2026', '₫10,000,000', '₫12,500,000', '-₫2,500,000', '-25%'],
       ['Whole period', '₫30,000,000', '₫27,500,000', '₫2,500,000', '8.3%'],
     ])
-    expect(api.reportsAsked.at(-1)).toEqual({ from: '2026-01-01', to: '2026-03-31' })
+    expect(api.incomeVsExpensesAsked.at(-1)).toEqual({ from: '2026-01-01', to: '2026-03-31' })
   })
 
   it('shows the savings rate of the whole period beside its income, expenses and net', async () => {
@@ -75,8 +75,27 @@ describe('the income vs expenses report', () => {
     setUp()
     renderApp(firstQuarter)
 
-    expect(await screen.findByRole('img', { name: 'Income and expenses per month, with net' })).toBeInTheDocument()
+    const chart = await screen.findByRole('img', { name: 'Income and expenses per month, with net' })
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(within(chart).queryByText('Net, previous period')).not.toBeInTheDocument()
+  })
+
+  it('writes the amounts on the chart axis short, as every chart axis does', async () => {
+    setUp()
+    renderApp(firstQuarter)
+
+    const chart = await screen.findByRole('img', { name: 'Income and expenses per month, with net' })
+    await waitFor(() => expect(within(chart).getByText('21M')).toBeInTheDocument())
+    expect(within(chart).queryByText('₫21,000,000')).not.toBeInTheDocument()
+  })
+
+  it('draws the previous period\'s net beside the months when compared, month by month in order', async () => {
+    setUp()
+    renderApp(`${firstQuarter}&compare=true`)
+
+    const chart = await screen.findByRole('img', { name: 'Income and expenses per month, with net' })
+    await waitFor(() => expect(within(chart).getByText('Net, previous period')).toBeInTheDocument())
+    expect(within(chart).getByText('Net')).toBeInTheDocument()
   })
 
   it('compares with the previous period', async () => {
@@ -90,7 +109,7 @@ describe('the income vs expenses report', () => {
     expect(previous).toHaveTextContent('Expenses₫6,000,000')
     expect(previous).toHaveTextContent('Net₫2,000,000')
     expect(previous).toHaveTextContent('Savings rate25%')
-    expect(api.reportsAsked.at(-1)).toMatchObject({ compare: 'true' })
+    expect(api.incomeVsExpensesAsked.at(-1)).toMatchObject({ compare: 'true' })
     expect(await rowsOf('Income vs expenses, previous period')).toEqual([
       ['October 2025', '₫0', '₫0', '₫0', '–'],
       ['November 2025', '₫0', '₫6,000,000', '-₫6,000,000', '–'],

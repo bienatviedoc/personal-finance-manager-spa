@@ -630,6 +630,7 @@
       "month": "Tháng",
       "chart": "Thu nhập và chi tiêu theo tháng, kèm chênh lệch",
       "table": "Thu nhập và chi tiêu",
+      "previousNet": "Chênh lệch, kỳ trước",
       "previousTable": "Thu nhập và chi tiêu, kỳ trước"
     },
     "budgetVsActual": {

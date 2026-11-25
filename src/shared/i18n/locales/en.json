@@ -630,6 +630,7 @@
       "month": "Month",
       "chart": "Income and expenses per month, with net",
       "table": "Income vs expenses",
+      "previousNet": "Net, previous period",
       "previousTable": "Income vs expenses, previous period"
     },
     "budgetVsActual": {
