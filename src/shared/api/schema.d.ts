@@ -699,6 +699,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/budget-vs-actual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Am I within budget: each category's budgets against what was spent against them, in the user's base currency, over the whole budget months the period touches (one month, or several summed). A budget counts what was spent in its own month, in its category and, for a top-level one, in its subcategories, as on the budget screen; the account filter narrows what counts as spent, never the budgets. What was spent in a month where no budget covered its category is listed apart under unbudgeted. An expense that is not converted is left out of spent and counted in notConverted. Not compared with the previous period. */
+        get: operations["GetBudgetVsActual"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/trends": {
         parameters: {
             query?: never;
@@ -832,6 +849,43 @@ export interface components {
         /** @enum {unknown} */
         BudgetState: "onTrack" | "warning" | "over";
         BudgetTotalsResponse: {
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        BudgetVsActualItemResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            /** Format: int32 */
+            months: number | string;
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            state: components["schemas"]["BudgetVsActualState"];
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        BudgetVsActualResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            months: number | string;
+            currency: components["schemas"]["Currency"];
+            /** Format: int32 */
+            warningPercent: number | string;
+            items: components["schemas"]["BudgetVsActualItemResponse"][];
+            totals: components["schemas"]["BudgetVsActualTotalsResponse"];
+            unbudgeted: components["schemas"]["UnbudgetedSpendingResponse"][];
+            unbudgetedTotal: components["schemas"]["UnbudgetedTotalResponse"];
+        };
+        /** @enum {unknown} */
+        BudgetVsActualState: "onTrack" | "warning" | "over";
+        BudgetVsActualTotalsResponse: {
             budgeted: string;
             spent: string;
             remaining: string;
@@ -1267,6 +1321,17 @@ export interface components {
         TwoFactorSetupResponse: {
             key: string;
             authenticatorUri: string;
+        };
+        UnbudgetedSpendingResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            spent: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        UnbudgetedTotalResponse: {
+            spent: string;
+            /** Format: int32 */
+            notConverted: number | string;
         };
         UnmarkedTransferResponse: {
             expense: components["schemas"]["TransactionResponse"];
@@ -4081,6 +4146,49 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetBudgetVsActual: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetVsActualResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
