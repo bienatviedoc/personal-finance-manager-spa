@@ -5,6 +5,7 @@ import { apiUrl as url, problem, server, testUser } from './server'
 
 type SpendingByCategoryResponse = components['schemas']['SpendingByCategoryResponse']
 type SpendingTransactionsResponse = components['schemas']['SpendingTransactionsResponse']
+type IncomeVsExpensesResponse = components['schemas']['IncomeVsExpensesResponse']
 type TrendResponse = components['schemas']['TrendResponse']
 type TrendMonthResponse = components['schemas']['TrendMonthResponse']
 type Currency = components['schemas']['Currency']
@@ -28,9 +29,20 @@ export type FakeExpense = {
   isRefund?: boolean
 }
 
+/** One income, or one line of a split income, as the fake keeps it. */
+export type FakeIncome = {
+  id: string
+  date: string
+  categoryId: string
+  accountId?: string
+  /** What it brought in, in the base currency; null while it is not converted. */
+  amount: string | null
+}
+
 type Options = {
   categories?: FakeCategory[]
   expenses?: FakeExpense[]
+  income?: FakeIncome[]
   baseCurrency?: Currency
 }
 
@@ -44,9 +56,10 @@ type Asked = Record<string, string>
  * decimal, what is not converted left out and counted, and with `compare` the previous period (as many whole
  * months before whole months, otherwise as many days). A test fake may do arithmetic on amounts; the app never does.
  */
-export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], baseCurrency = testUser.baseCurrency }: Options = {}) {
+export function fakeReportsApi({ categories = defaultTestCategories, expenses = [], income = [], baseCurrency = testUser.baseCurrency }: Options = {}) {
   const state = {
     expenses: [...expenses],
+    income: [...income],
     /** Every query of the report, as sent. */
     reportsAsked: [] as Asked[],
     /** Every query of a category's transactions, as sent. */
@@ -136,6 +149,54 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         notConverted,
         items: rows,
         previous: previousPeriod && before ? { ...previousPeriod, total: text(totalOf(before).total), notConverted: totalOf(before).notConverted } : null,
+      }
+      return HttpResponse.json(response)
+    }),
+    http.get(url('/api/v1/reports/income-vs-expenses'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      state.reportsAsked.push(Object.fromEntries(query))
+      if (state.failWith) return problem(state.failWith)
+      const [from, to] = [query.get('from'), query.get('to')]
+      if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
+      const [accountId, onlyIn] = [query.get('accountId'), query.get('categoryId')]
+      const counts = (each: { categoryId: string; accountId?: string }) =>
+        (accountId === null || each.accountId === accountId) &&
+        (onlyIn === null || each.categoryId === onlyIn || category(each.categoryId)?.parentId === onlyIn)
+
+      const flowOf = (first: string, last: string) => {
+        const coming = state.income.filter((each) => each.date >= first && each.date <= last && counts(each))
+        const going = state.expenses.filter((each) => each.date >= first && each.date <= last && counts(each))
+        const incomeTotal = coming.reduce((sum, each) => sum + Number(each.amount ?? 0), 0)
+        const expenses = going.reduce((sum, each) => sum + Number(each.spent ?? 0), 0)
+        const net = incomeTotal - expenses
+        return {
+          income: text(incomeTotal),
+          expenses: text(expenses),
+          net: text(net),
+          savingsRate: incomeTotal > 0 ? Math.round((net * 1000) / incomeTotal) / 10 : null,
+          notConverted: new Set([...coming.filter((each) => each.amount === null), ...going.filter((each) => each.spent === null)].map((each) => each.id)).size,
+        }
+      }
+      const monthsOf = (first: string, last: string) => {
+        const months = []
+        for (let month = `${first.slice(0, 7)}-01`; month <= last; ) {
+          const [year, number] = month.split('-').map(Number) as [number, number]
+          const lastDay = new Date(Date.UTC(year, number, 0)).toISOString().slice(0, 10)
+          const [start, end] = [month < first ? first : month, lastDay > last ? last : lastDay]
+          months.push({ month, from: start, to: end, ...flowOf(start, end) })
+          month = new Date(Date.UTC(year, number, 1)).toISOString().slice(0, 10)
+        }
+        return months
+      }
+      const before = query.get('compare') === 'true' ? previous(from, to) : null
+
+      const response: IncomeVsExpensesResponse = {
+        from,
+        to,
+        currency: baseCurrency,
+        total: flowOf(from, to),
+        months: monthsOf(from, to),
+        previous: before && { ...before, total: flowOf(before.from, before.to), months: monthsOf(before.from, before.to) },
       }
       return HttpResponse.json(response)
     }),

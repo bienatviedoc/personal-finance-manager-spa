@@ -8,6 +8,7 @@ import type { CategoryKind } from '@/features/categories'
 import { ReportFrame } from '../frame/ReportFrame'
 import type { ReportFilters } from '../frame/useReportFilters'
 import { spendingDrillDown } from '../spending/drillDown'
+import { IncomeVsExpensesReport } from '../income/IncomeVsExpensesReport'
 import { SpendingByCategoryReport } from '../spending/SpendingByCategoryReport'
 import { TrendsReport } from '../trends/TrendsReport'
 
@@ -37,6 +38,12 @@ const reports: Report[] = [
     title: 'reports.trends.title',
     canCompare: true,
     render: (filters) => <TrendsReport filters={filters} />,
+  },
+  {
+    path: 'income-vs-expenses',
+    title: 'reports.income.title',
+    canCompare: true,
+    render: (filters) => <IncomeVsExpensesReport filters={filters} />,
   },
 ]
 

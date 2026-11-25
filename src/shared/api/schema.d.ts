@@ -716,6 +716,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/income-vs-expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Am I saving: income, expenses and net in each calendar month of a period, with the savings rate, and the same over the whole period, in the user's base currency. Expenses are spent: refunds lower them. Net is income minus expenses; the savings rate is net as a percentage of income, to one decimal, and none when income is not above zero. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers are neither income nor expenses and never count. With categoryId, only the lines in that category and its subcategories count. */
+        get: operations["GetIncomeVsExpenses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -907,6 +924,25 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        IncomeAndExpensesResponse: {
+            income: string;
+            expenses: string;
+            net: string;
+            /** Format: double */
+            savingsRate: null | number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        IncomeVsExpensesResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            total: components["schemas"]["IncomeAndExpensesResponse"];
+            months: components["schemas"]["MonthIncomeAndExpensesResponse"][];
+            previous: null | components["schemas"]["PreviousIncomeVsExpensesResponse"];
+        };
         InstitutionBaseCurrencyTotalResponse: {
             /** Format: uuid */
             institutionId: null | string;
@@ -944,6 +980,21 @@ export interface components {
             /** Format: uuid */
             incomeId: string;
         };
+        MonthIncomeAndExpensesResponse: {
+            /** Format: date */
+            month: string;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            income: string;
+            expenses: string;
+            net: string;
+            /** Format: double */
+            savingsRate: null | number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
         NewRecoveryCodesRequest: {
             password: string;
         };
@@ -955,6 +1006,14 @@ export interface components {
             amount: string;
             /** Format: double */
             percent: null | number | string;
+        };
+        PreviousIncomeVsExpensesResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            total: components["schemas"]["IncomeAndExpensesResponse"];
+            months: components["schemas"]["MonthIncomeAndExpensesResponse"][];
         };
         PreviousSpendingResponse: {
             /** Format: date */
@@ -4134,6 +4193,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetIncomeVsExpenses: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+                compare?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncomeVsExpensesResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
