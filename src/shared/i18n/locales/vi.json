@@ -570,6 +570,23 @@
       "amount": "Số tiền",
       "refund": "Hoàn tiền",
       "split": "Giao dịch chia nhiều danh mục"
+    },
+    "trends": {
+      "title": "Xu hướng",
+      "chooseWhat": "Chọn một danh mục hoặc nhập một bên nhận để theo dõi theo từng tháng.",
+      "payee": "Bên nhận / bên trả",
+      "payeeHint": "Theo dõi một bên nhận, chỉ trong danh mục đã chọn nếu có.",
+      "categoryAndPayee": "{{category}}, {{payee}}",
+      "totalSpent": "Tổng chi",
+      "totalReceived": "Tổng thu",
+      "changeFromPrevious": "Thay đổi so với kỳ trước",
+      "chart": "Xu hướng của {{name}}",
+      "table": "Xu hướng của {{name}}",
+      "month": "Tháng",
+      "total": "Tổng",
+      "change": "Thay đổi",
+      "changePercent": "Thay đổi %",
+      "previousTotal": "Kỳ trước"
     }
   },
   "institutions": {

@@ -9,6 +9,7 @@ import { ReportFrame } from '../frame/ReportFrame'
 import type { ReportFilters } from '../frame/useReportFilters'
 import { spendingDrillDown } from '../spending/drillDown'
 import { SpendingByCategoryReport } from '../spending/SpendingByCategoryReport'
+import { TrendsReport } from '../trends/TrendsReport'
 
 /** A report: its address under `/reports`, its name, how the frame is set up for it, and the report itself. */
 type Report = {
@@ -30,6 +31,12 @@ const reports: Report[] = [
     canCompare: true,
     drillDown: spendingDrillDown,
     render: (filters) => <SpendingByCategoryReport filters={filters} />,
+  },
+  {
+    path: 'trends',
+    title: 'reports.trends.title',
+    canCompare: true,
+    render: (filters) => <TrendsReport filters={filters} />,
   },
 ]
 
