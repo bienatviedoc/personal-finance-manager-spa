@@ -4,6 +4,7 @@ import type { ParseKeys } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { BarChart } from '@/shared/charts'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { formatMonth, monthOf } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
@@ -40,8 +41,26 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
   const { t } = useTranslation()
   const locale = useLocale()
 
-  return filters.view === 'chart' ? (
-    <BarChart
+  const { currency, totals } = report
+  const [first, last] = [formatMonth(monthOf(report.from), locale), formatMonth(monthOf(report.to), locale)]
+
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        {Number(report.months) === 1 ? t('reports.budgetVsActual.oneMonth', { month: first }) : t('reports.budgetVsActual.months', { first, last })}
+      </p>
+      <dl className="grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-3">
+        <Figure label={t('reports.budgetVsActual.budgeted')} amount={totals.budgeted} currency={currency} />
+        <Figure label={t('reports.budgetVsActual.spent')} amount={totals.spent} currency={currency} />
+        <Figure label={t('reports.budgetVsActual.remaining')} amount={totals.remaining} currency={currency} />
+        <div className="sm:col-span-3">
+          <NotConverted count={Number(totals.notConverted)} />
+        </div>
+      </dl>
+      {report.items.length === 0 ? (
+        <p className="text-muted-foreground">{t('reports.budgetVsActual.noBudgets')}</p>
+      ) : filters.view === 'chart' ? (
+        <BarChart
       label={t('reports.budgetVsActual.chart')}
       categories={report.items.map((item) => item.category.name)}
       series={[
@@ -50,8 +69,82 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
       ]}
       formatValue={(value) => formatAxisAmount(value, locale)}
     />
-  ) : (
-    <BudgetTable report={report} />
+      ) : (
+        <BudgetTable report={report} />
+      )}
+      <Unbudgeted report={report} />
+    </>
+  )
+}
+
+function Figure({ label, amount, currency }: { label: string; amount: string; currency: Currency }) {
+  return (
+    <div>
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="text-lg font-medium tabular-nums">
+        <Money amount={amount} currency={currency} />
+      </dd>
+    </div>
+  )
+}
+
+/**
+ * What was spent in a month where no budget covered its category, by category, most first (spec RPT-6): listed
+ * apart, in either view, since there is nothing to set it against.
+ */
+function Unbudgeted({ report }: { report: BudgetVsActual }) {
+  const { t } = useTranslation()
+  const headingId = useId()
+  const cell = 'px-3 py-2'
+  const number = cn(cell, 'text-right tabular-nums')
+  const { currency, unbudgeted, unbudgetedTotal } = report
+  if (unbudgeted.length === 0) return null
+
+  return (
+    <section aria-labelledby={headingId} className="space-y-3">
+      <h3 id={headingId} className="text-lg font-semibold">
+        {t('reports.budgetVsActual.unbudgeted')}
+      </h3>
+      <p className="text-sm text-muted-foreground">{t('reports.budgetVsActual.unbudgetedHint')}</p>
+      <div className="overflow-x-auto rounded-lg border">
+        <table aria-labelledby={headingId} className="w-full text-sm">
+          <thead className="border-b text-left text-muted-foreground">
+            <tr>
+              <th scope="col" className={cell}>
+                {t('reports.budgetVsActual.category')}
+              </th>
+              <th scope="col" className={cn(number, 'font-medium')}>
+                {t('reports.budgetVsActual.spent')}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {unbudgeted.map((item) => (
+              <tr key={item.category.id}>
+                <th scope="row" className={cn(cell, 'text-left font-normal')}>
+                  {item.category.name}
+                </th>
+                <td className={number}>
+                  <Money amount={item.spent} currency={currency} />
+                  <NotConverted count={Number(item.notConverted)} short />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="border-t font-medium">
+            <tr>
+              <th scope="row" className={cn(cell, 'text-left')}>
+                {t('reports.budgetVsActual.total')}
+              </th>
+              <td className={number}>
+                <Money amount={unbudgetedTotal.spent} currency={currency} />
+                <NotConverted count={Number(unbudgetedTotal.notConverted)} short />
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
   )
 }
 
@@ -96,6 +189,11 @@ function BudgetTable({ report }: { report: BudgetVsActual }) {
             <tr key={item.category.id}>
               <th scope="row" className={cn(cell, 'text-left font-normal', item.category.parentId && 'pl-8')}>
                 {item.category.name}
+                {Number(item.months) < Number(report.months) && (
+                  <span className="block text-xs text-muted-foreground">
+                    {t('reports.budgetVsActual.budgetedMonths', { count: Number(item.months), total: Number(report.months) })}
+                  </span>
+                )}
               </th>
               <td className={number}>
                 <Money amount={item.budgeted} currency={currency} />

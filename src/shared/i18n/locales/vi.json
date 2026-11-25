@@ -636,7 +636,14 @@
         "warning": "Cảnh báo",
         "over": "Vượt ngân sách"
       },
-      "chart": "Ngân sách so với đã chi theo danh mục"
+      "chart": "Ngân sách so với đã chi theo danh mục",
+      "oneMonth": "Tháng ngân sách {{month}}",
+      "months": "Các tháng ngân sách từ {{first}} đến {{last}}, cộng dồn",
+      "budgetedMonths_one": "{{count}} trên {{total}} tháng",
+      "budgetedMonths_other": "{{count}} trên {{total}} tháng",
+      "noBudgets": "Chưa đặt ngân sách nào trong các tháng này.",
+      "unbudgeted": "Đã chi không có ngân sách",
+      "unbudgetedHint": "Đã chi trong tháng mà cả danh mục lẫn danh mục cha đều không có ngân sách."
     }
   },
   "institutions": {

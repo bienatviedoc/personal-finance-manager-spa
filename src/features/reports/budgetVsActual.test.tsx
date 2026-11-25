@@ -56,4 +56,48 @@ describe('the budget vs actual report', () => {
     await user.click(screen.getByRole('radio', { name: 'Table' }))
     expect(await rowsOf('Budget vs actual')).toHaveLength(3)
   })
+
+  it('lists apart, in either view, the categories where something was spent with no budget', async () => {
+    setUp({
+      budgets: [
+        { month: '2026-03', categoryId: 'c-groceries', amount: '2000000' },
+        { month: '2026-03', categoryId: 'c-transport', amount: '500000' },
+      ],
+      expenses: [
+        { id: 't-market', date: '2026-03-02', categoryId: 'c-groceries', spent: '800000' },
+        { id: 't-coffee', date: '2026-03-03', categoryId: 'c-eating-out', spent: '150000' },
+        { id: 't-taxi', date: '2026-02-20', categoryId: 'c-transport', spent: '200000' },
+      ],
+    })
+    renderApp(`${report}?period=custom&from=2026-02-01&to=2026-03-31`)
+
+    expect(await screen.findByRole('heading', { name: 'Spent with no budget' })).toBeInTheDocument()
+    expect(await rowsOf('Spent with no budget')).toEqual([
+      ['Transport', '₫200,000'],
+      ['Eating out', '₫150,000'],
+      ['Total', '₫350,000'],
+    ])
+  })
+
+  it('sums each category over a range of months, saying how many it has a budget in', async () => {
+    setUp({
+      budgets: [
+        { month: '2026-02', categoryId: 'c-transport', amount: '500000' },
+        { month: '2026-03', categoryId: 'c-transport', amount: '500000' },
+        { month: '2026-03', categoryId: 'c-food', amount: '1000000' },
+      ],
+      expenses: [
+        { id: 't-taxi', date: '2026-02-20', categoryId: 'c-transport', spent: '700000' },
+        { id: 't-bus', date: '2026-03-10', categoryId: 'c-transport', spent: '400000' },
+      ],
+    })
+    renderApp(`${report}?period=custom&from=2026-02-10&to=2026-03-20&view=table`)
+
+    expect(await screen.findByText('Budget months February 2026 to March 2026, summed')).toBeInTheDocument()
+    expect(await rowsOf('Budget vs actual')).toEqual([
+      ['Food & drink1 of 2 months', '₫1,000,000', '₫0', '₫1,000,000', '0%', 'On track'],
+      ['Transport', '₫1,000,000', '₫1,100,000', '-₫100,000', '110%', 'Over budget'],
+      ['Total', '₫2,000,000', '₫1,100,000', '₫900,000', '', ''],
+    ])
+  })
 })
