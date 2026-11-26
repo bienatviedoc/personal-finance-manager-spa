@@ -113,6 +113,15 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   `useRestoreTransaction`). Each shows when it can be restored until, the date the API answers, on the user's calendar.
   Restoring a leg of a transfer restores the whole transfer; the API decides what can still be restored, and its
   worker removes the rest for good. Restoring loads the lists, balances, budgets and reports again, like any change.
+- **Reconciliation** (spec ACC-7, section 3 rule 11; see the glossary). Each account on the accounts screen links to
+  `/accounts/:accountId/reconcile` (`features/reconciliations`), which works on the account's latest reconciliation
+  (`latestReconciliationQuery`): the user enters the statement date and closing balance, ticks the transactions
+  the statement shows (`transactionsToTickQuery`, `useTick`), and completes it once the difference is exactly zero.
+  The difference is the API's, as it answers each tick; the SPA adds nothing up and never adds an adjustment.
+  Completing locks what is ticked, and reopening the latest one unlocks it; both load the transactions again. A
+  reconciled transaction is marked in the list and offers no delete; its edit says what is locked, and the
+  API refuses a change to the amount, date, account or type on that field. A transfer either of whose legs is
+  reconciled is locked the same way and offers no unmark.
 - **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
   `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
   the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change
@@ -255,6 +264,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeTransactionsApi` | `/api/v1/transactions`, and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
+| `fakeReconciliationsApi` | `/api/v1/accounts/{accountId}/reconciliations` and `/api/v1/reconciliations`: starting, ticking, completing, reopening and cancelling, over the accounts and transactions the other fakes hold; completing sets `isReconciled` on what is ticked, which `fakeTransactionsApi` then locks |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual` and `/api/v1/reports/net-worth` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, …), and can fail an answer |
 
