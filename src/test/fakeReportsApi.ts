@@ -315,6 +315,8 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
       if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
       if (interval !== 'day' && interval !== 'week') return problem(400, { errors: { interval: ['Choose one of: day, week.'] } })
       const own = accountId === null ? undefined : state.holdings.find((holding) => holding.accountId === accountId)
+      // As the API answers it: an account the user does not have is not found.
+      if (accountId !== null && !own) return problem(404)
 
       const items = closingDays(from, to, interval).map((day) => {
         const held = heldOn(state.holdings, day, accountId)
