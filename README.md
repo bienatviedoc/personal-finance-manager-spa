@@ -213,6 +213,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   and its period (`net-worth-2026-01-01-2026-03-31.csv`). Columns take the API's names, amounts stay as the API
   answers them, plain decimals beside a `currency` column, and dates are `YYYY-MM-DD`; a report that compares adds
   the period before. No report asks the API for a file.
+- **A CSV file is the same in every language.** Nothing in it is translated: a report whose rows are of more than one
+  kind starts each with a `row` column, a fixed code in English saying what the row is, and its other columns hold only
+  numbers, codes, dates and what the user named. Income vs expenses: `month`, `total`, `previousMonth`,
+  `previousTotal`. Budget vs actual: `budget`, `total`, `unbudgeted` (spent in a category with no budget) and
+  `unbudgetedTotal`. Spending by category: `category`, and `directly` for what the category drilled into spent in
+  none of its subcategories. A total names no category; its `category` is empty.
 - **The transaction list downloads as CSV** from the API (`useExportTransactions`, `GET /api/v1/export/transactions.csv`)
   with the filters and sort order in the address: every transaction that passes, not only the pages loaded. A
   failure says so in a toast with a way to try again.

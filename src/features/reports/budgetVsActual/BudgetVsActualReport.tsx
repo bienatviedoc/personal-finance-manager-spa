@@ -45,11 +45,13 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
   const { currency, totals } = report
   const [first, last] = [formatMonth(monthOf(report.from), locale), formatMonth(monthOf(report.to), locale)]
 
+  // Each row says what it is by a code of its own, so the file is the same in every language (see ExportCsv).
   const csv: ReportCsv = {
     name: 'budget-vs-actual',
-    columns: ['category', 'budgeted', 'spent', 'remaining', 'percentSpent', 'state', 'budgetedMonths', 'notConverted', 'currency'],
+    columns: ['row', 'category', 'budgeted', 'spent', 'remaining', 'percentSpent', 'state', 'budgetedMonths', 'notConverted', 'currency'],
     rows: [
       ...report.items.map((item) => [
+        'budget',
         item.category.name,
         item.budgeted,
         item.spent,
@@ -61,12 +63,12 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
         currency,
       ]),
       ...(report.items.length > 0
-        ? [[t('reports.budgetVsActual.total'), totals.budgeted, totals.spent, totals.remaining, null, null, null, totals.notConverted, currency]]
+        ? [['total', null, totals.budgeted, totals.spent, totals.remaining, null, null, null, totals.notConverted, currency]]
         : []),
       // What was spent with no budget, apart as the screen lists it, and its total.
-      ...report.unbudgeted.map((item) => [item.category.name, null, item.spent, null, null, 'unbudgeted', null, item.notConverted, currency]),
+      ...report.unbudgeted.map((item) => ['unbudgeted', item.category.name, null, item.spent, null, null, null, null, item.notConverted, currency]),
       ...(report.unbudgeted.length > 0
-        ? [[t('reports.budgetVsActual.unbudgeted'), null, report.unbudgetedTotal.spent, null, null, 'unbudgeted', null, report.unbudgetedTotal.notConverted, currency]]
+        ? [['unbudgetedTotal', null, null, report.unbudgetedTotal.spent, null, null, null, null, report.unbudgetedTotal.notConverted, currency]]
         : []),
     ],
   }
