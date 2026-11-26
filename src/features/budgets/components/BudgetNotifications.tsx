@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { formatMonth } from '@/shared/dates'
+import { formatMonth, isCalendarMonth } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { budgetNotificationsQuery, useReadAllBudgetNotifications, useReadBudgetNotification, type BudgetNotification } from '../api/budgetNotifications'
-import type { BudgetMonth } from '../budgetMonth'
 import { budgetStates } from './budgetStates'
 
 /**
@@ -77,7 +76,9 @@ function Item({ notification, onChoose }: { notification: BudgetNotification; on
   const { t } = useTranslation()
   const locale = useLocale()
   const { icon: Icon, text } = budgetStates[notification.state]
-  const values = { name: notification.category.name, month: formatMonth(notification.month as BudgetMonth, locale), percent: notification.percentSpent }
+  // The API writes a budget month as 2026-11; anything else is shown as it came rather than misread.
+  const month = isCalendarMonth(notification.month) ? formatMonth(notification.month, locale) : notification.month
+  const values = { name: notification.category.name, month, percent: notification.percentSpent }
   const unread = notification.readAt === null
 
   return (
