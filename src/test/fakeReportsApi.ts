@@ -7,6 +7,7 @@ type SpendingByCategoryResponse = components['schemas']['SpendingByCategoryRespo
 type SpendingTransactionsResponse = components['schemas']['SpendingTransactionsResponse']
 type IncomeVsExpensesResponse = components['schemas']['IncomeVsExpensesResponse']
 type NetWorthResponse = components['schemas']['NetWorthResponse']
+type CashFlowResponse = components['schemas']['CashFlowResponse']
 type TrendResponse = components['schemas']['TrendResponse']
 type TrendMonthResponse = components['schemas']['TrendMonthResponse']
 type Currency = components['schemas']['Currency']
@@ -56,6 +57,10 @@ export type FakeHolding = {
   balance: string | null
   /** A credit card or loan: a liability. */
   holdsAmountOwed?: boolean
+  /** The account's own currency, which cash flow of that account alone is in; the base currency when left out. */
+  currency?: Currency
+  /** The balance in the account's own currency, for cash flow of that account alone; the same as balance when left out. */
+  ownBalance?: string
 }
 
 type Options = {
@@ -85,6 +90,8 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
     expenses: [...expenses],
     income: [...income],
     holdings: [...holdings],
+    /** Every query of the cash flow report, as sent. */
+    cashFlowAsked: [] as Asked[],
     /** Every query of the net worth report, as sent. */
     netWorthAsked: [] as Asked[],
     /** Every query of the spending by category report, as sent. */
@@ -288,12 +295,8 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
       if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
 
       const items = monthsOf(from, to).map(({ to: day }) => {
-        const held = new Map<string, FakeHolding>()
-        for (const holding of state.holdings.toSorted((a, b) => a.from.localeCompare(b.from))) {
-          if (holding.from <= day && (accountId === null || holding.accountId === accountId)) held.set(holding.accountId, holding)
-        }
         let [assets, liabilities, notConverted] = [0, 0, 0]
-        for (const holding of held.values()) {
+        for (const holding of heldOn(state.holdings, day, accountId)) {
           if (holding.balance === null) notConverted++
           else if (holding.holdsAmountOwed) liabilities -= Number(holding.balance)
           else assets += Number(holding.balance)
@@ -302,6 +305,36 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
       })
 
       const response: NetWorthResponse = { from, to, currency: baseCurrency, items }
+      return HttpResponse.json(response)
+    }),
+    http.get(url('/api/v1/reports/cash-flow'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      state.cashFlowAsked.push(Object.fromEntries(query))
+      if (state.failWith) return problem(state.failWith)
+      const [from, to, accountId, interval] = [query.get('from'), query.get('to'), query.get('accountId'), query.get('interval') ?? 'day']
+      if (!isDate(from) || !isDate(to) || to < from) return problem(400, { errors: { from: ['Enter a date as YYYY-MM-DD.'] } })
+      if (interval !== 'day' && interval !== 'week') return problem(400, { errors: { interval: ['Choose one of: day, week.'] } })
+      const own = accountId === null ? undefined : state.holdings.find((holding) => holding.accountId === accountId)
+
+      const items = closingDays(from, to, interval).map((day) => {
+        const held = heldOn(state.holdings, day, accountId)
+        let [balance, notConverted] = [0, 0]
+        for (const holding of held) {
+          const value = own ? (holding.ownBalance ?? holding.balance) : holding.balance
+          if (value === null) notConverted++
+          else balance += Number(value)
+        }
+        return { date: day, balance: text(balance), notConverted }
+      })
+
+      const response: CashFlowResponse = {
+        from,
+        to,
+        interval,
+        currency: own ? (own.currency ?? baseCurrency) : baseCurrency,
+        accountId: own ? own.accountId : null,
+        items,
+      }
       return HttpResponse.json(response)
     }),
     http.get(url('/api/v1/reports/trends'), ({ request }) => {
@@ -442,6 +475,25 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
   )
 
   return state
+}
+
+/** Each account's latest holding on or before a day, of one account or all, as a balance at the end of that day. */
+function heldOn(holdings: FakeHolding[], day: string, accountId: string | null) {
+  const held = new Map<string, FakeHolding>()
+  for (const holding of holdings.toSorted((a, b) => a.from.localeCompare(b.from))) {
+    if (holding.from <= day && (accountId === null || holding.accountId === accountId)) held.set(holding.accountId, holding)
+  }
+  return [...held.values()]
+}
+
+/** The days cash flow shows a balance at, as the API's ReportPeriod.ClosingDays has them: every day, or every Sunday and the last day. */
+function closingDays(from: string, to: string, interval: 'day' | 'week') {
+  const days = []
+  for (let day = new Date(`${from}T00:00:00Z`); day.toISOString().slice(0, 10) <= to; day = new Date(day.getTime() + 86_400_000)) {
+    const date = day.toISOString().slice(0, 10)
+    if (interval === 'day' || day.getUTCDay() === 0 || date === to) days.push(date)
+  }
+  return days
 }
 
 /** How a total moved from the one before, as the API's PeriodChange works it out: none as a percentage from zero. */

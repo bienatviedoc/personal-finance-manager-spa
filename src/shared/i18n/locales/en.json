@@ -771,6 +771,19 @@
       "liabilities": "Liabilities",
       "netWorth": "Net worth"
     },
+    "cashFlow": {
+      "title": "Cash flow",
+      "on": "Balance on {{date}}",
+      "chart": "Cash flow: the running balance over the period",
+      "table": "Running balance",
+      "date": "Date",
+      "balance": "Balance",
+      "interval": "Show the balance",
+      "intervals": {
+        "day": "Daily",
+        "week": "Weekly"
+      }
+    },
     "monthlySummary": {
       "title": "Monthly summary",
       "body": "Download one month's income, expenses, savings rate, spending by category and budgets as a PDF.",

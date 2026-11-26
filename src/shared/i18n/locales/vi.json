@@ -771,6 +771,19 @@
       "liabilities": "Nợ phải trả",
       "netWorth": "Giá trị tài sản ròng"
     },
+    "cashFlow": {
+      "title": "Dòng tiền",
+      "on": "Số dư ngày {{date}}",
+      "chart": "Dòng tiền: số dư lũy kế trong kỳ",
+      "table": "Số dư lũy kế",
+      "date": "Ngày",
+      "balance": "Số dư",
+      "interval": "Hiển thị số dư",
+      "intervals": {
+        "day": "Theo ngày",
+        "week": "Theo tuần"
+      }
+    },
     "monthlySummary": {
       "title": "Tổng kết tháng",
       "body": "Tải về thu nhập, chi tiêu, tỷ lệ tiết kiệm, chi tiêu theo danh mục và ngân sách của một tháng dưới dạng tệp PDF.",
