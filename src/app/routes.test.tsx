@@ -4,13 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeBudgetsApi } from '@/test/fakeBudgetsApi'
 import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
+import { fakeDashboardApi } from '@/test/fakeDashboardApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { fakeReportsApi } from '@/test/fakeReportsApi'
 import { failingScreen, renderApp } from '@/test/renderApp'
 
 describe('app navigation', () => {
-  // The Accounts, Budgets and Reports screens load these.
+  // The Dashboard, Accounts, Budgets and Reports screens load these.
   beforeEach(() => {
+    fakeDashboardApi()
     fakeAccountsApi()
     fakeInstitutionsApi()
     fakeCategoriesApi()

@@ -1,6 +1,7 @@
 import { infiniteQueryOptions, queryOptions, useMutation, useQueryClient, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { refreshAccountBalances } from '@/features/accounts'
 import { refreshBudgets } from '@/features/budgets'
+import { refreshDashboard } from '@/features/dashboard'
 import { refreshReports } from '@/features/reports'
 import { api } from '@/shared/api/client'
 import { fileNameOf, saveFile } from '@/shared/lib/saveFile'
@@ -247,13 +248,14 @@ function linesRefusedAsOne<Answer extends VersionedSaveResponse<Transaction>>(an
   return { ...answer, error: { errors: { ...errors, lines: [] } } }
 }
 
-/** Loads again everything a changed transaction or transfer shows in: the lists, an open transfer, the account balances, the budgets, the reports. */
+/** Loads again everything a changed transaction or transfer shows in: the lists, an open transfer, the account balances, the budgets, the reports, the dashboard. */
 export function refreshTransactions(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: transactionsKey }),
     refreshAccountBalances(queryClient),
     refreshBudgets(queryClient),
     refreshReports(queryClient),
+    refreshDashboard(queryClient),
   ])
 }
 

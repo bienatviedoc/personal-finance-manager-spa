@@ -175,6 +175,16 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **Last month's budgets are copied in one action** (BUD-4): the budget screen's "Copy budgets from …" button
   calls `useCopyBudgets(month)` with the month before the one shown. The API decides what is copied (never over a
   budget the month has, nor onto an archived category) and answers how many; the screen says that number.
+- **The dashboard** (spec RPT-1, `/`) is one request, `GET /api/v1/reports/dashboard` (`dashboardQuery` in
+  `features/dashboard`): the total balance, this month's income, expenses and net, budget status, the top five
+  categories, the ten latest transactions and what recurring rules will record or remind about in the next 30 days.
+  Every figure is the API's, worked out as the accounts screen and the reports work it out; the screen adds nothing
+  up, and signs an amount only as the transaction list does. Each card links to what is behind it: the accounts,
+  income vs expenses and spending by category for this month (`period=thisMonth`), the budgets, the transactions and
+  the recurring rules. Skeletons stand in for the cards while it loads, and a user with no account that is not
+  archived (`hasAccounts`) is shown how to add one instead. Nearly anything done elsewhere moves something on it, so
+  it is loaded again every time it opens (`staleTime: 0`), and a change to a transaction made on it (quick add) loads it
+  again through `refreshDashboard`.
 - **Reports share one frame** (spec sections 7 and 12). `ReportFrame` in `features/reports/frame` holds what every
   report has: the period (a preset, or dates the user chooses), the account and category filters, comparing with
   the period before, and the chart or table view, all in the address (`period`, `from`, `to`, `accountId`,
@@ -298,6 +308,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming, reminders to confirm or dismiss and the upcoming list (worked out from each rule's dates as the API does, from `today`, the test user's by default); nothing posts there, so a rule's next run date stays its start date until a reminder is answered |
 | `fakeReconciliationsApi` | `/api/v1/accounts/{accountId}/reconciliations` and `/api/v1/reconciliations`: starting, ticking, completing, reopening and cancelling, over the accounts and transactions the other fakes hold; completing sets `isReconciled` on what is ticked, which `fakeTransactionsApi` then locks |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
+| `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual` and `/api/v1/reports/net-worth` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, …), and can fail an answer |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 

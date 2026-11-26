@@ -1064,5 +1064,55 @@
       "notCancelled": "The reconciliation was not cancelled.",
       "notReopened": "The reconciliation was not reopened."
     }
+  },
+  "dashboard": {
+    "loading": "Loading the dashboard",
+    "errors": {
+      "notLoaded": "The dashboard could not be loaded."
+    },
+    "start": {
+      "title": "Start by adding an account",
+      "body": "Add the accounts your money is in, such as a bank account, a card or cash. Your balance, spending and budgets will show here.",
+      "action": "Add an account"
+    },
+    "balance": {
+      "title": "Total balance",
+      "link": "See accounts",
+      "notConverted": "Not included: {{amounts}}, for want of an exchange rate."
+    },
+    "thisMonth": {
+      "title": "This month",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net",
+      "savingsRate": "Savings rate {{rate}}%",
+      "link": "See income vs expenses"
+    },
+    "budgets": {
+      "title": "Budgets this month",
+      "none": "No budgets this month.",
+      "set": "Set budgets",
+      "link": "See budgets",
+      "spentOf": "{{spent}} spent of {{budgeted}}",
+      "progress": "{{percent}}% of the budget spent",
+      "counts": "{{onTrack}} on track, {{warning}} at warning, {{over}} over budget",
+      "needingAttention": "Budgets needing attention"
+    },
+    "topCategories": {
+      "title": "Top categories",
+      "empty": "Nothing spent this month yet.",
+      "link": "See spending by category"
+    },
+    "recent": {
+      "title": "Recent transactions",
+      "empty": "No transactions yet.",
+      "refund": "Refund",
+      "link": "See all transactions"
+    },
+    "upcoming": {
+      "title": "Coming up",
+      "empty": "Nothing is due in the next 30 days.",
+      "link": "See recurring rules"
+    }
   }
 }

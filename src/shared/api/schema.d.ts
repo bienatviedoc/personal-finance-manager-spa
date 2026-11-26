@@ -923,6 +923,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The state of the user's money on one screen: the balance of every account that is not archived, in the base currency as the accounts list adds it up; this calendar month's income, expenses and net, its budgets against what was spent, and the five top-level categories that spent most, as the income vs expenses, budget vs actual and spending by category reports work them out for this month in the user's time zone; the ten latest transactions, as the transaction list starts; and the occurrences of recurring rules due in the next 30 days, at most ten, earliest first. Takes no filters. */
+        get: operations["GetDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/spending-by-category": {
         parameters: {
             query?: never;
@@ -1285,6 +1302,97 @@ export interface components {
             expenses: string;
             net: string;
         };
+        DashboardAccountResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        DashboardBalanceResponse: {
+            balance: string;
+            notConverted: components["schemas"]["DashboardNotConvertedResponse"][];
+        };
+        DashboardBudgetResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            state: components["schemas"]["BudgetVsActualState"];
+        };
+        DashboardBudgetsResponse: {
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            /** Format: int32 */
+            onTrack: number | string;
+            /** Format: int32 */
+            warning: number | string;
+            /** Format: int32 */
+            over: number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+            needingAttention: components["schemas"]["DashboardBudgetResponse"][];
+        };
+        DashboardCategoryResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            spent: string;
+            /** Format: double */
+            share: null | number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        DashboardNotConvertedResponse: {
+            currency: components["schemas"]["Currency"];
+            balance: string;
+        };
+        DashboardOccurrenceResponse: {
+            /** Format: uuid */
+            recurringRuleId: string;
+            /** Format: date */
+            dueDate: string;
+            type: components["schemas"]["DashboardTransactionType"];
+            account: components["schemas"]["DashboardAccountResponse"];
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            category: components["schemas"]["ReportCategoryResponse"];
+            payee: null | string;
+            isReminder: boolean;
+        };
+        DashboardResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            hasAccounts: boolean;
+            balance: components["schemas"]["DashboardBalanceResponse"];
+            thisMonth: components["schemas"]["IncomeAndExpensesResponse"];
+            budgets: null | components["schemas"]["DashboardBudgetsResponse"];
+            topCategories: components["schemas"]["DashboardCategoryResponse"][];
+            recentTransactions: components["schemas"]["DashboardTransactionResponse"][];
+            upcoming: components["schemas"]["DashboardOccurrenceResponse"][];
+        };
+        DashboardTransactionResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            type: components["schemas"]["DashboardTransactionType"];
+            account: components["schemas"]["DashboardAccountResponse"];
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            category: null | components["schemas"]["ReportCategoryResponse"];
+            payee: null | string;
+            isRefund: boolean;
+            isSplit: boolean;
+            /** Format: uuid */
+            transferId: null | string;
+        };
+        /** @enum {unknown} */
+        DashboardTransactionType: "income" | "expense" | "transferOut" | "transferIn";
         DeletedTransactionListResponse: {
             items: components["schemas"]["DeletedTransactionResponse"][];
             nextCursor: null | string;
@@ -5448,6 +5556,35 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
                 };
             };
             /** @description Unauthorized */
