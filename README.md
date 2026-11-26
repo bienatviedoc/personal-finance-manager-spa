@@ -59,6 +59,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   so a view can be bookmarked and opened in another session. `useTransactionFilters` reads them (leaving out
   what the API could not read) and changes them; the list is a query per view. The filter bar applies a choice
   at once and something typed once the typing pauses. Never keep a filter in component state alone.
+- **Tags** (spec TXN-5) are names the API keeps trimmed and in lower case, created the first time a transaction is
+  given one. `tagsQuery` loads every page of the user's tags, under the transactions' key, so a save that creates
+  one loads them again. `TagsField` adds and removes them on the transaction form, suggesting the user's own;
+  the list filters by one through `tag` in the address, like the other filters.
 - **The total of a filtered list is the API's** (`total` on every page: a count, and income, expenses and net in
   each currency; the legs of a transfer are counted and are in neither). `TransactionTotal` shows it; the SPA never adds up the rows it has loaded. Filtered by a category, `total.spent`
   comes first, as the one figure that is the category's budget's spent; the totals in each currency follow under

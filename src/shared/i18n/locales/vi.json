@@ -249,6 +249,8 @@
       "allAccounts": "Tất cả tài khoản",
       "allCategories": "Tất cả danh mục",
       "allTypes": "Tất cả loại",
+      "tag": "Nhãn",
+      "allTags": "Tất cả nhãn",
       "sortBy": "Sắp xếp theo",
       "sort": {
         "dateDesc": "Mới nhất trước",
@@ -288,6 +290,13 @@
     "chooseCategory": "Gõ để tìm danh mục",
     "noCategoryMatches": "Không có danh mục nào khớp.",
     "categorySuggested": "Gợi ý từ các giao dịch trước đây của bạn với bên này.",
+    "tags": {
+      "label": "Nhãn",
+      "hint": "Nhãn dùng chung cho nhiều danh mục, như tet-2027 hay japan-trip. Gõ một nhãn rồi nhấn Enter, hoặc chọn một nhãn bạn đã dùng.",
+      "chosen": "Các nhãn đã chọn",
+      "remove": "Bỏ nhãn {{name}}",
+      "of": "Nhãn của {{name}}"
+    },
     "payee": "Bên nhận / bên trả",
     "note": "Ghi chú",
     "save": "Lưu",
@@ -329,6 +338,7 @@
       "category": "Chọn danh mục.",
       "payeeTooLong": "Dùng tối đa 200 ký tự.",
       "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "tags": "Dùng tối đa 20 nhãn, mỗi nhãn tối đa 50 ký tự.",
       "linesLeft": "Tổng các dòng phải bằng số tiền: còn {{amount}} chưa chia.",
       "linesOver": "Tổng các dòng phải bằng số tiền: đang vượt {{amount}}.",
       "lines": "Kiểm tra các dòng: mỗi dòng cần một danh mục của bạn chưa lưu trữ và một số tiền, và tổng các dòng phải bằng số tiền.",

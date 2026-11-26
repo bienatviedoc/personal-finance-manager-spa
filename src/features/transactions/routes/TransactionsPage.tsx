@@ -12,6 +12,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
+import { tagsQuery } from '../api/tags'
 import { canBePicked, isPending, isTransferLeg, listKey, transactionsQuery, type Transaction } from '../api/transactions'
 import { EditTransaction } from '../components/EditTransaction'
 import { MarkAsTransfer } from '../components/MarkAsTransfer'
@@ -53,6 +54,7 @@ export function TransactionsPage() {
   // Archived accounts and categories are loaded too: the transactions on them still show their names.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
+  const tags = useQuery(tagsQuery)
 
   const items = transactions.data?.pages.flatMap((page) => page.items)
   // The transaction being edited is read from the list, to follow a newer version loaded while the drawer is
@@ -132,6 +134,7 @@ export function TransactionsPage() {
           onClear={clear}
           accounts={accounts.data.accounts}
           categories={categories.data}
+          tags={tags.data ?? []}
           // The range of amounts is compared with every transaction, whatever currency it is in.
           fallbackCurrency={withMostDecimals(accounts.data.accounts.map((account) => account.currency), locale) ?? baseCurrency}
         />

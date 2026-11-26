@@ -62,6 +62,11 @@ type Options = {
  * A deleted transaction is recently deleted (see the API's RecentlyDeletedTests) for 30 days, listed the last deleted
  * first, each leg of a transfer on its own; restoring one puts it back in the list and its account's balance, and
  * restoring a leg restores the whole transfer. One not deleted, or deleted longer ago, is not found.
+ *
+ * Tags (see the API's TagTests) are names kept trimmed and in lower case, each once and in order; a transaction
+ * takes at most 20, each of 1 to 50 characters, refused as `tags`. A name the user has no tag with creates one,
+ * which stays once no transaction has it. `tag` narrows the list to the transactions with it, in any case, and
+ * `/api/v1/tags` lists the user's tags by name, those containing `q`, a page at a time.
  */
 export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
   let recorded = 0
@@ -87,10 +92,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         // One line with the whole amount, unless the test seeds a split.
         lines: categoryId === null ? [] : [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
         isRefund: false,
+        tags: [],
         ...transaction,
         categoryId,
       }
     }),
+    /** The user's tags, by name: those of the seeded transactions and every one created since. */
+    tags: [] as string[],
     /** The `Idempotency-Key` header of every POST, in the order they arrived. */
     idempotencyKeys: [] as (string | null)[],
     /** The `If-Match` header of every edit, in the order they arrived. */
@@ -130,6 +138,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       failing = true
     },
   }
+  state.transactions.forEach(keepTags)
   let held: Promise<void> | undefined
   let heldLists: Promise<void> | undefined
   let failing = false
@@ -162,6 +171,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     check('min', isAmount, 'Enter an amount that is not negative, such as 125000.00.')
     check('max', isAmount, 'Enter an amount that is not negative, such as 125000.00.')
     check('q', (value) => value.trim().length <= 200, 'Search for at most 200 characters.')
+    check('tag', (value) => value.trim().length <= 50, 'Send a tag of at most 50 characters.')
     check('sort', (value) => value === 'date' || value === 'amount', 'Choose one of: date, amount.')
     check('order', (value) => value === 'asc' || value === 'desc', 'Choose one of: asc, desc.')
     return errors
@@ -184,6 +194,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       (filter('type') === undefined || transaction.type === filter('type')) &&
       (filter('min') === undefined || Number(transaction.amount) >= Number(filter('min'))) &&
       (filter('max') === undefined || Number(transaction.amount) <= Number(filter('max'))) &&
+      (!filter('tag')?.trim() || transaction.tags.includes(filter('tag')!.trim().toLowerCase())) &&
       (!search || [transaction.payee, transaction.note, ...transaction.lines.map((line) => line.note)].some((field) => field?.toLowerCase().includes(search)))
   }
 
@@ -244,6 +255,9 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     })
     if ((body.payee?.trim().length ?? 0) > 200) errors.payee = ['Enter a payee of at most 200 characters.']
     if ((body.note?.trim().length ?? 0) > 1000) errors.note = ['Enter a note of at most 1000 characters.']
+    const tags = tagNames(body.tags)
+    if (body.tags?.some((tag) => !tag?.trim() || tag.trim().length > 50)) errors.tags = ['Enter tags of 1 to 50 characters.']
+    else if (tags.length > 20) errors.tags = ['Give a transaction at most 20 tags.']
     if (Object.keys(errors).length > 0) return { refused: problem(400, { errors }) }
 
     const invalid = (field: string, message: string) => ({ refused: problem(400, { errors: { [field]: [message] } }) })
@@ -285,8 +299,19 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         transferId: null,
         lines: entered.map((line) => ({ categoryId: line.categoryId, amount: text(Number(line.amount)), note: line.note?.trim() || null })),
         isRefund: body.isRefund ?? false,
+        tags,
       },
     }
+  }
+
+  /** Tag names as they are kept: trimmed, in lower case, each once, in order. */
+  function tagNames(names: (string | null)[] | null | undefined) {
+    return [...new Set((names ?? []).flatMap((name) => (name?.trim() ? [name.trim().toLowerCase()] : [])))].toSorted()
+  }
+
+  /** Creates the tags a saved transaction has that the user had none of yet. */
+  function keepTags(transaction: Transaction) {
+    state.tags = [...new Set([...state.tags, ...transaction.tags])].toSorted()
   }
 
   const legsOf = (transferId: unknown) => state.transactions.filter((transaction) => transaction.transferId === transferId)
@@ -341,7 +366,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (!fits(toAmount, to.currency)) return invalid('toAmount', 'The amount has more decimals than its currency.')
     if (body.date! > today) return invalid('date', "A transfer's date cannot be in the future.")
 
-    const shared = { date: body.date!, categoryId: null, payee: null, note: body.note?.trim() || null, isRefund: false, lines: [], recurringRuleId: null }
+    const shared = { date: body.date!, categoryId: null, payee: null, note: body.note?.trim() || null, isRefund: false, lines: [], recurringRuleId: null, tags: [] }
     return {
       out: { ...shared, accountId: from.id, amount: text(Number(body.amount)), currency: from.currency },
       into: { ...shared, accountId: to.id, amount: text(Number(toAmount)), currency: to.currency },
@@ -435,6 +460,20 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       const restored = find(found.id)!
       return HttpResponse.json(restored, { headers: { ETag: `"${restored.rowVersion}"` } })
     }),
+    http.get(apiUrl('/api/v1/tags'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const search = query.get('q')?.trim().toLowerCase() ?? ''
+      const limit = Number(query.get('limit') ?? 50)
+      const matching = state.tags.filter((name) => name.includes(search))
+      // The real cursor is opaque; this one is the name of the page's last tag.
+      const cursor = query.get('cursor')
+      const start = cursor === null ? 0 : matching.indexOf(cursor) + 1
+      const items = matching.slice(start, start + limit)
+      return HttpResponse.json({
+        items: items.map((name) => ({ id: `tag-${name}`, name })),
+        nextCursor: start + limit < matching.length ? items.at(-1)! : null,
+      })
+    }),
     // Before the handler for one transaction, which would take "quick-add" for an id.
     http.get(apiUrl('/api/v1/transactions/quick-add'), ({ request }) => {
       const query = new URL(request.url).searchParams
@@ -486,6 +525,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         ...result.fields,
       }
       state.transactions.push(created)
+      keepTags(created)
       order.set(created.id, recorded)
       if (key !== null) byKey.set(key, { recorded: created, body })
       move(created, 1)
@@ -505,6 +545,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (result.refused) return result.refused
       move(found, -1)
       Object.assign(found, result.fields, { rowVersion: String(Number(found.rowVersion) + 1) })
+      keepTags(found)
       move(found, 1)
       return HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } })
     }),
