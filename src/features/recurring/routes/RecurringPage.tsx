@@ -18,6 +18,7 @@ import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
   recurringRulesQuery,
+  remindersQuery,
   useCreateRecurringRule,
   useDeleteRecurringRule,
   useEditRecurringRule,
@@ -26,6 +27,7 @@ import {
   type RecurringRule,
 } from '../api/recurringRules'
 import { RecurringRuleForm } from '../components/RecurringRuleForm'
+import { Reminders } from '../components/Reminders'
 import { linkedRuleParameter } from '../components/RecurringRuleLink'
 
 /** What the drawer is open for: setting up a rule, or editing the one with this id. */
@@ -43,6 +45,7 @@ export function RecurringPage() {
   const [search] = useSearchParams()
   const linkedRule = search.get(linkedRuleParameter)
   const rules = useQuery(recurringRulesQuery)
+  const reminders = useQuery(remindersQuery)
   // Archived accounts and categories are loaded too: the rules on them still show their names.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
@@ -71,7 +74,9 @@ export function RecurringPage() {
         </Button>
       )}
 
-      {(rules.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('recurring.errors.generic')}</ErrorMessage>}
+      {categories.data && reminders.data && reminders.data.length > 0 && <Reminders reminders={reminders.data} categories={categories.data} />}
+
+      {(rules.isError || reminders.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('recurring.errors.generic')}</ErrorMessage>}
       {!loaded && !rules.isError && <ListSkeleton />}
       {loaded && rules.data.length === 0 && canSetUp && <p className="text-muted-foreground">{t('recurring.empty')}</p>}
       {loaded && rules.data.length > 0 && (

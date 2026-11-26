@@ -1,11 +1,17 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { refreshAccountBalances } from '@/features/accounts'
+import { refreshBudgets } from '@/features/budgets'
+import { refreshReports } from '@/features/reports'
 import { api } from '@/shared/api/client'
+import { refusedFields } from '@/shared/api/refusedFields'
 import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
 import type { components } from '@/shared/api/schema'
 
 export type RecurringRule = components['schemas']['RecurringRuleResponse']
 export type RecurringFrequency = components['schemas']['RecurringFrequency']
 export type RecurringMode = components['schemas']['RecurringMode']
+/** One occurrence of a rule: a reminder, or one due in the days ahead. */
+export type Occurrence = components['schemas']['OccurrenceResponse']
 
 /** What a recurring rule can be: income or an expense, never a transfer. In the order the toggle shows them. */
 export const recurringRuleTypes = ['expense', 'income'] as const
@@ -58,6 +64,75 @@ export const recurringRulesQuery = queryOptions({
     return rules
   },
 })
+
+/** The user's reminders: each occurrence of a rule that reminds, due by today and not confirmed or dismissed yet, earliest first. */
+export const remindersQuery = queryOptions({
+  queryKey: [...recurringRulesKey, 'reminders'],
+  queryFn: async () => {
+    const { data, response } = await api.GET('/api/v1/recurring-rules/reminders')
+    if (!data) throw new Error(`Could not load reminders: ${response.status}`)
+    return data.items
+  },
+})
+
+/** Fields answering a reminder can be refused on: the amount, or the due date when an earlier reminder of the rule is waiting. */
+const reminderFields = ['amount', 'dueDate'] as const
+export type ReminderField = (typeof reminderFields)[number]
+
+export type ReminderOutcome = { saved: true; rule: RecurringRule } | { saved: false; fields: ReminderField[] }
+
+type Reminder = Pick<Occurrence, 'recurringRuleId' | 'dueDate'>
+
+/**
+ * Confirms a reminder: its transaction is recorded on its due date, for `amount` when the user entered
+ * another one and for the rule's own otherwise, and the rule moves on.
+ */
+export function useConfirmReminder() {
+  const queryClient = useQueryClient()
+  return useAnswerReminder('Confirming', async ({ recurringRuleId, dueDate, amount }: Reminder & { amount?: string }) =>
+    api.POST('/api/v1/recurring-rules/{id}/reminders/{dueDate}/confirm', {
+      params: { path: { id: recurringRuleId, dueDate } },
+      body: amount === undefined ? {} : { amount },
+    }),
+  // A transaction was recorded: what shows transactions, balances, budgets and reports is out of date.
+  () =>
+    Promise.all([
+      // The transactions feature's key; it links to this one, so it is not imported from there.
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+      refreshAccountBalances(queryClient),
+      refreshBudgets(queryClient),
+      refreshReports(queryClient),
+    ]),
+  )
+}
+
+/** Dismisses a reminder: nothing is recorded for it, and the rule moves on. */
+export function useDismissReminder() {
+  return useAnswerReminder('Dismissing', async ({ recurringRuleId, dueDate }: Reminder) =>
+    api.POST('/api/v1/recurring-rules/{id}/reminders/{dueDate}/dismiss', { params: { path: { id: recurringRuleId, dueDate } } }),
+  )
+}
+
+function useAnswerReminder<Variables>(
+  changeName: string,
+  answer: (variables: Variables) => Promise<{ data?: RecurringRule; error?: unknown; response: Response }>,
+  alsoRefresh?: () => Promise<unknown>,
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (variables: Variables): Promise<ReminderOutcome> => {
+      const { data, error, response } = await answer(variables)
+      if (data) return { saved: true, rule: data }
+      const fields = refusedFields(response, error, reminderFields)
+      if (fields) return { saved: false, fields }
+      throw new Error(`${changeName} a reminder failed: ${response.status}`)
+    },
+    // The rules, their reminders and what is upcoming are loaded again: the rule moved on.
+    onSuccess: (outcome) => {
+      if (outcome.saved) return Promise.all([queryClient.invalidateQueries({ queryKey: recurringRulesKey }), alsoRefresh?.()])
+    },
+  })
+}
 
 /** Sets up a recurring rule. The API's worker records each occurrence on its due date. */
 export function useCreateRecurringRule() {
