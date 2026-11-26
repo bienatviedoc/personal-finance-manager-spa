@@ -25,9 +25,16 @@ export type BulkRefusal = components['schemas']['BulkRefusal']
 
 /**
  * What a bulk action came to: done to every one selected, refused on some (`refused`, and then nothing changed),
- * or refused as a whole on what it names (`invalid`: a category or account that can no longer be chosen).
+ * refused as a whole on what it names (`invalid`: a category or account that can no longer be chosen), or refused
+ * because more transactions pass the filter than one action takes (`tooMany`, the most it takes).
  */
-export type BulkOutcome = { done: true; count: number } | { done: false; refused: RefusedTransaction[] } | { done: false; invalid: true }
+export type BulkOutcome =
+  | { done: true; count: number }
+  | { done: false; refused: RefusedTransaction[] }
+  | { done: false; invalid: true }
+  | { done: false; tooMany: number }
+
+const selectionTooLarge = 'urn:pfm:problem:bulk-selection-too-large'
 
 /**
  * Acts on many transactions at once (spec TXN-7): all of them take it or none does. Done, it loads again
@@ -40,6 +47,7 @@ export function useBulkEdit() {
       const { data, error, response } = await api.POST('/api/v1/transactions/bulk', { body: request })
       if (data) return { done: true, count: Number(data.count) }
       if (response.status === 409 && error && 'refused' in error) return { done: false, refused: error.refused }
+      if (response.status === 422 && error && 'max' in error && error.type === selectionTooLarge) return { done: false, tooMany: Number(error.max) }
       if (response.status === 400) return { done: false, invalid: true }
       throw new Error(`A bulk action failed: ${response.status}`)
     },

@@ -168,6 +168,32 @@ describe('bulk actions', () => {
     expect(transactionsApi.transactions.find((transaction) => transaction.payee === 'Elsewhere')?.tags).toEqual([])
   })
 
+  it('do not offer to select all of a view that more transactions pass than one action takes, and say to narrow the filters', async () => {
+    fakeApis(Array.from({ length: 1001 }, (_, index) => ({ ...shopping[0]!, payee: `Shop ${index}` })))
+    window.innerHeight = 768
+    renderApp('/transactions')
+
+    expect(await screen.findByText('1,001 transactions pass these filters, and a bulk action takes at most 1,000. Narrow the filters to select them all.')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: /Select all/ })).not.toBeInTheDocument()
+    // Each can still be selected one by one.
+    expect(screen.getAllByRole('checkbox', { name: /^Select Shop/ }).length).toBeGreaterThan(0)
+  })
+
+  it('say to narrow the filters when more transactions pass them by the time the action is sent than one action takes', async () => {
+    const transactionsApi = fakeApis(Array.from({ length: 1000 }, (_, index) => ({ ...shopping[0]!, payee: `Shop ${index}` })))
+    window.innerHeight = 768
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select all 1000 transactions' }))
+    transactionsApi.transactions.push({ ...transactionsApi.transactions[0]!, id: 'one-more' })
+    await user.type(bar().getByLabelText('Tag'), 'weekly')
+    await user.click(bar().getByRole('button', { name: 'Add tag' }))
+
+    expect(await bar().findByText('More than 1,000 transactions pass these filters now. Narrow the filters, or select fewer, and try again.')).toBeInTheDocument()
+    expect(screen.queryByText('That category or account can no longer be chosen. Choose again.')).not.toBeInTheDocument()
+    expect(transactionsApi.transactions.filter((transaction) => transaction.tags.includes('weekly'))).toHaveLength(0)
+  })
+
   it('unselecting one row of all of them keeps the others that are loaded', async () => {
     const transactionsApi = fakeApis(shopping)
     const { user } = renderApp('/transactions')

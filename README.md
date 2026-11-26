@@ -108,7 +108,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
 - **Selecting transactions.** Every transaction the API has can be selected in the list, one by one, or all
   that pass the filters at once ("Select all N transactions", N being the API's `total.count`), loaded on the
-  screen or not. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
+  screen or not. A bulk action takes at most 1,000 (`maxBulkSelection` in `src/shared/api/limits.ts`): a view more
+  pass offers no "Select all" and says to narrow the filters, and if more pass by the time the action is sent, the
+  API's 422 (`bulk-selection-too-large`) says the same. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
   they were selected in, and unselecting one leaves the others loaded selected one by one.
 - **Bulk actions** (spec TXN-7; see the glossary). `BulkActions` acts on what is selected through
   `POST /transactions/bulk` (`useBulkEdit`): set the category, add or remove a tag, move to another account, or

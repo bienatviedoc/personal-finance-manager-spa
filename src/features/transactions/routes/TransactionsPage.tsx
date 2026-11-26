@@ -9,6 +9,7 @@ import { useUserSettings } from '@/features/settings'
 import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
+import { maxBulkSelection } from '@/shared/api/limits'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { withMostDecimals } from '@/shared/money'
@@ -191,7 +192,12 @@ export function TransactionsPage() {
         </Button>
       )}
       <FailureToast failed={exportTransactions.isError} message={t('transactions.export.failed')} retry={exportView} onDismiss={exportTransactions.reset} />
-      {loaded && items.length > 0 && total && (
+      {loaded && items.length > 0 && total && Number(total.count) > maxBulkSelection && (
+        <p className="text-sm text-muted-foreground">
+          {t('transactions.bulk.tooManyToSelect', { count: Number(total.count), total: Number(total.count).toLocaleString(locale), max: maxBulkSelection.toLocaleString(locale) })}
+        </p>
+      )}
+      {loaded && items.length > 0 && total && Number(total.count) <= maxBulkSelection && (
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"

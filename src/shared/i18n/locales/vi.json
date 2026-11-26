@@ -385,7 +385,10 @@
       "invalid": "Không thể chọn danh mục hoặc tài khoản đó nữa. Hãy chọn lại.",
       "failed": "Các giao dịch đã chọn chưa được thay đổi.",
       "selectAll_one": "Chọn {{count}} giao dịch",
-      "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày."
+      "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày.",
+      "tooManyToSelect_other": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
+      "tooMany": "Hiện có hơn {{max}} giao dịch khớp với bộ lọc này. Hãy thu hẹp bộ lọc hoặc chọn ít hơn, rồi thử lại.",
+      "tooManyToSelect_one": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả."
     },
     "export": {
       "start": "Xuất CSV",

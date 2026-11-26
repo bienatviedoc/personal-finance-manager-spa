@@ -6,6 +6,7 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
+import { useLocale } from '@/shared/i18n/useLocale'
 import { Button } from '@/shared/ui/button'
 import { useBulkEdit, type BulkAction, type BulkSelection } from '../api/bulk'
 
@@ -32,6 +33,7 @@ type Props = {
  */
 export function BulkActions({ count, selection, accounts, categories, nameOf, onDone, onClear }: Props) {
   const { t } = useTranslation()
+  const locale = useLocale()
   const bulk = useBulkEdit()
   const [categoryId, setCategoryId] = useState('')
   const [accountId, setAccountId] = useState('')
@@ -141,6 +143,9 @@ export function BulkActions({ count, selection, accounts, categories, nameOf, on
         </div>
       )}
       {outcome && !outcome.done && 'invalid' in outcome && <ErrorMessage>{t('transactions.bulk.invalid')}</ErrorMessage>}
+      {outcome && !outcome.done && 'tooMany' in outcome && (
+        <ErrorMessage>{t('transactions.bulk.tooMany', { max: outcome.tooMany.toLocaleString(locale) })}</ErrorMessage>
+      )}
       <FailureToast failed={bulk.isError} message={t('transactions.bulk.failed')} retry={retry} onDismiss={bulk.reset} />
     </section>
   )
