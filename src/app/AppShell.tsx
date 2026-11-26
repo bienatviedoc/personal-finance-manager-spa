@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { matchPath, NavLink, useLocation, useOutlet } from 'react-router'
 import { DeletionCancelledNotice, signedInUserQuery, UserMenu } from '@/features/auth'
+import { BudgetNotifications } from '@/features/budgets'
 import { useProfileLocale, useSaveLocale } from '@/features/settings'
 import { QuickAdd } from '@/features/transactions'
 import { cn, focusRing } from '@/shared/lib/utils'
@@ -30,6 +31,12 @@ export function AppShell() {
           wide ? 'p-6' : 'p-4 pb-[calc(5rem+env(safe-area-inset-bottom))]',
         )}
       >
+        {/* On phones the bell sits atop the screen; on wide screens, in the sidebar. */}
+        {!wide && (
+          <div className="flex justify-end">
+            <BudgetNotifications />
+          </div>
+        )}
         <DeletionCancelledNotice />
         {/* N on any screen opens the drawer that records a transaction. */}
         <QuickAdd>
@@ -58,7 +65,10 @@ function Sidebar() {
 
   return (
     <aside className="flex w-60 shrink-0 flex-col gap-6 border-r bg-sidebar p-4 text-sidebar-foreground">
-      <p className="px-2 font-semibold">{t('app.name')}</p>
+      <div className="flex items-center justify-between gap-2 px-2">
+        <p className="font-semibold">{t('app.name')}</p>
+        <BudgetNotifications />
+      </div>
       <nav aria-label={t('nav.label')}>
         <ul className="space-y-1">
           {navigation.map((item) => (

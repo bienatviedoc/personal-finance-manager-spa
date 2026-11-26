@@ -600,6 +600,20 @@
     }
   },
   "budgets": {
+    "notifications": {
+      "title": "Thông báo ngân sách",
+      "buttonUnread_one": "Thông báo ngân sách, {{count}} chưa đọc",
+      "buttonUnread_other": "Thông báo ngân sách, {{count}} chưa đọc",
+      "warning": "{{name}} đã dùng {{percent}}% ngân sách {{month}}",
+      "over": "{{name}} đã vượt ngân sách {{month}}",
+      "spentOf": "đã chi trên",
+      "unread": "Chưa đọc",
+      "readAll": "Đánh dấu tất cả là đã đọc",
+      "more": "Xem thêm",
+      "empty": "Chưa có thông báo ngân sách nào. Bạn sẽ được báo ở đây, và qua email, khi một danh mục chạm ngưỡng cảnh báo hoặc vượt ngân sách.",
+      "notLoaded": "Không tải được thông báo ngân sách.",
+      "notRead": "Không đánh dấu đã đọc được thông báo ngân sách."
+    },
     "intro": "Số tiền bạn dự định chi cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
     "byCategory": "Ngân sách theo danh mục",
     "subcategoriesOf": "Danh mục con của {{name}}",
@@ -867,6 +881,8 @@
       "language": "Ngôn ngữ",
       "budgetWarning": "Ngưỡng cảnh báo ngân sách (%)",
       "budgetWarningHint": "Ngân sách chuyển sang trạng thái cảnh báo khi đã chi đến tỷ lệ này.",
+      "emailBudgetNotifications": "Gửi email thông báo ngân sách cho tôi",
+      "emailBudgetNotificationsHint": "Khi chi tiêu của một danh mục chạm ngưỡng cảnh báo hoặc vượt ngân sách. Thông báo luôn hiện trong ứng dụng.",
       "amountExample": "Số tiền sẽ hiển thị như sau:",
       "save": "Lưu",
       "saved": "Đã lưu cài đặt của bạn.",

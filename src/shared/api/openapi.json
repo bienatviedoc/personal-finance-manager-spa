@@ -4725,6 +4725,151 @@
         }
       }
     },
+    "/api/v1/budget-notifications": {
+      "get": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "The user's budget notifications, the newest first, a page at a time, with how many are unread. One is raised when a category's budget moves into warning or over after a change that affects spent; each category raises at most one warning and one over a budget month. Each keeps what the budget stood at when it was raised.",
+        "operationId": "ListBudgetNotifications",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetNotificationListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/budget-notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Marks one budget notification read. Reading one already read changes nothing.",
+        "operationId": "ReadBudgetNotification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/budget-notifications/read": {
+      "post": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Marks every unread budget notification read.",
+        "operationId": "ReadAllBudgetNotifications",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/dashboard": {
       "get": {
         "tags": [
@@ -5767,6 +5912,95 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "BudgetNotificationListResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "unread"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetNotificationResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unread": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "BudgetNotificationResponse": {
+        "required": [
+          "id",
+          "month",
+          "category",
+          "state",
+          "budgeted",
+          "spent",
+          "percentSpent",
+          "currency",
+          "raisedAt",
+          "readAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "month": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/BudgetCategoryResponse"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetState"
+          },
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "raisedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -7728,7 +7962,8 @@
           "timeZone",
           "locale",
           "budgetWarningPercent",
-          "baseCurrencyLocked"
+          "baseCurrencyLocked",
+          "emailBudgetNotifications"
         ],
         "type": "object",
         "properties": {
@@ -7764,6 +7999,9 @@
             "format": "int32"
           },
           "baseCurrencyLocked": {
+            "type": "boolean"
+          },
+          "emailBudgetNotifications": {
             "type": "boolean"
           }
         }
@@ -9333,6 +9571,12 @@
               "string"
             ],
             "format": "int32"
+          },
+          "emailBudgetNotifications": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },

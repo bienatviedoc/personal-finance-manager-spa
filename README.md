@@ -180,6 +180,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **A change to a transaction moves what was spent,** too, so the same hooks load the budgets again through
   `refreshBudgets` from `@/features/budgets`. Setting the first budget locks the base currency and removing the
   last one unlocks it, so the budget hooks load the profile again (`refreshProfile` from `@/features/settings`).
+- **Budget notifications** (spec BUD-7; see the glossary) are raised by the API after a change that moves what was
+  spent; the SPA only shows them. `BudgetNotifications` from `@/features/budgets`, a bell in the sidebar (atop the
+  screen on phones), says how many are unread and opens a drawer listing them the newest first, a page at a time
+  (`budgetNotificationsQuery`). Choosing one opens its budget month and marks it read; "Mark all as read" reads
+  them all (`useReadBudgetNotifications`). Their key is under the budgets', so `refreshBudgets` after any change
+  loads them again. Whether they are also emailed is a profile setting (`emailBudgetNotifications`).
 - **A budget is set, not created or edited:** `useSetBudget(month)` sends `PUT /budgets/{month}/{categoryId}`
   with the budget's `rowVersion` as `If-Match` when the category already has one that month and without it when
   it has none; `useRemoveBudget(month)` removes it.

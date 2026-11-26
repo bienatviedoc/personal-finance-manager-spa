@@ -600,6 +600,20 @@
     }
   },
   "budgets": {
+    "notifications": {
+      "title": "Budget notifications",
+      "buttonUnread_one": "Budget notifications, {{count}} unread",
+      "buttonUnread_other": "Budget notifications, {{count}} unread",
+      "warning": "{{name}} reached {{percent}}% of its budget for {{month}}",
+      "over": "{{name}} went over its budget for {{month}}",
+      "spentOf": "spent of",
+      "unread": "Unread",
+      "readAll": "Mark all as read",
+      "more": "Show more",
+      "empty": "No budget notifications yet. You are told here, and by email, when a category reaches its warning threshold or goes over budget.",
+      "notLoaded": "The budget notifications could not be loaded.",
+      "notRead": "The budget notifications could not be marked read."
+    },
     "intro": "How much you plan to spend in each expense category, month by month, against what you have spent.",
     "byCategory": "Budgets by category",
     "subcategoriesOf": "Subcategories of {{name}}",
@@ -867,6 +881,8 @@
       "language": "Language",
       "budgetWarning": "Budget warning threshold (%)",
       "budgetWarningHint": "A budget’s state becomes a warning once this share of it is spent.",
+      "emailBudgetNotifications": "Email me budget notifications",
+      "emailBudgetNotificationsHint": "When a category’s spending reaches its warning threshold or goes over budget. They are always shown in the app.",
       "amountExample": "Amounts will look like this:",
       "save": "Save",
       "saved": "Your settings are saved.",
