@@ -26,7 +26,8 @@ import {
   useCompleteReconciliation,
   useReopenReconciliation,
   useStartReconciliation,
-  useTick,
+  useTickTransaction,
+  useUntickTransaction,
   type Reconciliation,
   type StartField,
   type TransactionToTick,
@@ -231,15 +232,21 @@ function Figures({ reconciliation }: { reconciliation: Reconciliation }) {
 function TickRow({ reconciliation, transaction, categories }: { reconciliation: Reconciliation; transaction: TransactionToTick; categories: Category[] }) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const tick = useTick(reconciliation)
+  const tick = useTickTransaction(reconciliation)
+  const untick = useUntickTransaction(reconciliation)
+  const pending = tick.isPending || untick.isPending
   const category = transaction.categoryId ? findCategory(categories, transaction.categoryId) : undefined
   const name = transaction.payee ?? category?.name ?? t(`transactions.types.${transaction.type}`)
-  const ticked = tick.isPending ? tick.variables.ticked : transaction.isTicked
-  const toggle = () => tick.mutate({ transactionId: transaction.id, ticked: !ticked })
+  const ticked = tick.isPending || (!untick.isPending && transaction.isTicked)
+  const toggle = () => (ticked ? untick : tick).mutate(transaction.id)
+  const reset = () => {
+    tick.reset()
+    untick.reset()
+  }
 
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1 p-3">
-      <input type="checkbox" className="size-4" aria-label={t('reconciliations.tick', { name })} checked={ticked} disabled={tick.isPending} onChange={toggle} />
+      <input type="checkbox" className="size-4" aria-label={t('reconciliations.tick', { name })} checked={ticked} disabled={pending} onChange={toggle} />
       <div className="min-w-24 flex-1">
         <h3 className="font-medium break-words">{name}</h3>
         <p className="text-sm text-muted-foreground">{joinDetails([category?.name, formatDate(transaction.date, locale)])}</p>
@@ -248,7 +255,7 @@ function TickRow({ reconciliation, transaction, categories }: { reconciliation: 
         {transaction.isRefund && '+'}
         <Money amount={signedAmount(transaction.amount, takesFromBalance(transaction))} currency={transaction.currency} />
       </span>
-      <FailureToast failed={tick.isError} message={t('reconciliations.errors.notTicked')} retry={toggle} onDismiss={tick.reset} />
+      <FailureToast failed={tick.isError || untick.isError} message={t('reconciliations.errors.notTicked')} retry={toggle} onDismiss={reset} />
     </li>
   )
 }
