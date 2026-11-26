@@ -57,6 +57,11 @@ type Options = {
  * the same amount; either is refused on its id (`expenseId`, `incomeId`) when it is not one, is a leg already, or
  * breaks a rule of the pair (then on `incomeId`). Unmarking turns a transfer's legs back into an expense and
  * income on the categories sent, each of its kind and not archived.
+ *
+ * A reconciled transaction (`isReconciled`, which `fakeReconciliationsApi` sets) is locked (see the API's
+ * ReconciliationTests): an edit of its amount, date, account, type or refund flag is refused on that field, and
+ * deleting it answers 409 `transaction-reconciled`. A transfer either of whose legs is reconciled is locked the
+ * same way, and is neither marked from a reconciled transaction nor unmarked.
  */
 export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
   let recorded = 0
@@ -82,6 +87,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         // One line with the whole amount, unless the test seeds a split.
         lines: categoryId === null ? [] : [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
         isRefund: false,
+        isReconciled: false,
         ...transaction,
         categoryId,
       }
@@ -282,6 +288,10 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     }
   }
 
+  /** What a reconciled transaction keeps as it is; the API names the first one changed. */
+  const lockedFields = ['amount', 'date', 'accountId', 'type', 'isRefund'] as const
+  const reconciled = () => problem(409, { type: 'urn:pfm:problem:transaction-reconciled' })
+
   const legsOf = (transferId: unknown) => state.transactions.filter((transaction) => transaction.transferId === transferId)
 
   /** The two legs as the one transfer the API answers. */
@@ -303,6 +313,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       outTransactionId: out.id,
       inTransactionId: into.id,
       rowVersion: out.rowVersion,
+      isReconciled: out.isReconciled || into.isReconciled,
     }
   }
 
@@ -434,6 +445,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         rowVersion: '1',
         // Only the worker posts for a rule; what a user records is linked to none.
         recurringRuleId: null,
+        isReconciled: false,
         ...result.fields,
       }
       state.transactions.push(created)
@@ -452,6 +464,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (!found) return problem(404)
       if (found.transferId) return problem(400, { errors: { type: ['This transaction is a leg of a transfer. Edit the transfer.'] } })
       if (ifMatch !== `"${found.rowVersion}"`) return problem(412)
+      if (found.isReconciled) {
+        const asked = (await request.clone().json()) as Partial<TransactionRequest>
+        const changed = lockedFields.find((field) =>
+          field === 'amount' ? Number(asked.amount) !== Number(found.amount) : field === 'isRefund' ? (asked.isRefund ?? false) !== found.isRefund : asked[field] !== found[field],
+        )
+        if (changed) return problem(400, { errors: { [changed]: ['This transaction is reconciled.'] } })
+      }
       const result = await validated(request, found)
       if (result.refused) return result.refused
       move(found, -1)
@@ -464,6 +483,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (stopped) return stopped
       const found = find(params.id)
       if (!found) return problem(404)
+      if (found.transferId ? legsOf(found.transferId).some((leg) => leg.isReconciled) : found.isReconciled) return reconciled()
       if (found.transferId) {
         removeTransfer(found.transferId)
         return new HttpResponse(null, { status: 204 })
@@ -493,6 +513,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         rowVersion: '1',
         type,
         transferId,
+        isReconciled: false,
         ...(type === 'transferOut' ? result.out : result.into),
       }))
       for (const leg of legs) {
@@ -516,7 +537,9 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (!income) return invalid('incomeId', 'Choose one of your transactions.')
       if (expense.transferId) return invalid('expenseId', 'This is a leg of a transfer already.')
       if (expense.type !== 'expense' || expense.isRefund) return invalid('expenseId', 'Choose an expense that is not a refund: the money that left one account.')
+      if (expense.isReconciled) return invalid('expenseId', 'This transaction is reconciled.')
       if (income.transferId) return invalid('incomeId', 'This is a leg of a transfer already.')
+      if (income.isReconciled) return invalid('incomeId', 'This transaction is reconciled.')
       if (income.type !== 'income') return invalid('incomeId', 'Choose income: the money that arrived on the other account.')
       if (expense.accountId === income.accountId) return invalid('incomeId', 'A transfer is between two different accounts.')
       if (expense.currency === income.currency && Number(expense.amount) !== Number(income.amount)) {
@@ -538,6 +561,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       state.unmarkRequests.push({ id: String(params.id), body })
       const transfer = transferOf(params.id)
       if (!transfer) return problem(404)
+      if (transfer.isReconciled) return problem(400, { errors: { id: ['This transfer is reconciled.'] } })
       const categoryOf = (id: unknown, kind: FakeCategory['kind']) =>
         categories.find((category) => category.id === id && category.kind === kind && !category.isArchived)
       const spentOn = categoryOf(body.expenseCategoryId, 'expense')
@@ -583,6 +607,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       const stopped = await refusedOrFailed(request)
       if (stopped) return stopped
       if (legsOf(params.id).length === 0) return problem(404)
+      if (legsOf(params.id).some((leg) => leg.isReconciled)) return reconciled()
       removeTransfer(params.id)
       return new HttpResponse(null, { status: 204 })
     }),

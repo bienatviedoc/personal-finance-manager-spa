@@ -1904,7 +1904,7 @@
         "tags": [
           "Transactions"
         ],
-        "description": "Changes income or an expense; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A leg of a transfer is refused on its type: edit the transfer under /transfers.",
+        "description": "Changes income or an expense; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A leg of a transfer is refused on its type: edit the transfer under /transfers. A reconciled transaction refuses a change to its amount, date, account, type or refund flag, each named as the field at fault; its payee, note and category can still change.",
         "operationId": "EditTransaction",
         "parameters": [
           {
@@ -1994,7 +1994,7 @@
         "tags": [
           "Transactions"
         ],
-        "description": "Deletes the transaction: it leaves lists and its account's balance at once. Deleting a leg of a transfer deletes the whole transfer, the other leg with it.",
+        "description": "Deletes the transaction: it leaves lists and its account's balance at once. Deleting a leg of a transfer deletes the whole transfer, the other leg with it. A reconciled transaction, or a leg of a transfer either of whose legs is reconciled, answers 409 with the problem type urn:pfm:problem:transaction-reconciled and is not deleted.",
         "operationId": "DeleteTransaction",
         "parameters": [
           {
@@ -2033,6 +2033,16 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -2165,7 +2175,7 @@
         "tags": [
           "Transfers"
         ],
-        "description": "Changes a transfer, both legs together; the balances of the accounts it was and is now between follow at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428.",
+        "description": "Changes a transfer, both legs together; the balances of the accounts it was and is now between follow at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A transfer either of whose legs is reconciled refuses a change to its accounts, amounts or date, each named as the field at fault; its note can still change.",
         "operationId": "EditTransfer",
         "parameters": [
           {
@@ -2255,7 +2265,7 @@
         "tags": [
           "Transfers"
         ],
-        "description": "Deletes the transfer, both legs together: they leave the transaction list and both accounts' balances at once.",
+        "description": "Deletes the transfer, both legs together: they leave the transaction list and both accounts' balances at once. A transfer either of whose legs is reconciled answers 409 with the problem type urn:pfm:problem:transaction-reconciled and is not deleted.",
         "operationId": "DeleteTransfer",
         "parameters": [
           {
@@ -2294,6 +2304,16 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -2303,7 +2323,7 @@
         "tags": [
           "Transfers"
         ],
-        "description": "Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, or a transaction that is a leg of a transfer already, is refused. Nothing is matched automatically.",
+        "description": "Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, a transaction that is a leg of a transfer already, or a reconciled one, is refused. Nothing is matched automatically.",
         "operationId": "MarkAsTransfer",
         "requestBody": {
           "content": {
@@ -2354,7 +2374,7 @@
         "tags": [
           "Transfers"
         ],
-        "description": "Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded. Answers the two transactions; the transfer is no more.",
+        "description": "Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded, unless either leg is reconciled: that is refused on id. Answers the two transactions; the transfer is no more.",
         "operationId": "UnmarkTransfer",
         "parameters": [
           {
@@ -2410,6 +2430,576 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/accounts/{accountId}/reconciliations": {
+      "post": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "Starts reconciling the account against a statement: its closing date, not in the future, and closing balance, in the account's currency and below zero for what is owed. The difference starts as the statement balance less the account's reconciled balance: its opening balance and everything reconciled before. An account has one reconciliation in progress at a time: another answers 409 with the problem type urn:pfm:problem:reconciliation-in-progress. A statement dated before the account's last reconciliation is refused on statementDate.",
+        "operationId": "StartReconciliation",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartReconciliationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "The account's reconciliations, the last started first, a page at a time, each with its difference.",
+        "operationId": "ListReconciliations",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/reconciliations/{id}": {
+      "get": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "One reconciliation, with the account's reconciled balance, what is ticked in it and the difference still to reach zero.",
+        "operationId": "GetReconciliation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "Cancels a reconciliation in progress, entered against the wrong statement for instance: what is ticked in it is unticked and it is removed. A completed one answers 409 with the problem type urn:pfm:problem:reconciliation-completed: reopen it first.",
+        "operationId": "CancelReconciliation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reconciliations/{id}/transactions": {
+      "get": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "The transactions to tick against the statement, oldest first: those ticked in this reconciliation and, while it is in progress, every other transaction on its account dated on or before the statement date that no reconciliation holds yet. Not paged.",
+        "operationId": "ListReconciliationTransactions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationTransactionListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/reconciliations/{id}/transactions/{transactionId}": {
+      "put": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "Ticks a transaction the statement shows, and answers the reconciliation with its new difference. Only a transaction on the account, dated on or before the statement date and in no other reconciliation can be ticked; any other is refused on transactionId. A completed reconciliation answers 409 with the problem type urn:pfm:problem:reconciliation-completed.",
+        "operationId": "TickTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "Unticks a transaction, and answers the reconciliation with its new difference. A completed reconciliation answers 409 with the problem type urn:pfm:problem:reconciliation-completed.",
+        "operationId": "UntickTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reconciliations/{id}/complete": {
+      "post": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "Completes the reconciliation, which locks every transaction ticked in it: their amount, date and account cannot change, and they cannot be deleted, until it is reopened. It completes only when the difference is exactly zero; otherwise it answers 409 with the problem type urn:pfm:problem:reconciliation-difference-not-zero, and no adjustment transaction is ever added. Completing one already completed changes nothing.",
+        "operationId": "CompleteReconciliation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reconciliations/{id}/reopen": {
+      "post": {
+        "tags": [
+          "Reconciliations"
+        ],
+        "description": "Reopens a completed reconciliation: its transactions are unlocked and stay ticked, to be changed and completed again. Only the account's latest reconciliation can be reopened; an earlier one answers 409 with the problem type urn:pfm:problem:reconciliation-not-latest. Reopening one in progress changes nothing.",
+        "operationId": "ReopenReconciliation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -5266,6 +5856,177 @@
           }
         }
       },
+      "ReconciliationListResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReconciliationResponse": {
+        "required": [
+          "id",
+          "accountId",
+          "statementDate",
+          "statementBalance",
+          "currency",
+          "status",
+          "completedAt",
+          "reconciledBalance",
+          "tickedTotal",
+          "difference",
+          "tickedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "statementDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "statementBalance": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReconciliationStatus"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reconciledBalance": {
+            "type": "string"
+          },
+          "tickedTotal": {
+            "type": "string"
+          },
+          "difference": {
+            "type": "string"
+          },
+          "tickedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ReconciliationStatus": {
+        "enum": [
+          "inProgress",
+          "completed"
+        ]
+      },
+      "ReconciliationTransactionListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationTransactionResponse"
+            }
+          }
+        }
+      },
+      "ReconciliationTransactionResponse": {
+        "required": [
+          "id",
+          "type",
+          "date",
+          "amount",
+          "currency",
+          "isRefund",
+          "payee",
+          "note",
+          "categoryId",
+          "transferId",
+          "isTicked"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "isRefund": {
+            "type": "boolean"
+          },
+          "payee": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "transferId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "isTicked": {
+            "type": "boolean"
+          }
+        }
+      },
       "RecoveryCodesResponse": {
         "required": [
           "recoveryCodes"
@@ -5839,6 +6600,27 @@
           }
         }
       },
+      "StartReconciliationRequest": {
+        "required": [
+          "statementDate",
+          "statementBalance"
+        ],
+        "type": "object",
+        "properties": {
+          "statementDate": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "statementBalance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "TransactionLineRequest": {
         "required": [
           "categoryId",
@@ -5980,7 +6762,8 @@
           "rowVersion",
           "isRefund",
           "lines",
-          "recurringRuleId"
+          "recurringRuleId",
+          "isReconciled"
         ],
         "type": "object",
         "properties": {
@@ -6049,6 +6832,9 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "isReconciled": {
+            "type": "boolean"
           }
         }
       },
@@ -6110,7 +6896,8 @@
           "note",
           "outTransactionId",
           "inTransactionId",
-          "rowVersion"
+          "rowVersion",
+          "isReconciled"
         ],
         "type": "object",
         "properties": {
@@ -6158,6 +6945,9 @@
           },
           "rowVersion": {
             "type": "string"
+          },
+          "isReconciled": {
+            "type": "boolean"
           }
         }
       },
@@ -6491,6 +7281,9 @@
     },
     {
       "name": "Transfers"
+    },
+    {
+      "name": "Reconciliations"
     },
     {
       "name": "Attachments"

@@ -426,10 +426,10 @@ export interface paths {
         };
         /** @description One transaction. The ETag header carries its row version. A deleted transaction is not found. */
         get: operations["GetTransaction"];
-        /** @description Changes income or an expense; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A leg of a transfer is refused on its type: edit the transfer under /transfers. */
+        /** @description Changes income or an expense; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A leg of a transfer is refused on its type: edit the transfer under /transfers. A reconciled transaction refuses a change to its amount, date, account, type or refund flag, each named as the field at fault; its payee, note and category can still change. */
         put: operations["EditTransaction"];
         post?: never;
-        /** @description Deletes the transaction: it leaves lists and its account's balance at once. Deleting a leg of a transfer deletes the whole transfer, the other leg with it. */
+        /** @description Deletes the transaction: it leaves lists and its account's balance at once. Deleting a leg of a transfer deletes the whole transfer, the other leg with it. A reconciled transaction, or a leg of a transfer either of whose legs is reconciled, answers 409 with the problem type urn:pfm:problem:transaction-reconciled and is not deleted. */
         delete: operations["DeleteTransaction"];
         options?: never;
         head?: never;
@@ -462,10 +462,10 @@ export interface paths {
         };
         /** @description One transfer, by the transferId its two legs carry in the transaction list. The ETag header carries its row version. A deleted transfer is not found. */
         get: operations["GetTransfer"];
-        /** @description Changes a transfer, both legs together; the balances of the accounts it was and is now between follow at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. */
+        /** @description Changes a transfer, both legs together; the balances of the accounts it was and is now between follow at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A transfer either of whose legs is reconciled refuses a change to its accounts, amounts or date, each named as the field at fault; its note can still change. */
         put: operations["EditTransfer"];
         post?: never;
-        /** @description Deletes the transfer, both legs together: they leave the transaction list and both accounts' balances at once. */
+        /** @description Deletes the transfer, both legs together: they leave the transaction list and both accounts' balances at once. A transfer either of whose legs is reconciled answers 409 with the problem type urn:pfm:problem:transaction-reconciled and is not deleted. */
         delete: operations["DeleteTransfer"];
         options?: never;
         head?: never;
@@ -481,7 +481,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, or a transaction that is a leg of a transfer already, is refused. Nothing is matched automatically. */
+        /** @description Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, a transaction that is a leg of a transfer already, or a reconciled one, is refused. Nothing is matched automatically. */
         post: operations["MarkAsTransfer"];
         delete?: never;
         options?: never;
@@ -498,8 +498,113 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded. Answers the two transactions; the transfer is no more. */
+        /** @description Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded, unless either leg is reconciled: that is refused on id. Answers the two transactions; the transfer is no more. */
         post: operations["UnmarkTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{accountId}/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The account's reconciliations, the last started first, a page at a time, each with its difference. */
+        get: operations["ListReconciliations"];
+        put?: never;
+        /** @description Starts reconciling the account against a statement: its closing date, not in the future, and closing balance, in the account's currency and below zero for what is owed. The difference starts as the statement balance less the account's reconciled balance: its opening balance and everything reconciled before. An account has one reconciliation in progress at a time: another answers 409 with the problem type urn:pfm:problem:reconciliation-in-progress. A statement dated before the account's last reconciliation is refused on statementDate. */
+        post: operations["StartReconciliation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One reconciliation, with the account's reconciled balance, what is ticked in it and the difference still to reach zero. */
+        get: operations["GetReconciliation"];
+        put?: never;
+        post?: never;
+        /** @description Cancels a reconciliation in progress, entered against the wrong statement for instance: what is ticked in it is unticked and it is removed. A completed one answers 409 with the problem type urn:pfm:problem:reconciliation-completed: reopen it first. */
+        delete: operations["CancelReconciliation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The transactions to tick against the statement, oldest first: those ticked in this reconciliation and, while it is in progress, every other transaction on its account dated on or before the statement date that no reconciliation holds yet. Not paged. */
+        get: operations["ListReconciliationTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/transactions/{transactionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Ticks a transaction the statement shows, and answers the reconciliation with its new difference. Only a transaction on the account, dated on or before the statement date and in no other reconciliation can be ticked; any other is refused on transactionId. A completed reconciliation answers 409 with the problem type urn:pfm:problem:reconciliation-completed. */
+        put: operations["TickTransaction"];
+        post?: never;
+        /** @description Unticks a transaction, and answers the reconciliation with its new difference. A completed reconciliation answers 409 with the problem type urn:pfm:problem:reconciliation-completed. */
+        delete: operations["UntickTransaction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Completes the reconciliation, which locks every transaction ticked in it: their amount, date and account cannot change, and they cannot be deleted, until it is reopened. It completes only when the difference is exactly zero; otherwise it answers 409 with the problem type urn:pfm:problem:reconciliation-difference-not-zero, and no adjustment transaction is ever added. Completing one already completed changes nothing. */
+        post: operations["CompleteReconciliation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reopens a completed reconciliation: its transactions are unlocked and stay ticked, to be changed and completed again. Only the account's latest reconciliation can be reopened; an earlier one answers 409 with the problem type urn:pfm:problem:reconciliation-not-latest. Reopening one in progress changes nothing. */
+        post: operations["ReopenReconciliation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1147,6 +1252,50 @@ export interface components {
             /** Format: uuid */
             suggestedCategoryId: null | string;
         };
+        ReconciliationListResponse: {
+            items: components["schemas"]["ReconciliationResponse"][];
+            nextCursor: null | string;
+        };
+        ReconciliationResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            statementDate: string;
+            statementBalance: string;
+            currency: components["schemas"]["Currency"];
+            status: components["schemas"]["ReconciliationStatus"];
+            /** Format: date-time */
+            completedAt: null | string;
+            reconciledBalance: string;
+            tickedTotal: string;
+            difference: string;
+            /** Format: int32 */
+            tickedCount: number | string;
+        };
+        /** @enum {unknown} */
+        ReconciliationStatus: "inProgress" | "completed";
+        ReconciliationTransactionListResponse: {
+            items: components["schemas"]["ReconciliationTransactionResponse"][];
+        };
+        ReconciliationTransactionResponse: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["TransactionType"];
+            /** Format: date */
+            date: string;
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            isRefund: boolean;
+            payee: null | string;
+            note: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: uuid */
+            transferId: null | string;
+            isTicked: boolean;
+        };
         RecoveryCodesResponse: {
             recoveryCodes: string[];
         };
@@ -1289,6 +1438,10 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
         };
+        StartReconciliationRequest: {
+            statementDate: null | string;
+            statementBalance: null | string;
+        };
         TransactionLineRequest: {
             /** Format: uuid */
             categoryId: string;
@@ -1341,6 +1494,7 @@ export interface components {
             lines: components["schemas"]["TransactionLineResponse"][];
             /** Format: uuid */
             recurringRuleId: null | string;
+            isReconciled: boolean;
         };
         /** @enum {unknown} */
         TransactionType: "income" | "expense" | "transferOut" | "transferIn";
@@ -1373,6 +1527,7 @@ export interface components {
             /** Format: uuid */
             inTransactionId: string;
             rowVersion: string;
+            isReconciled: boolean;
         };
         TrendMonthResponse: {
             /** Format: date */
@@ -3143,6 +3298,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     CreateTransfer: {
@@ -3359,6 +3523,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     MarkAsTransfer: {
@@ -3451,6 +3624,472 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ListReconciliations: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StartReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartReconciliationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancelReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListReconciliationTransactions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationTransactionListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TickTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UntickTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CompleteReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReopenReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
