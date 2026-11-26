@@ -566,6 +566,7 @@
       "chart": "Chart",
       "table": "Table"
     },
+    "days": "{{from}} to {{to}}",
     "previousPeriod": "Previous period, {{from}} to {{to}}",
     "notConverted_one": "{{count}} amount is not converted into your base currency yet and is left out.",
     "notConverted_other": "{{count}} amounts are not converted into your base currency yet and are left out.",
@@ -614,11 +615,58 @@
       "change": "Change",
       "changePercent": "Change %",
       "previousTotal": "Previous period",
-      "days": "{{from}} to {{to}}",
       "followBy": "Follow",
       "followByHint": "What a payee is followed by when no category is chosen.",
       "spentWith": "Spent with them",
       "receivedFrom": "Received from them"
+    },
+    "income": {
+      "title": "Income vs expenses",
+      "wholePeriod": "Whole period",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net",
+      "savingsRate": "Savings rate",
+      "month": "Month",
+      "chart": "Income and expenses per month, with net",
+      "table": "Income vs expenses",
+      "previousNet": "Net, previous period",
+      "previousTable": "Income vs expenses, previous period"
+    },
+    "budgetVsActual": {
+      "title": "Budget vs actual",
+      "table": "Budget vs actual",
+      "category": "Category",
+      "budgeted": "Budgeted",
+      "spent": "Spent",
+      "remaining": "Remaining",
+      "percentSpent": "Spent %",
+      "percent": "{{percent}}%",
+      "state": "State",
+      "total": "Total",
+      "states": {
+        "onTrack": "On track",
+        "warning": "Warning",
+        "over": "Over budget"
+      },
+      "chart": "Budgeted against spent per category",
+      "oneMonth": "Budget month {{month}}",
+      "months": "Budget months {{first}} to {{last}}, summed",
+      "budgetedMonths_one": "{{count}} of {{total}} months",
+      "budgetedMonths_other": "{{count}} of {{total}} months",
+      "noBudgets": "No budget was set in these months.",
+      "unbudgeted": "Spent with no budget",
+      "unbudgetedHint": "Spent in a month when neither the category nor its parent had a budget."
+    },
+    "netWorth": {
+      "title": "Net worth",
+      "on": "Net worth on {{date}}",
+      "chart": "Net worth: assets and liabilities at each month end",
+      "table": "Net worth at each month end",
+      "date": "Month end",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "netWorth": "Net worth"
     }
   },
   "institutions": {

@@ -445,7 +445,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Moves money between two of the user's accounts. It records two linked transactions, a transferOut leg on the source account and a transferIn leg on the destination, and both balances follow at once; a transfer is neither income nor spending. Between accounts in different currencies send both amounts: no exchange rate is looked up. Send an Idempotency-Key the client made up for this transfer: a retry with the same key answers the transfer the first request recorded and records nothing, and anything else sent with a key already used answers 422. */
+        /** @description Moves money between two of the user's accounts. It records two linked transactions, a transferOut leg on the source account and a transferIn leg on the destination, and both balances follow at once; a transfer is neither income nor spending. Between accounts in different currencies send both amounts: no exchange rate is looked up. Send an Idempotency-Key the client made up for this transfer: a retry with the same key answers the transfer the first request recorded and records nothing, and anything else sent with a key already used answers 422. A retry after the transfer was unmarked answers 409 with the problem type urn:pfm:problem:transfer-unmarked and records nothing: a new transfer needs a new key. */
         post: operations["CreateTransfer"];
         delete?: never;
         options?: never;
@@ -699,6 +699,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/budget-vs-actual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Am I within budget: each category's budgets against what was spent against them, in the user's base currency, over the whole budget months the period touches (one month, or several summed). A budget counts what was spent in its own month, in its category and, for a top-level one, in its subcategories, as on the budget screen; the account filter narrows what counts as spent, never the budgets. What was spent in a month where no budget covered its category is listed apart under unbudgeted. An expense that is not converted is left out of spent and counted in notConverted. Not compared with the previous period. */
+        get: operations["GetBudgetVsActual"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/trends": {
         parameters: {
             query?: never;
@@ -708,6 +725,40 @@ export interface paths {
         };
         /** @description One category or one payee over time: what it came to in each month of a period, in the user's base currency, and how each month changed from the one before, as an amount and a percentage. A category with its subcategories adds up spent (its expenses minus refunds) when it is an expense category, and the income received in it when it is an income one; a payee adds up what was spent with it, or with type income the income received from it, matched in any case, and with categoryId too only in that category. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers never count. With compare, the period before is worked out the same way, and change says how the total moved from it. */
         get: operations["GetTrend"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/income-vs-expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Am I saving: income, expenses and net in each calendar month of a period, with the savings rate, and the same over the whole period, in the user's base currency. Expenses are spent: refunds lower them. Net is income minus expenses; the savings rate is net as a percentage of income, to one decimal, and none when income is not above zero. Each transaction counts as converted at the exchange rate of its own date; one that is not converted is left out and counted in notConverted. Transfers are neither income nor expenses and never count. With categoryId, only the lines in that category and its subcategories count. */
+        get: operations["GetIncomeVsExpenses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/net-worth": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description What the user is worth over a period: at each month end in it, and on its last day when it ends inside a month, the balances of the assets (every account but credit cards and loans) and the amount owed on the liabilities (credit cards and loans), and the assets minus the liabilities, in the user's base currency. Archived accounts count; an account counts from its opening date. Each balance is converted at the exchange rate of the day it is shown on, or the nearest earlier one; one with no rate on or before that day is left out and counted in notConverted. Not paged: one item per month. */
+        get: operations["GetNetWorth"];
         put?: never;
         post?: never;
         delete?: never;
@@ -838,6 +889,43 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
         };
+        BudgetVsActualItemResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            /** Format: int32 */
+            months: number | string;
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            state: components["schemas"]["BudgetVsActualState"];
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        BudgetVsActualResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            months: number | string;
+            currency: components["schemas"]["Currency"];
+            /** Format: int32 */
+            warningPercent: number | string;
+            items: components["schemas"]["BudgetVsActualItemResponse"][];
+            totals: components["schemas"]["BudgetVsActualTotalsResponse"];
+            unbudgeted: components["schemas"]["UnbudgetedSpendingResponse"][];
+            unbudgetedTotal: components["schemas"]["UnbudgetedTotalResponse"];
+        };
+        /** @enum {unknown} */
+        BudgetVsActualState: "onTrack" | "warning" | "over";
+        BudgetVsActualTotalsResponse: {
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
         CategoryChangeRequest: {
             name: string;
             kind: components["schemas"]["CategoryKind"];
@@ -907,6 +995,25 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        IncomeAndExpensesResponse: {
+            income: string;
+            expenses: string;
+            net: string;
+            /** Format: double */
+            savingsRate: null | number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        IncomeVsExpensesResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            total: components["schemas"]["IncomeAndExpensesResponse"];
+            months: components["schemas"]["MonthIncomeAndExpensesResponse"][];
+            previous: null | components["schemas"]["PreviousIncomeVsExpensesResponse"];
+        };
         InstitutionBaseCurrencyTotalResponse: {
             /** Format: uuid */
             institutionId: null | string;
@@ -944,6 +1051,38 @@ export interface components {
             /** Format: uuid */
             incomeId: string;
         };
+        MonthIncomeAndExpensesResponse: {
+            /** Format: date */
+            month: string;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            income: string;
+            expenses: string;
+            net: string;
+            /** Format: double */
+            savingsRate: null | number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        NetWorthPointResponse: {
+            /** Format: date */
+            date: string;
+            assets: string;
+            liabilities: string;
+            netWorth: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        NetWorthResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            items: components["schemas"]["NetWorthPointResponse"][];
+        };
         NewRecoveryCodesRequest: {
             password: string;
         };
@@ -955,6 +1094,14 @@ export interface components {
             amount: string;
             /** Format: double */
             percent: null | number | string;
+        };
+        PreviousIncomeVsExpensesResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            total: components["schemas"]["IncomeAndExpensesResponse"];
+            months: components["schemas"]["MonthIncomeAndExpensesResponse"][];
         };
         PreviousSpendingResponse: {
             /** Format: date */
@@ -1267,6 +1414,17 @@ export interface components {
         TwoFactorSetupResponse: {
             key: string;
             authenticatorUri: string;
+        };
+        UnbudgetedSpendingResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            spent: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        UnbudgetedTotalResponse: {
+            spent: string;
+            /** Format: int32 */
+            notConverted: number | string;
         };
         UnmarkedTransferResponse: {
             expense: components["schemas"]["TransactionResponse"];
@@ -3029,6 +3187,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Unprocessable Entity */
             422: {
                 headers: {
@@ -4084,6 +4251,49 @@ export interface operations {
             };
         };
     };
+    GetBudgetVsActual: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetVsActualResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetTrend: {
         parameters: {
             query?: {
@@ -4134,6 +4344,92 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetIncomeVsExpenses: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+                compare?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncomeVsExpensesResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetNetWorth: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NetWorthResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

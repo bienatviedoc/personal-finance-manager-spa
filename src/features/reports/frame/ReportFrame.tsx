@@ -17,6 +17,8 @@ type Props = {
   categoryKind?: CategoryKind
   /** Whether the report can be compared with the period before (spec section 7: RPT-2, RPT-3 and RPT-7). */
   canCompare?: boolean
+  /** Whether the category filter is offered; not for a report of balances, which belong to no category. */
+  hasCategoryFilter?: boolean
   /** The names in the address the report keeps how far it is drilled down in, started again by another category filter. */
   drillDown?: readonly string[]
   /** The report itself, under the filters it is shown with. */
@@ -28,7 +30,7 @@ type Props = {
  * preset or dates the user chooses, the account and category filters, comparing with the period before, and
  * a choice of chart or table, all kept in the address. The report inside draws what the filters ask for.
  */
-export function ReportFrame({ title, categoryKind, canCompare = false, drillDown, children }: Props) {
+export function ReportFrame({ title, categoryKind, canCompare = false, hasCategoryFilter = true, drillDown, children }: Props) {
   const { t } = useTranslation()
   const titleId = useId()
   const { filters, change } = useReportFilters(drillDown)
@@ -64,12 +66,14 @@ export function ReportFrame({ title, categoryKind, canCompare = false, drillDown
           onChange={(event) => change({ accountId: event.target.value || undefined })}
           options={[{ value: '', label: t('reports.filters.allAccounts') }, ...(accounts.data?.accounts ?? []).map((account) => ({ value: account.id, label: account.name }))]}
         />
-        <SelectField
-          label={t('reports.filters.category')}
-          value={filters.categoryId ?? ''}
-          onChange={(event) => change({ categoryId: event.target.value || undefined })}
-          options={[{ value: '', label: t('reports.filters.allCategories') }, ...categoryChoices.map(({ category, label }) => ({ value: category.id, label }))]}
-        />
+        {hasCategoryFilter && (
+          <SelectField
+            label={t('reports.filters.category')}
+            value={filters.categoryId ?? ''}
+            onChange={(event) => change({ categoryId: event.target.value || undefined })}
+            options={[{ value: '', label: t('reports.filters.allCategories') }, ...categoryChoices.map(({ category, label }) => ({ value: category.id, label }))]}
+          />
+        )}
         {canCompare && (
           <label className="flex items-center gap-2 self-end text-sm">
             <input type="checkbox" className="size-4" checked={filters.compare} onChange={(event) => change({ compare: event.target.checked })} />

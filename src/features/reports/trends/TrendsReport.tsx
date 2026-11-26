@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
-import type { ParseKeys, TFunction } from 'i18next'
+import type { ParseKeys } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { maxPayeeLength } from '@/shared/api/limits'
@@ -8,14 +8,15 @@ import { LineChart } from '@/shared/charts'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
-import { daysOf, formatDate, formatMonth, monthOf } from '@/shared/dates'
+import { formatDate, formatMonth, monthOf } from '@/shared/dates'
 import type { Language } from '@/shared/i18n'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { typingSettles, useDebounced } from '@/shared/lib/useDebounced'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
-import { trendQuery, type PeriodChange, type Trend, type TrendMonth, type TrendType } from '../api/trends'
+import { trendQuery, type PeriodChange, type Trend, type TrendType } from '../api/trends'
 import { formatChangePercent } from '../frame/formatChangePercent'
+import { monthName } from '../frame/monthName'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
@@ -237,7 +238,7 @@ function TrendTable({ trend, name }: { trend: Trend; name: string }) {
                     {before && (
                       <>
                         <Money amount={before.total} currency={currency} />
-                        <span className="block text-xs text-muted-foreground">{previousMonthName(before, locale, t)}</span>
+                        <span className="block text-xs text-muted-foreground">{monthName(before, locale, t)}</span>
                       </>
                     )}
                   </td>
@@ -249,18 +250,6 @@ function TrendTable({ trend, name }: { trend: Trend; name: string }) {
       </table>
     </div>
   )
-}
-
-/**
- * What a month of the period before is called beside the month it is set against: a calendar month by its name;
- * before a period that is not whole months, the days at the same place, which need not be one (see the API's
- * `ReportPeriod.PreviousMonths`).
- */
-function previousMonthName(month: TrendMonth, locale: Language, t: TFunction): string {
-  const calendar = daysOf(monthOf(month.from))
-  return month.from === calendar.from && month.to === calendar.to
-    ? formatMonth(monthOf(month.from), locale)
-    : t('reports.trends.days', { from: formatDate(month.from, locale), to: formatDate(month.to, locale) })
 }
 
 /** How a total moved: the amount with its sign, and the percentage when there is one (none from zero). */
