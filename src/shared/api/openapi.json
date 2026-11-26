@@ -4170,6 +4170,56 @@
           }
         }
       }
+    },
+    "/api/v1/reports/monthly-summary.pdf": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "description": "A one-document summary of a calendar month, as a PDF file to download: its income, expenses, net and savings rate, spending by top-level category with each one's share, and each budget against what was spent, with what was spent where no budget covered it, all in the user's base currency, worked out as the income vs expenses, spending by category and budget vs actual reports work them out for that month. Written in the locale asked for, or the user's own, or English when they have none, with amounts written the locale's way.",
+        "operationId": "GetMonthlySummary",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
