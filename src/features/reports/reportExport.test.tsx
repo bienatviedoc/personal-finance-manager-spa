@@ -244,7 +244,7 @@ describe('exporting the budget vs actual report', () => {
       name: 'budget-vs-actual-2026-02-01-2026-03-31.csv',
       hasByteOrderMark: true,
       text: [
-        'row,category,budgeted,spent,remaining,percentSpent,state,budgetedMonths,notConverted,currency',
+        'row,category,budgeted,spent,remaining,percentSpent,state,months,notConverted,currency',
         'budget,Groceries,2000000.00,800000.00,1200000.00,40,onTrack,1,0,VND',
         'budget,Transport,500000.00,0.00,500000.00,0,onTrack,1,0,VND',
         'total,,2500000.00,800000.00,1700000.00,,,,0,VND',

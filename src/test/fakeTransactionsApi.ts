@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { maxBulkSelection } from '@/shared/api/limits'
 import type { components } from '@/shared/api/schema'
 import { fakeAttachmentsApi } from './fakeAttachmentsApi'
 import type { FakeCategory } from './fakeCategoriesApi'
@@ -413,8 +414,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     const actions = ['setCategory', 'addTag', 'removeTag', 'moveToAccount', 'delete']
     if (!actions.includes(body.action ?? '')) return invalid('action', `Choose one of: ${actions.join(', ')}.`)
     const ids = body.transactionIds ? [...new Set(body.transactionIds)] : null
-    if ((ids === null) === !body.filter || (ids !== null && (ids.length === 0 || ids.length > 1000)))
-      return invalid('transactionIds', 'Select 1 to 1000 transactions by their ids, or by a filter.')
+    if ((ids === null) === !body.filter || (ids !== null && (ids.length === 0 || ids.length > maxBulkSelection)))
+      return invalid('transactionIds', `Select 1 to ${maxBulkSelection} transactions by their ids, or by a filter.`)
     const refused: RefusedTransaction[] = []
     // Each refused one comes as it is, unchanged, so the screen can name it; one not found, as nothing.
     const refuse = (transactionId: string, reason: RefusedTransaction['reason']) =>
@@ -426,8 +427,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     } else {
       const query = new URLSearchParams(Object.entries(body.filter!).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
       selected = state.transactions.filter(passes(query))
-      if (selected.length > 1000)
-        return problem(422, { type: 'urn:pfm:problem:bulk-selection-too-large', title: 'More than 1000 transactions pass this filter.', max: 1000 })
+      if (selected.length > maxBulkSelection)
+        return problem(422, {
+          type: 'urn:pfm:problem:bulk-selection-too-large',
+          title: `More than ${maxBulkSelection} transactions pass this filter.`,
+          detail: 'Narrow the filter, or act on the transactions in parts. Nothing changed.',
+          max: maxBulkSelection,
+        })
     }
     const tag = body.tag?.trim().toLowerCase() ?? ''
     if ((body.action === 'addTag' || body.action === 'removeTag') && (tag === '' || tag.length > 50)) return invalid('tag', 'Enter a tag of 1 to 50 characters.')
@@ -480,12 +486,23 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         }
         act = (transaction) => (transaction.transferId ? removeTransfer(transaction.transferId) : find(transaction.id) && remove(transaction))
     }
-    if (refused.length > 0) return problem(409, { type: 'urn:pfm:problem:bulk-action-refused', refused })
+    if (refused.length > 0)
+      return problem(409, {
+        type: 'urn:pfm:problem:bulk-action-refused',
+        title: 'Some of the transactions cannot take this action, so none did.',
+        detail: 'Leave out the transactions refused, or change them first, and act again.',
+        refused,
+      })
+    // A delete of a leg of a transfer deletes the other leg too, and the API counts both.
+    const count =
+      body.action === 'delete'
+        ? new Set(selected.flatMap((transaction) => (transaction.transferId ? legsOf(transaction.transferId).map((leg) => leg.id) : [transaction.id]))).size
+        : selected.length
     for (const transaction of selected) {
       act(transaction)
       transaction.rowVersion = String(Number(transaction.rowVersion) + 1)
     }
-    return HttpResponse.json({ count: selected.length })
+    return HttpResponse.json({ count })
   }
 
   const recoveryPeriod = 30 * 24 * 60 * 60 * 1000

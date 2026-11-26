@@ -8,7 +8,7 @@ import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { detailSeparator, joinDetails } from '@/shared/lib/details'
-import { cn } from '@/shared/lib/utils'
+import { cn, focusRing } from '@/shared/lib/utils'
 import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isPending, isSplit, isTransferLeg, takesFromBalance, useDeleteTransaction, type ListedTransaction, type Transaction } from '../api/transactions'
@@ -64,7 +64,7 @@ export function TransactionRow({ transaction, account, category, categories, onE
         {select && (
           <input
             type="checkbox"
-            className="size-4"
+            className={cn('size-4', focusRing)}
             aria-label={t('transactions.bulk.select', { name: title })}
             checked={select.selected}
             onChange={select.onToggle}

@@ -357,7 +357,8 @@
     "bulk": {
       "title": "Giao dịch đã chọn",
       "select": "Chọn {{name}}",
-      "selectAll_other": "Chọn tất cả {{count}} giao dịch",
+      "selectAll_other": "Chọn tất cả {{total}} giao dịch",
+      "done_other": "Đã thay đổi {{total}} giao dịch.",
       "selected": "Đã chọn {{count}}",
       "clear": "Bỏ chọn",
       "setCategory": "Đặt danh mục",
@@ -383,7 +384,8 @@
         "tooManyTags": "giao dịch đã có 20 thẻ."
       },
       "failed": "Các giao dịch đã chọn chưa được thay đổi.",
-      "selectAll_one": "Chọn {{count}} giao dịch",
+      "selectAll_one": "Chọn {{total}} giao dịch",
+      "done_one": "Đã thay đổi {{total}} giao dịch.",
       "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày.",
       "tooManyToSelect_other": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
       "tooMany": "Hiện có hơn {{max}} giao dịch khớp với bộ lọc này. Hãy thu hẹp bộ lọc hoặc chọn ít hơn, rồi thử lại.",
@@ -1093,7 +1095,7 @@
       "income": "Thu nhập",
       "expenses": "Chi tiêu",
       "net": "Chênh lệch",
-      "savingsRate": "Tỷ lệ tiết kiệm {{rate}}%",
+      "savingsRate": "Tỷ lệ tiết kiệm {{rate}}",
       "link": "Xem thu nhập và chi tiêu"
     },
     "budgets": {

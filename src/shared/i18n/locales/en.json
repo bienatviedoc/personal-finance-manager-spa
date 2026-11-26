@@ -357,8 +357,10 @@
     "bulk": {
       "title": "Selected transactions",
       "select": "Select {{name}}",
-      "selectAll_one": "Select all {{count}} transaction",
-      "selectAll_other": "Select all {{count}} transactions",
+      "selectAll_one": "Select all {{total}} transaction",
+      "selectAll_other": "Select all {{total}} transactions",
+      "done_one": "{{total}} transaction changed.",
+      "done_other": "{{total}} transactions changed.",
       "selected": "{{count}} selected",
       "clear": "Clear selection",
       "setCategory": "Set category",
@@ -417,10 +419,10 @@
     "cancel": "Cancel",
     "deleteExplained": "Delete this transfer? Both of its legs leave this list, and both accounts get their balance back.",
     "markAs": "Mark as transfer",
-    "markTitle": "Picked to mark as a transfer",
-    "markExplained": "Pick an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
+    "markTitle": "Selected to mark as a transfer",
+    "markExplained": "Select an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
     "whyNot": {
-      "types": "Pick one expense and one income.",
+      "types": "Select one expense and one income.",
       "sameAccount": "A transfer is between two different accounts.",
       "date": "The two must be on the same date.",
       "amount": "Between accounts in one currency, the two must be of the same amount."
@@ -1093,7 +1095,7 @@
       "income": "Income",
       "expenses": "Expenses",
       "net": "Net",
-      "savingsRate": "Savings rate {{rate}}%",
+      "savingsRate": "Savings rate {{rate}}",
       "link": "See income vs expenses"
     },
     "budgets": {

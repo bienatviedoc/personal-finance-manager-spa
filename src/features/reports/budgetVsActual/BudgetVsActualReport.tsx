@@ -48,7 +48,7 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
   // Each row says what it is by a code of its own, so the file is the same in every language (see ExportCsv).
   const csv: ReportCsv = {
     name: 'budget-vs-actual',
-    columns: ['row', 'category', 'budgeted', 'spent', 'remaining', 'percentSpent', 'state', 'budgetedMonths', 'notConverted', 'currency'],
+    columns: ['row', 'category', 'budgeted', 'spent', 'remaining', 'percentSpent', 'state', 'months', 'notConverted', 'currency'],
     rows: [
       ...report.items.map((item) => [
         'budget',

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Account } from '@/features/accounts'
-import { findCategory, type Category } from '@/features/categories'
+import { findCategory, useCategoryChoices, type Category } from '@/features/categories'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { SelectField } from '@/shared/components/SelectField'
@@ -25,8 +25,9 @@ type Props = {
   categories: Category[]
   /** What a transaction the API refused and no longer has is called in the list, by its id. */
   nameOf: (id: string) => string
-  /** Called once the action is done, to clear the selection. */
-  onDone: () => void
+  /** Called once the action is done, with how many transactions took it, to clear the selection and say so. */
+  onDone: (count: number) => void
+  /** Called to clear the selection without acting on it. */
   onClear: () => void
 }
 
@@ -43,19 +44,33 @@ export function BulkActions({ count, selection, accounts, categories, nameOf, on
   const [accountId, setAccountId] = useState('')
   const [tag, setTag] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // Focus follows the delete step: onto its confirmation when it opens, back to Delete when it closes.
+  const deleteButton = useRef<HTMLButtonElement>(null)
+  const confirmButton = useRef<HTMLButtonElement>(null)
+  const deleteStepOpened = useRef(false)
+  useEffect(() => {
+    if (confirmingDelete) confirmButton.current?.focus()
+    else if (deleteStepOpened.current) deleteButton.current?.focus()
+    deleteStepOpened.current = confirmingDelete
+  }, [confirmingDelete])
+
+  // What the last action said is about the selection it was sent for: another selection starts with nothing said.
+  const selectionKey = JSON.stringify(selection)
+  const { reset } = bulk
+  useEffect(() => reset(), [selectionKey, reset])
 
   // What was sent last, to send again from the failure toast, which forgets the failure first.
   const [last, setLast] = useState<BulkAction>()
   const send = (action: BulkAction) => {
     setLast(action)
-    bulk.mutate({ ...action, ...selection }, { onSuccess: (outcome) => outcome.done && onDone() })
+    bulk.mutate({ ...action, ...selection }, { onSuccess: (outcome) => outcome.done && onDone(outcome.count) })
   }
   const retry = () => last && send(last)
   const outcome = bulk.data
-  const categoryOptions = categories
-    .filter((category) => !category.isArchived)
-    .flatMap((category) => [category, ...category.subcategories.filter((sub) => !sub.isArchived)])
-    .map((category) => ({ value: category.id, label: category.name }))
+  // Named as every category picker names them, a subcategory under its parent, so two of the same name differ.
+  const categoryOptions = useCategoryChoices(
+    categories.filter((category) => !category.isArchived).map((category) => ({ ...category, subcategories: category.subcategories.filter((sub) => !sub.isArchived) })),
+  ).map((choice) => ({ value: choice.category.id, label: choice.label }))
   const accountOptions = accounts.filter((account) => !account.isArchived).map((account) => ({ value: account.id, label: account.name }))
   // Named as the API answers it, loaded on the screen or not: by its title, date and amount, signed as the list signs it.
   const describe = ({ transactionId, transaction }: RefusedTransaction) =>
@@ -126,6 +141,7 @@ export function BulkActions({ count, selection, accounts, categories, nameOf, on
           <p>{t('transactions.bulk.deleteExplained', { count })}</p>
           <div className="flex flex-wrap gap-2">
             <Button
+              ref={confirmButton}
               variant="destructive"
               size="sm"
               disabled={bulk.isPending}
@@ -139,7 +155,7 @@ export function BulkActions({ count, selection, accounts, categories, nameOf, on
           </div>
         </div>
       ) : (
-        <Button variant="ghost" size="sm" disabled={bulk.isPending} onClick={() => setConfirmingDelete(true)}>
+        <Button ref={deleteButton} variant="ghost" size="sm" disabled={bulk.isPending} onClick={() => setConfirmingDelete(true)}>
           {t('transactions.bulk.delete')}
         </Button>
       )}

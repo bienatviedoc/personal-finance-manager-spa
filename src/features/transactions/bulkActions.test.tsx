@@ -44,7 +44,7 @@ describe('bulk actions', () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Select Co.op Mart' }))
     await user.click(screen.getByRole('checkbox', { name: 'Select Grab' }))
     expect(bar().getByText('2 selected')).toBeInTheDocument()
-    await user.selectOptions(bar().getByLabelText('Category'), 'Eating out')
+    await user.selectOptions(bar().getByLabelText('Category'), bar().getByRole('option', { name: 'Food & drink › Eating out' }))
     await user.click(bar().getByRole('button', { name: 'Set category' }))
 
     const [coop, grab] = transactionsApi.transactions.map((transaction) => transaction.id)
@@ -59,6 +59,9 @@ describe('bulk actions', () => {
     // Done, the selection is cleared.
     expect(screen.queryByRole('region', { name: 'Selected transactions' })).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Select Co.op Mart' })).not.toBeChecked()
+    // What was done is said where focus lands, as the panel it was done from is gone.
+    expect(screen.getByRole('status')).toHaveTextContent('2 transactions changed.')
+    expect(screen.getByRole('status')).toHaveFocus()
   })
 
   it('change nothing when some cannot take the action, and name each one and why', async () => {
@@ -78,6 +81,10 @@ describe('bulk actions', () => {
     expect(transactionsApi.transactions[0]?.categoryId).toBe('c-groceries')
     // The selection stays, for the user to change it and try again.
     expect(screen.getByRole('checkbox', { name: 'Select Co.op Mart' })).toBeChecked()
+
+    // Another selection starts with nothing said about the last one.
+    await user.click(screen.getByRole('checkbox', { name: 'Select Payroll' }))
+    expect(bar().queryByRole('list', { name: 'Not changed' })).not.toBeInTheDocument()
   })
 
   it('name each transaction refused by its payee, date and amount, loaded on the screen or not', async () => {
@@ -112,7 +119,7 @@ describe('bulk actions', () => {
     const { user } = renderApp('/transactions')
 
     await user.click(await screen.findByRole('checkbox', { name: 'Select Grab' }))
-    await user.selectOptions(bar().getByLabelText('Category'), 'Eating out')
+    await user.selectOptions(bar().getByLabelText('Category'), bar().getByRole('option', { name: 'Food & drink › Eating out' }))
     transactionsApi.categories.find((category) => category.id === 'c-eating-out')!.isArchived = true
     await user.click(bar().getByRole('button', { name: 'Set category' }))
     expect(await bar().findByText('That category can no longer be chosen. Choose another.')).toBeInTheDocument()
@@ -187,6 +194,34 @@ describe('bulk actions', () => {
     await waitFor(() => expect(screen.getByRole('region', { name: 'Total of these transactions' })).not.toHaveTextContent('300,000'))
   })
 
+  it('move focus onto the confirmation of a delete, and back to Delete when it is cancelled', async () => {
+    fakeApis(shopping)
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select Grab' }))
+    await user.click(bar().getByRole('button', { name: 'Delete' }))
+    expect(bar().getByRole('button', { name: 'Delete them' })).toHaveFocus()
+    await user.click(bar().getByRole('button', { name: 'Cancel' }))
+
+    expect(bar().getByRole('button', { name: 'Delete' })).toHaveFocus()
+  })
+
+  it('count both legs of a transfer deleted by deleting one', async () => {
+    fakeApis([
+      ...shopping,
+      { type: 'transferOut', accountId: everyday, amount: '10.00', date: '2026-11-01', transferId: 't-1' },
+      { type: 'transferIn', accountId: savings, amount: '10.00', date: '2026-11-01', transferId: 't-1' },
+    ])
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select Grab' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select Transfer out' }))
+    await user.click(bar().getByRole('button', { name: 'Delete' }))
+    await user.click(bar().getByRole('button', { name: 'Delete them' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('3 transactions changed.')
+  })
+
   it('select every transaction that passes the filters at once, loaded or not, and act on them by the filters', async () => {
     const transactionsApi = fakeApis([
       ...Array.from({ length: 60 }, (_, index) => ({
@@ -229,7 +264,7 @@ describe('bulk actions', () => {
     window.innerHeight = 768
     const { user } = renderApp('/transactions')
 
-    await user.click(await screen.findByRole('checkbox', { name: 'Select all 1000 transactions' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Select all 1,000 transactions' }))
     transactionsApi.transactions.push({ ...transactionsApi.transactions[0]!, id: 'one-more' })
     await user.type(bar().getByLabelText('Tag'), 'weekly')
     await user.click(bar().getByRole('button', { name: 'Add tag' }))

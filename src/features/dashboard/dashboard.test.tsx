@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { fakeDashboardApi } from '@/test/fakeDashboardApi'
+import { fakeProfileApi } from '@/test/fakeProfileApi'
 import { renderApp } from '@/test/renderApp'
 
 const category = (id: string, name: string, parentId: string | null = null) => ({ id, parentId, name, icon: 'utensils', color: '#f97316', isArchived: false })
@@ -91,7 +92,7 @@ describe('the dashboard', () => {
     renderApp('/')
 
     const top = await card('Top categories')
-    expect(within(top).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Housing₫4,000,00069.0%', 'Food & drink₫700,00012.1%'])
+    expect(within(top).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Housing₫4,000,00069%', 'Food & drink₫700,00012.1%'])
     expect(within(top).getByRole('link', { name: 'See spending by category' })).toHaveAttribute('href', '/reports/spending-by-category?period=thisMonth')
   })
 
@@ -137,6 +138,22 @@ describe('the dashboard', () => {
     renderApp('/')
 
     expect(await card('Total balance')).toHaveTextContent('Not included: $250.00')
+  })
+
+  it('writes the savings rate, the shares and the amounts left out the way Vietnamese writes them', async () => {
+    fakeProfileApi({ locale: 'vi' })
+    fakeDashboardApi({
+      hasAccounts: true,
+      balance: { balance: '1000000.00', notConverted: [{ currency: 'USD', balance: '250.50' }, { currency: 'EUR', balance: '10.25' }] },
+      thisMonth: { income: '3000000.00', expenses: '2000000.00', net: '1000000.00', savingsRate: 33.3, notConverted: 0 },
+      topCategories: [{ category: category('c-food', 'Food & drink'), spent: '700000.00', share: 12.1, notConverted: 0 }],
+    })
+    renderApp('/', { language: 'vi' })
+
+    expect(await screen.findByText('Tỷ lệ tiết kiệm 33,3%')).toBeInTheDocument()
+    expect(await card('Danh mục chi nhiều nhất')).toHaveTextContent('12,1%')
+    // Joined with "và", not a comma, which Vietnamese reads as a decimal comma.
+    expect(await card('Tổng số dư')).toHaveTextContent('Chưa tính: 250,50 US$ và 10,25 €, vì chưa có tỷ giá.')
   })
 
   it('shows a skeleton for each card while it loads, laid out as the cards are', async () => {

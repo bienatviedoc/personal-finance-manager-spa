@@ -51,7 +51,9 @@ const selectionTooLarge = 'urn:pfm:problem:bulk-selection-too-large'
 
 /**
  * Acts on many transactions at once (spec TXN-7): all of them take it or none does. Done, it loads again
- * everything a change to a transaction shows in: the lists, the balances, the budgets and the reports.
+ * everything a change to a transaction shows in: the lists, the balances, the budgets and the reports. Refused on
+ * some, or as too many, it loads them again too: a refusal can be news (a transaction deleted or reconciled
+ * elsewhere, more passing the filter than the list knew), which the list and its count should show.
  */
 export function useBulkEdit() {
   const queryClient = useQueryClient()
@@ -65,7 +67,7 @@ export function useBulkEdit() {
       if (fields) return { done: false, fields }
       throw new Error(`A bulk action failed: ${response.status}`)
     },
-    onSuccess: (outcome) => outcome.done && refreshTransactions(queryClient),
+    onSuccess: (outcome) => ('fields' in outcome ? undefined : refreshTransactions(queryClient)),
     // A request that failed may still have been done.
     onError: () => refreshTransactions(queryClient),
   })

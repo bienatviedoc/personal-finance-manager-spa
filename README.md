@@ -324,6 +324,11 @@ in its own file under `src/test/`, keeping state across requests and following t
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
+One kind of test stands apart: a race the real router cannot be made to lose on cue. `useReportFilters.test.ts`
+renders the hook alone with `react-router`'s `useSearchParams` mocked, so it can render an older address after a newer
+change was asked for, which the router does only under load. Reach for this only when the app-level test cannot
+show the bug, and say in the test which race it stands in for.
+
 jsdom lays nothing out, so the virtualised transaction list cannot tell which rows are on screen: every test
 starts on a pretend screen tall enough for every row it lists (`src/test/setup.ts`), and a row counts as tall as
 its estimate. A test of the virtualisation itself gives the screen and the rows a height and scrolls

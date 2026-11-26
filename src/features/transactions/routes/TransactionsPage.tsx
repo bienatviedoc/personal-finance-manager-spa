@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ArrowRightLeft, Download } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, findAccount } from '@/features/accounts'
@@ -12,6 +12,7 @@ import { FailureToast } from '@/shared/components/FailureToast'
 import { maxBulkSelection } from '@/shared/api/limits'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
+import { cn, focusRing } from '@/shared/lib/utils'
 import { withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { tagsQuery } from '../api/tags'
@@ -74,6 +75,16 @@ export function TransactionsPage() {
       : undefined
   const saved = items?.filter((transaction): transaction is Transaction => !isPending(transaction)) ?? []
   const selection = useSelection(view, saved, total)
+  // What the last bulk action did, said where focus lands once its panel closes with the selection.
+  const [bulkDone, setBulkDone] = useState<number>()
+  const bulkDoneMessage = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if (bulkDone !== undefined) bulkDoneMessage.current?.focus()
+  }, [bulkDone])
+  const finishBulk = (count: number) => {
+    selection.clear()
+    setBulkDone(count)
+  }
   const nameOf = (id: string) => {
     const transaction = saved.find((candidate) => candidate.id === id) ?? selection.pickedRows.find((row) => row.id === id)
     return transaction ? transactionTitle(transaction, findCategory(categories.data ?? [], transaction.categoryId), t) : t('transactions.bulk.unknown')
@@ -162,11 +173,11 @@ export function TransactionsPage() {
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            className="size-4"
+            className={cn('size-4', focusRing)}
             checked={selection.allSelected}
             onChange={selection.toggleAll}
           />
-          {t('transactions.bulk.selectAll', { count: total.count })}
+          {t('transactions.bulk.selectAll', { count: Number(total.count), total: Number(total.count).toLocaleString(locale) })}
         </label>
       )}
       {accounts.data && categories.data && selection.count > 0 && (
@@ -176,9 +187,14 @@ export function TransactionsPage() {
           accounts={accounts.data.accounts}
           categories={categories.data}
           nameOf={nameOf}
-          onDone={selection.clear}
+          onDone={finishBulk}
           onClear={selection.clear}
         />
+      )}
+      {bulkDone !== undefined && selection.count === 0 && (
+        <p ref={bulkDoneMessage} role="status" tabIndex={-1} className={cn('text-sm', focusRing)}>
+          {t('transactions.bulk.done', { count: bulkDone, total: bulkDone.toLocaleString(locale) })}
+        </p>
       )}
       {/* Started again for each new pick, so what the last attempt said is not shown for another pair. */}
       {selection.marking && (

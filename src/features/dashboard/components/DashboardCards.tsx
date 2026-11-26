@@ -5,8 +5,9 @@ import { takesFromBalance, titleOf } from '@/features/transactions'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { joinDetails } from '@/shared/lib/details'
+import { formatShare } from '@/shared/lib/formatShare'
 import { cn } from '@/shared/lib/utils'
-import { formatMoney, Money, signedAmount, type Currency } from '@/shared/money'
+import { formatMoney, inCurrencyOrder, Money, signedAmount, type Currency } from '@/shared/money'
 import type { Dashboard, DashboardOccurrence } from '../api/dashboard'
 import { Card } from './Card'
 
@@ -33,7 +34,10 @@ export function BalanceCard({ dashboard }: { dashboard: Dashboard }) {
       {notConverted.length > 0 && (
         <p role="note" className="text-sm font-medium text-warning">
           {t('dashboard.balance.notConverted', {
-            amounts: notConverted.map((amount) => formatMoney(amount.balance, amount.currency, locale)).join(', '),
+            // A list the locale's way: a comma between amounts would read as a decimal comma in Vietnamese.
+            amounts: new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+              notConverted.toSorted(inCurrencyOrder).map((amount) => formatMoney(amount.balance, amount.currency, locale)),
+            ),
           })}
         </p>
       )}
@@ -44,6 +48,7 @@ export function BalanceCard({ dashboard }: { dashboard: Dashboard }) {
 /** This month's income, expenses and net, as income vs expenses works them out. */
 export function ThisMonthCard({ dashboard }: { dashboard: Dashboard }) {
   const { t } = useTranslation()
+  const locale = useLocale()
   const { thisMonth, currency } = dashboard
   const figures: [ParseKeys, string][] = [
     ['dashboard.thisMonth.income', thisMonth.income],
@@ -62,7 +67,7 @@ export function ThisMonthCard({ dashboard }: { dashboard: Dashboard }) {
           </div>
         ))}
       </dl>
-      {thisMonth.savingsRate !== null && <p className="text-sm text-muted-foreground">{t('dashboard.thisMonth.savingsRate', { rate: thisMonth.savingsRate })}</p>}
+      {thisMonth.savingsRate !== null && <p className="text-sm text-muted-foreground">{t('dashboard.thisMonth.savingsRate', { rate: formatShare(thisMonth.savingsRate, locale) })}</p>}
       {Number(thisMonth.notConverted) > 0 && (
         <p role="note" className="text-sm font-medium text-warning">
           {t('reports.notConverted', { count: Number(thisMonth.notConverted) })}
@@ -146,7 +151,6 @@ export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
 export function TopCategoriesCard({ dashboard }: { dashboard: Dashboard }) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const share = new Intl.NumberFormat(locale, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
   return (
     <Card title={t('dashboard.topCategories.title')} to={screens.spendingByCategory} linkLabel={t('dashboard.topCategories.link')}>
       {dashboard.topCategories.length === 0 ? (
@@ -161,7 +165,7 @@ export function TopCategoriesCard({ dashboard }: { dashboard: Dashboard }) {
                   <Money amount={item.spent} currency={dashboard.currency} />
                 </span>
                 {/* A share is a percentage of the total, not money. */}
-                {item.share !== null && <span className="w-14 text-right tabular-nums text-muted-foreground">{share.format(Number(item.share) / 100)}</span>}
+                {item.share !== null && <span className="w-14 text-right tabular-nums text-muted-foreground">{formatShare(item.share, locale)}</span>}
               </div>
               <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-muted">
                 <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, Number(item.share ?? 0)))}%`, backgroundColor: item.category.color }} />

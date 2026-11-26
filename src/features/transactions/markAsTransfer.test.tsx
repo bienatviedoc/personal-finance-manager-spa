@@ -66,7 +66,7 @@ describe('marking as a transfer', () => {
     await user.click(await screen.findByRole('checkbox', { name: 'Select VISA PAYMENT' }))
     await router.navigate(`/transactions?accountId=${visa}`)
     await user.click(await screen.findByRole('checkbox', { name: 'Select PAYMENT RECEIVED' }))
-    expect(screen.queryByText('Pick one expense and one income.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Select one expense and one income.')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Mark as transfer' }))
 
     const [expense, income] = cardPayment.map((_, index) => transactionsApi.transactions[index]!.id)
@@ -93,7 +93,7 @@ describe('marking as a transfer', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Select VISA PAYMENT' }))
     expect(screen.getByRole('button', { name: 'Mark as transfer' })).toBeDisabled()
-    expect(screen.getByText('Pick one expense and one income.')).toBeInTheDocument()
+    expect(screen.getByText('Select one expense and one income.')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Clear selection' }))
     expect(screen.getByRole('checkbox', { name: 'Select VISA PAYMENT' })).not.toBeChecked()
