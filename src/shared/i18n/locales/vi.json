@@ -1009,6 +1009,7 @@
       "title": "Gộp {{name}}",
       "into": "Gộp vào",
       "choose": "Chọn danh mục",
+      "noMatches": "Không có danh mục nào khớp.",
       "confirm": "Gộp",
       "moves": "{{transactions}} và {{budgets}} sẽ chuyển sang {{target}}, và {{name}} được lưu trữ.",
       "transactions_one": "{{count}} giao dịch",

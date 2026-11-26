@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { ComboboxField } from '@/shared/components/ComboboxField'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { Button } from '@/shared/ui/button'
 import { categoryMergePreviewQuery, type Category, type MergeOutcome } from '../api/categories'
@@ -25,7 +26,6 @@ export function MergeCategoryForm({ category, tree, onMerge, onCancel }: Props) 
   const { t } = useTranslation()
   const [targetId, setTargetId] = useState('')
   const [refused, setRefused] = useState(false)
-  const pickerId = useId()
   const titleId = useId()
   const hasSubcategories = category.subcategories.length > 0
   const offered = useCategoryChoices(tree).filter(
@@ -51,27 +51,17 @@ export function MergeCategoryForm({ category, tree, onMerge, onCancel }: Props) 
       <h4 id={titleId} className="font-medium">
         {t('categories.merge.title', { name: category.name })}
       </h4>
-      <div className="flex flex-col gap-1">
-        <label htmlFor={pickerId} className="text-sm">
-          {t('categories.merge.into')}
-        </label>
-        <select
-          id={pickerId}
-          value={targetId}
-          onChange={(event) => {
-            setTargetId(event.target.value)
-            setRefused(false)
-          }}
-          className="rounded-md border border-input bg-background px-2 py-1"
-        >
-          <option value="">{t('categories.merge.choose')}</option>
-          {offered.map(({ category: choice, label }) => (
-            <option key={choice.id} value={choice.id}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <ComboboxField
+        label={t('categories.merge.into')}
+        placeholder={t('categories.merge.choose')}
+        noMatches={t('categories.merge.noMatches')}
+        options={offered.map(({ category: choice, label }) => ({ value: choice.id, label }))}
+        value={targetId}
+        onChange={(value) => {
+          setTargetId(value)
+          setRefused(false)
+        }}
+      />
       {target && preview.data && (
         <p className="text-sm">
           {t('categories.merge.moves', {

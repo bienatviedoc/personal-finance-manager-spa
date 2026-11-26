@@ -1009,6 +1009,7 @@
       "title": "Merge {{name}}",
       "into": "Merge into",
       "choose": "Choose a category",
+      "noMatches": "No category matches.",
       "confirm": "Merge",
       "moves": "{{transactions}} and {{budgets}} move to {{target}}, and {{name}} is archived.",
       "transactions_one": "{{count}} transaction",
