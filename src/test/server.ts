@@ -14,6 +14,7 @@ export const testUser: ProfileResponse = {
   locale: null,
   budgetWarningPercent: 80,
   baseCurrencyLocked: false,
+  emailBudgetNotifications: true,
 }
 export const antiforgeryToken = 'test-antiforgery-token'
 

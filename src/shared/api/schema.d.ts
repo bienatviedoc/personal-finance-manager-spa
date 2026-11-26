@@ -923,6 +923,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/budget-notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The user's budget notifications, the newest first, a page at a time, with how many are unread. One is raised when a category's budget moves into warning or over after a change that affects spent; each category raises at most one warning and one over a budget month. Each keeps what the budget stood at when it was raised. */
+        get: operations["ListBudgetNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budget-notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Marks one budget notification read. Reading one already read changes nothing. */
+        post: operations["ReadBudgetNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budget-notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Marks every unread budget notification read. */
+        post: operations["ReadAllBudgetNotifications"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/dashboard": {
         parameters: {
             query?: never;
@@ -1154,6 +1205,28 @@ export interface components {
             warningPercent: number | string;
             items: components["schemas"]["BudgetResponse"][];
             totals: components["schemas"]["BudgetTotalsResponse"];
+        };
+        BudgetNotificationListResponse: {
+            items: components["schemas"]["BudgetNotificationResponse"][];
+            nextCursor: null | string;
+            /** Format: int32 */
+            unread: number | string;
+        };
+        BudgetNotificationResponse: {
+            /** Format: uuid */
+            id: string;
+            month: string;
+            category: components["schemas"]["BudgetCategoryResponse"];
+            state: components["schemas"]["BudgetState"];
+            budgeted: string;
+            spent: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            currency: components["schemas"]["Currency"];
+            /** Format: date-time */
+            raisedAt: string;
+            /** Format: date-time */
+            readAt: null | string;
         };
         BudgetRequest: {
             amount: string;
@@ -1605,6 +1678,7 @@ export interface components {
             /** Format: int32 */
             budgetWarningPercent: number | string;
             baseCurrencyLocked: boolean;
+            emailBudgetNotifications: boolean;
         };
         QuickAddResponse: {
             /** Format: uuid */
@@ -1990,6 +2064,7 @@ export interface components {
             locale?: null | string;
             /** Format: int32 */
             budgetWarningPercent?: null | number | string;
+            emailBudgetNotifications?: null | boolean;
         };
         VerifyEmailRequest: {
             /** Format: uuid */
@@ -5576,6 +5651,128 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListBudgetNotifications: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetNotificationListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReadBudgetNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAllBudgetNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */
