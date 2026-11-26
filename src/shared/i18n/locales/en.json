@@ -386,6 +386,10 @@
       },
       "invalid": "That category or account can no longer be chosen. Choose again.",
       "failed": "The selected transactions were not changed."
+    },
+    "export": {
+      "start": "Export CSV",
+      "failed": "The CSV file could not be downloaded. Try again in a moment."
     }
   },
   "transfers": {
@@ -687,6 +691,7 @@
       "refund": "Refund",
       "split": "Split transaction"
     },
+    "export": "Export CSV",
     "trends": {
       "title": "Trends",
       "chooseWhat": "Choose a category or type a payee to follow it month by month.",

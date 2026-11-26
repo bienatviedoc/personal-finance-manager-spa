@@ -8,6 +8,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, formatMoney, Money, type Currency } from '@/shared/money'
 import { incomeVsExpensesQuery, type IncomeAndExpenses, type MonthIncomeAndExpenses } from '../api/incomeVsExpenses'
+import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { monthName } from '../frame/monthName'
@@ -36,7 +37,29 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
   if (report.isError) return <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>
   if (!report.data) return <ReportLoading />
   const { currency, total, months, previous } = report.data
+  const flowRow = (row: string, period: { from: string; to: string }, flow: IncomeAndExpenses) => [
+    row,
+    period.from,
+    period.to,
+    flow.income,
+    flow.expenses,
+    flow.net,
+    flow.savingsRate,
+    flow.notConverted,
+    currency,
+  ]
+  const exported = [
+    ...months.map((month) => flowRow('month', month, month)),
+    flowRow('total', report.data, total),
+    ...(previous ? [...previous.months.map((month) => flowRow('previousMonth', month, month)), flowRow('previousTotal', previous, previous.total)] : []),
+  ]
   const previousTitle = previous && t('reports.previousPeriod', { from: formatDate(previous.from, locale), to: formatDate(previous.to, locale) })
+
+  const csv: ReportCsv = {
+    name: 'income-vs-expenses',
+    columns: ['row', 'from', 'to', 'income', 'expenses', 'net', 'savingsRate', 'notConverted', 'currency'],
+    rows: exported,
+  }
 
   return (
     <div className="space-y-6">
@@ -44,6 +67,7 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
         <Summary title={t('reports.income.wholePeriod')} flow={total} currency={currency} />
         {previous && <Summary title={previousTitle!} flow={previous.total} currency={currency} />}
       </div>
+      <ExportCsv csv={csv} filters={filters} />
 
       {filters.view === 'chart' ? (
         <MonthsChart months={months} previousMonths={previous?.months} currency={currency} />

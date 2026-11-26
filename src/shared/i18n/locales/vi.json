@@ -386,6 +386,10 @@
       "failed": "Các giao dịch đã chọn chưa được thay đổi.",
       "selectAll_one": "Chọn {{count}} giao dịch",
       "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày."
+    },
+    "export": {
+      "start": "Xuất CSV",
+      "failed": "Không tải được tệp CSV. Hãy thử lại sau ít phút."
     }
   },
   "transfers": {
@@ -687,6 +691,7 @@
       "refund": "Hoàn tiền",
       "split": "Giao dịch chia nhiều danh mục"
     },
+    "export": "Xuất CSV",
     "trends": {
       "title": "Xu hướng",
       "chooseWhat": "Chọn một danh mục hoặc nhập một bên nhận để theo dõi theo từng tháng.",

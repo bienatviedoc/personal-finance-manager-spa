@@ -12,6 +12,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { spendingByCategoryQuery, spendingTransactionsQuery, type CategorySpending, type ReportCategory, type SpendingByCategory } from '../api/spendingByCategory'
+import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { Share } from '../frame/Share'
@@ -106,6 +107,19 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
   const colorOf = (index: number) => colors[index] ?? report.items[index]!.category.color
   const slices = report.items.map((item, index) => ({ key: item.category.id, value: Number(item.spent), color: colorOf(index) }))
 
+  const csv: ReportCsv = {
+    name: 'spending-by-category',
+    columns: ['category', 'spent', 'share', ...(report.previous ? ['previousSpent'] : []), 'notConverted', 'currency'],
+    rows: report.items.map((item) => [
+      labelOf(item),
+      item.spent,
+      item.share,
+      ...(report.previous ? [item.previousSpent] : []),
+      item.notConverted,
+      report.currency,
+    ]),
+  }
+
   return (
     <>
       <dl className="grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-2">
@@ -130,6 +144,8 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
           <NotConverted count={Number(report.notConverted)} />
         </div>
       </dl>
+
+      <ExportCsv csv={csv} filters={filters} />
 
       {report.items.length === 0 ? (
         <p className="text-muted-foreground">{t('reports.spending.empty')}</p>
@@ -250,6 +266,23 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
   if (!list.data) return <ReportLoading />
   const { category, currency, items } = list.data
 
+  const csv: ReportCsv = {
+    name: 'spending-by-category-transactions',
+    columns: ['date', 'payee', 'note', 'account', 'amount', 'currency', 'isRefund', 'isSplit', 'spent', 'baseCurrency'],
+    rows: items.map((item) => [
+      item.date,
+      item.payee,
+      item.note,
+      findAccount(accounts.data?.accounts ?? [], item.accountId)?.name,
+      item.amount,
+      item.currency,
+      item.isRefund,
+      item.isSplit,
+      item.spent,
+      currency,
+    ]),
+  }
+
   return (
     <>
       <h3 className="flex items-center gap-2 text-lg font-semibold">
@@ -265,6 +298,7 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
           <NotConverted count={Number(list.data.notConverted)} />
         </dd>
       </dl>
+      <ExportCsv csv={csv} filters={filters} />
       {items.length === 0 ? (
         <p className="text-muted-foreground">{t('reports.spending.noTransactions')}</p>
       ) : (

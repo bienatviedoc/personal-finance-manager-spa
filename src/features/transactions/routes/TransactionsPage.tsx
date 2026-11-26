@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { ArrowRightLeft } from 'lucide-react'
+import { ArrowRightLeft, Download } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -8,13 +8,14 @@ import { categoriesQuery, findCategory } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
 import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { FailureToast } from '@/shared/components/FailureToast'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { tagsQuery } from '../api/tags'
 import type { BulkFilter, BulkSelection } from '../api/bulk'
-import { canBePicked, isPending, isTransferLeg, listKey, transactionsQuery, type Transaction, type TransactionFilters } from '../api/transactions'
+import { canBePicked, isPending, isTransferLeg, listKey, transactionsQuery, useExportTransactions, type Transaction, type TransactionFilters } from '../api/transactions'
 import { BulkActions } from '../components/BulkActions'
 import { EditTransaction } from '../components/EditTransaction'
 import { MarkAsTransfer } from '../components/MarkAsTransfer'
@@ -74,6 +75,8 @@ export function TransactionsPage() {
   const locale = useLocale()
   const { view, isFiltered, change, clear } = useTransactionFilters()
   const transactions = useInfiniteQuery(transactionsQuery(view))
+  const exportTransactions = useExportTransactions()
+  const exportView = () => exportTransactions.mutate(view)
   // Archived accounts and categories are loaded too: the transactions on them still show their names.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
@@ -180,6 +183,14 @@ export function TransactionsPage() {
       {(transactions.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('transactions.errors.generic')}</ErrorMessage>}
       {!loaded && !transactions.isError && <ListSkeleton label={t('transactions.loading')} />}
       {loaded && total && items.length > 0 && <TransactionTotal total={total} />}
+      {loaded && items.length > 0 && (
+        // Every transaction the filters let through, however many pages are loaded: the API writes the file.
+        <Button variant="outline" disabled={exportTransactions.isPending} onClick={exportView}>
+          <Download aria-hidden />
+          {t('transactions.export.start')}
+        </Button>
+      )}
+      <FailureToast failed={exportTransactions.isError} message={t('transactions.export.failed')} retry={exportView} onDismiss={exportTransactions.reset} />
       {loaded && items.length > 0 && total && (
         <label className="flex items-center gap-2 text-sm">
           <input

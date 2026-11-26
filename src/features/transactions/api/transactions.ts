@@ -3,6 +3,7 @@ import { refreshAccountBalances } from '@/features/accounts'
 import { refreshBudgets } from '@/features/budgets'
 import { refreshReports } from '@/features/reports'
 import { api } from '@/shared/api/client'
+import { fileNameOf, saveFile } from '@/shared/lib/saveFile'
 import type { components, paths } from '@/shared/api/schema'
 import { ifMatch, isStale, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
 import type { Currency } from '@/shared/money'
@@ -92,6 +93,20 @@ export const transactionsQuery = (filters: TransactionFilters = {}) =>
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   })
+
+/**
+ * Downloads every transaction that passes the filters, in their order, as the CSV file the API writes (spec
+ * section 7, Export): the whole list, not only the pages loaded, saved under the name the API gives it.
+ */
+export function useExportTransactions() {
+  return useMutation({
+    mutationFn: async (filters: TransactionFilters) => {
+      const { data, response } = await api.GET('/api/v1/export/transactions.csv', { params: { query: filters }, parseAs: 'blob' })
+      if (!response.ok || !data) throw new Error(`Could not export the transactions: ${response.status}`)
+      saveFile(data, fileNameOf(response) ?? 'transactions.csv')
+    },
+  })
+}
 
 /** What quick add asks the API. Under the transactions' key, so recording, editing or deleting one asks again. */
 const quickAddKey = [...transactionsKey, 'quick-add']
