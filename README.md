@@ -120,7 +120,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **Reconciliation** (spec ACC-7, section 3 rule 11; see the glossary). Each account on the accounts screen links to
   `/accounts/:accountId/reconcile` (`features/reconciliations`), which works on the account's latest reconciliation
   (`latestReconciliationQuery`): the user enters the statement date and closing balance, ticks the transactions
-  the statement shows (`transactionsToTickQuery`, `useTick`), and completes it once the difference is exactly zero.
+  the statement shows (`transactionsToTickQuery`, `useTickTransaction`, `useUntickTransaction`), and completes it once the difference is exactly zero.
   The difference is the API's, as it answers each tick; the SPA adds nothing up and never adds an adjustment.
   Completing locks what is ticked, and reopening the latest one unlocks it; both load the transactions again. A
   reconciled transaction is marked in the list and offers no delete; its edit says what is locked, and the

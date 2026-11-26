@@ -723,7 +723,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Every occurrence of the user's recurring rules due after today, in their time zone, and within the days asked for, earliest first: the ones the worker will post and the ones that will be reminders. A paused rule has none. */
+        /** @description Every occurrence of the user's recurring rules due from today, in their time zone, and within the days asked for, earliest first: the ones the worker will post and the ones that will be reminders. One due today is listed until it is posted, and not when it is a reminder already. A paused rule has none. */
         get: operations["ListUpcomingOccurrences"];
         put?: never;
         post?: never;

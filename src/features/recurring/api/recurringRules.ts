@@ -1,7 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
-import { refreshAccountBalances } from '@/features/accounts'
-import { refreshBudgets } from '@/features/budgets'
-import { refreshReports } from '@/features/reports'
+import { refreshTransactions } from '@/features/transactions'
 import { api } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
 import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
@@ -79,8 +77,8 @@ export const remindersQuery = queryOptions({
 export const upcomingDays = 30
 
 /**
- * Every occurrence of the user's rules due after today and within `days` days, earliest first, whether it
- * will be recorded or be a reminder. A paused rule has none.
+ * Every occurrence of the user's rules due from today to `days` days ahead, earliest first, whether it will be
+ * recorded or be a reminder: one due today until it is recorded, and not when it is a reminder already. A paused rule has none.
  */
 export const upcomingQuery = (days: number = upcomingDays) =>
   queryOptions({
@@ -112,14 +110,7 @@ export function useConfirmReminder() {
       body: amount === undefined ? {} : { amount },
     }),
   // A transaction was recorded: what shows transactions, balances, budgets and reports is out of date.
-  () =>
-    Promise.all([
-      // The transactions feature's key; it links to this one, so it is not imported from there.
-      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-      refreshAccountBalances(queryClient),
-      refreshBudgets(queryClient),
-      refreshReports(queryClient),
-    ]),
+  () => refreshTransactions(queryClient),
   )
 }
 

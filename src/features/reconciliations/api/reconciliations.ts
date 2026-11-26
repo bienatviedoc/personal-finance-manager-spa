@@ -67,19 +67,32 @@ export function useStartReconciliation(accountId: string) {
   })
 }
 
+/** Ticks a transaction the statement shows (`TickTransaction`). Ticking one already ticked changes nothing. */
+export function useTickTransaction(reconciliation: Pick<Reconciliation, 'id' | 'accountId'>) {
+  return useChangeTick(reconciliation, 'Ticking', (path) => api.PUT('/api/v1/reconciliations/{id}/transactions/{transactionId}', { params: { path } }))
+}
+
+/** Unticks a transaction (`UntickTransaction`). Unticking one not ticked changes nothing. */
+export function useUntickTransaction(reconciliation: Pick<Reconciliation, 'id' | 'accountId'>) {
+  return useChangeTick(reconciliation, 'Unticking', (path) =>
+    api.DELETE('/api/v1/reconciliations/{id}/transactions/{transactionId}', { params: { path } }),
+  )
+}
+
 /**
- * Ticks a transaction the statement shows, or unticks it. The API answers the reconciliation with its new
+ * Ticking or unticking a transaction, taking its id. The API answers the reconciliation with its new
  * difference, which the screen shows; the list is loaded again to show the tick.
  */
-export function useTick(reconciliation: Pick<Reconciliation, 'id' | 'accountId'>) {
+function useChangeTick(
+  reconciliation: Pick<Reconciliation, 'id' | 'accountId'>,
+  changeName: string,
+  change: (path: { id: string; transactionId: string }) => Promise<{ data?: Reconciliation; response: Response }>,
+) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ transactionId, ticked }: { transactionId: string; ticked: boolean }) => {
-      const path = { id: reconciliation.id, transactionId }
-      const { data, response } = ticked
-        ? await api.PUT('/api/v1/reconciliations/{id}/transactions/{transactionId}', { params: { path } })
-        : await api.DELETE('/api/v1/reconciliations/{id}/transactions/{transactionId}', { params: { path } })
-      if (!data) throw new Error(`Ticking a transaction failed: ${response.status}`)
+    mutationFn: async (transactionId: string) => {
+      const { data, response } = await change({ id: reconciliation.id, transactionId })
+      if (!data) throw new Error(`${changeName} a transaction failed: ${response.status}`)
       return data
     },
     onSuccess: (answered) => queryClient.setQueryData(latestKey(reconciliation.accountId), answered),
@@ -100,11 +113,13 @@ export function useReopenReconciliation(reconciliation: Pick<Reconciliation, 'id
 
 /** Cancels a reconciliation in progress: what is ticked in it is unticked and it is removed. */
 export function useCancelReconciliation(reconciliation: Pick<Reconciliation, 'id' | 'accountId'>) {
-  return useChangeReconciliation(reconciliation, 'Cancelling', async (id) => {
-    const { response } = await api.DELETE('/api/v1/reconciliations/{id}', { params: { path: { id } } })
+  return useChangeReconciliation(
+    reconciliation,
+    'Cancelling',
+    async (id) => api.DELETE('/api/v1/reconciliations/{id}', { params: { path: { id } } }),
     // Not found: cancelled already, which is what was asked for.
-    return { response: response.status === 404 ? new Response(null, { status: 204 }) : response }
-  })
+    (response) => response.ok || response.status === 404,
+  )
 }
 
 /**
@@ -112,23 +127,24 @@ export function useCancelReconciliation(reconciliation: Pick<Reconciliation, 'id
  * are loaded again, as are the transactions, which it may have locked or unlocked.
  */
 function useChangeReconciliation(
-  { id, accountId }: Pick<Reconciliation, 'id' | 'accountId'>,
+  { id }: Pick<Reconciliation, 'id'>,
   changeName: string,
   change: (id: string) => Promise<{ response: Response }>,
+  done: (response: Response) => boolean = (response) => response.ok,
 ) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async () => {
       const { response } = await change(id)
-      if (!response.ok) throw new Error(`${changeName} a reconciliation failed: ${response.status}`)
+      if (!done(response)) throw new Error(`${changeName} a reconciliation failed: ${response.status}`)
     },
-    onSettled: () => refreshAfterChange(queryClient, accountId),
+    onSettled: () => refreshAfterChange(queryClient),
   })
 }
 
-function refreshAfterChange(queryClient: QueryClient, accountId: string) {
+/** Every reconciliation query, the account's latest among them, is under `reconciliationsKey`. */
+function refreshAfterChange(queryClient: QueryClient) {
   return Promise.all([
-    queryClient.invalidateQueries({ queryKey: latestKey(accountId) }),
     queryClient.invalidateQueries({ queryKey: reconciliationsKey }),
     refreshTransactions(queryClient),
   ])
