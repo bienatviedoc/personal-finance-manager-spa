@@ -10,7 +10,7 @@ import { renderApp } from '@/test/renderApp'
 import { apiUrl, problem, server } from '@/test/server'
 
 const exportFileName = 'transactions-2026-11-20.csv'
-const exported = 'date,type,isRefund,account,category,payee,note,amount,currency\r\n2026-11-02,expense,false,Everyday,Groceries,Co.opmart,,125000.00,VND\r\n'
+const exported = 'date,type,isRefund,account,category,payee,note,tags,amount,currency\r\n2026-11-02,expense,false,Everyday,Groceries,Co.opmart,,,125000.00,VND\r\n'
 
 /**
  * The transactions and, beside them, the export the API writes (see the API's TransactionExportTests). The export
