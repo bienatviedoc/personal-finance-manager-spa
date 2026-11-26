@@ -52,9 +52,6 @@ export function MarkAsTransfer({ picked, onClear }: Props) {
         <Button size="sm" disabled={reason !== null || mark.isPending} onClick={send}>
           {t('transfers.markAs')}
         </Button>
-        <Button size="sm" variant="outline" onClick={onClear}>
-          {t('transfers.clearPicked')}
-        </Button>
       </div>
       {reason && <p>{t(reason)}</p>}
       {mark.data?.saved === false && <ErrorMessage>{t('transfers.errors.markRefused')}</ErrorMessage>}
