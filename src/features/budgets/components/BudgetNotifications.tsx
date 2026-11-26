@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { formatMonth } from '@/shared/dates'
+import { formatMonth, isCalendarMonth } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { budgetNotificationsQuery, useReadBudgetNotifications, type BudgetNotification } from '../api/budgetNotifications'
-import type { BudgetMonth } from '../budgetMonth'
+import { budgetNotificationsQuery, useReadAllBudgetNotifications, useReadBudgetNotification, type BudgetNotification } from '../api/budgetNotifications'
 import { budgetStates } from './budgetStates'
 
 /**
@@ -22,7 +21,8 @@ export function BudgetNotifications() {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const notifications = useInfiniteQuery(budgetNotificationsQuery)
-  const read = useReadBudgetNotifications()
+  const read = useReadBudgetNotification()
+  const readAll = useReadAllBudgetNotifications()
   const unread = Number(notifications.data?.pages[0]?.unread ?? 0)
   const items = notifications.data?.pages.flatMap((page) => page.items) ?? []
 
@@ -42,11 +42,11 @@ export function BudgetNotifications() {
         )}
       </button>
       <Drawer open={open} onOpenChange={setOpen} title={t('budgets.notifications.title')}>
-        <Button variant="outline" disabled={unread === 0 || read.isPending} onClick={() => read.mutate(undefined)}>
+        <Button variant="outline" disabled={unread === 0 || readAll.isPending} onClick={() => readAll.mutate()}>
           {t('budgets.notifications.readAll')}
         </Button>
         {notifications.isError && <ErrorMessage>{t('budgets.notifications.notLoaded')}</ErrorMessage>}
-        {read.isError && <ErrorMessage>{t('budgets.notifications.notRead')}</ErrorMessage>}
+        {(read.isError || readAll.isError) && <ErrorMessage>{t('budgets.notifications.notRead')}</ErrorMessage>}
         {notifications.data && items.length === 0 && <p className="text-muted-foreground">{t('budgets.notifications.empty')}</p>}
         {items.length > 0 && (
           <ul className="divide-y rounded-lg border">
@@ -76,7 +76,9 @@ function Item({ notification, onChoose }: { notification: BudgetNotification; on
   const { t } = useTranslation()
   const locale = useLocale()
   const { icon: Icon, text } = budgetStates[notification.state]
-  const values = { name: notification.category.name, month: formatMonth(notification.month as BudgetMonth, locale), percent: notification.percentSpent }
+  // The API writes a budget month as 2026-11; anything else is shown as it came rather than misread.
+  const month = isCalendarMonth(notification.month) ? formatMonth(notification.month, locale) : notification.month
+  const values = { name: notification.category.name, month, percent: notification.percentSpent }
   const unread = notification.readAt === null
 
   return (

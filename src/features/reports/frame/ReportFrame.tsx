@@ -6,9 +6,9 @@ import { categoriesQuery, useCategoryChoices, type CategoryKind } from '@/featur
 import { SelectField } from '@/shared/components/SelectField'
 import { calendarDatePattern, type CalendarDate } from '@/shared/dates'
 import { TextField } from '@/shared/components/TextField'
-import { cn, focusRingWithin } from '@/shared/lib/utils'
 import { periodChoices, type PeriodChoice } from './reportPeriod'
-import { useReportFilters, type ReportFilters, type ReportView } from './useReportFilters'
+import { useReportFilters, type ReportFilters } from './useReportFilters'
+import { ViewToggle } from './ViewToggle'
 
 type Props = {
   /** The report's name, the heading of its section. */
@@ -80,7 +80,7 @@ export function ReportFrame({ title, categoryKind, canCompare = false, hasCatego
             {t('reports.filters.compare')}
           </label>
         )}
-        <ViewToggle view={filters.view} onChange={(view) => change({ view })} />
+        <ViewToggle view={filters.view} onChange={(view) => change({ view })} className="col-span-2 self-end sm:col-span-1" />
       </form>
 
       {children(filters)}
@@ -132,28 +132,3 @@ function DateFilter({ label, date, min, max, outOfRange, onChange }: DateFilterP
   )
 }
 
-/** Chart or table: the same numbers either way (spec section 7, "every chart has a table view"). */
-function ViewToggle({ view, onChange }: { view: ReportView; onChange: (view: ReportView) => void }) {
-  const { t } = useTranslation()
-  const views: ReportView[] = ['chart', 'table']
-
-  return (
-    <fieldset className="col-span-2 self-end sm:col-span-1">
-      <legend className="sr-only">{t('reports.view.legend')}</legend>
-      <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-        {views.map((each) => (
-          <label
-            key={each}
-            className={cn(
-              'cursor-pointer rounded-md px-3 py-1 text-center text-sm font-medium text-muted-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
-              focusRingWithin,
-            )}
-          >
-            <input type="radio" name="report-view" value={each} checked={view === each} onChange={() => onChange(each)} className="sr-only" />
-            {t(`reports.view.${each}`)}
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  )
-}

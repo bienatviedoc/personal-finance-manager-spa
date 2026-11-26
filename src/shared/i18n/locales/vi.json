@@ -1009,6 +1009,7 @@
       "title": "Gộp {{name}}",
       "into": "Gộp vào",
       "choose": "Chọn danh mục",
+      "noMatches": "Không có danh mục nào khớp.",
       "confirm": "Gộp",
       "moves": "{{transactions}} và {{budgets}} sẽ chuyển sang {{target}}, và {{name}} được lưu trữ.",
       "transactions_one": "{{count}} giao dịch",
@@ -1177,7 +1178,8 @@
       "spentOf": "Đã chi {{spent}} trên {{budgeted}}",
       "progress": "Đã chi {{percent}}% ngân sách",
       "counts": "{{onTrack}} đúng kế hoạch, {{warning}} cảnh báo, {{over}} vượt ngân sách",
-      "needingAttention": "Ngân sách cần chú ý"
+      "needingAttention": "Ngân sách cần chú ý",
+      "overall": "Ngân sách tổng"
     },
     "topCategories": {
       "title": "Danh mục chi nhiều nhất",

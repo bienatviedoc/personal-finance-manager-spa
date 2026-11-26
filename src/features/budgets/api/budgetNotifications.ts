@@ -25,17 +25,26 @@ export const budgetNotificationsQuery = infiniteQueryOptions({
   getNextPageParam: (page) => page.nextCursor ?? undefined,
 })
 
-/** Marks one notification read, or every one when given none. */
-export function useReadBudgetNotifications() {
+/** Marks one notification read (the API's ReadBudgetNotification). Reading one already read, or one the API no longer has, changes nothing. */
+export function useReadBudgetNotification() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (id?: string) => {
-      const { response } =
-        id === undefined
-          ? await api.POST('/api/v1/budget-notifications/read')
-          : await api.POST('/api/v1/budget-notifications/{id}/read', { params: { path: { id } } })
+    mutationFn: async (id: string) => {
+      const { response } = await api.POST('/api/v1/budget-notifications/{id}/read', { params: { path: { id } } })
       // One the API no longer has needs no reading.
-      if (!response.ok && response.status !== 404) throw new Error(`Marking budget notifications read failed: ${response.status}`)
+      if (!response.ok && response.status !== 404) throw new Error(`Marking a budget notification read failed: ${response.status}`)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: notificationsKey }),
+  })
+}
+
+/** Marks every unread notification read (the API's ReadAllBudgetNotifications). */
+export function useReadAllBudgetNotifications() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { response } = await api.POST('/api/v1/budget-notifications/read')
+      if (!response.ok) throw new Error(`Marking every budget notification read failed: ${response.status}`)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: notificationsKey }),
   })

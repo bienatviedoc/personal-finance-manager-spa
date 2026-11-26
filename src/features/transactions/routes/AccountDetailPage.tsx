@@ -1,30 +1,27 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { Suspense, useCallback, useState } from 'react'
+import { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 import { accountsQuery, findAccount, type Account } from '@/features/accounts'
 import { categoriesQuery, findCategory, type Category } from '@/features/categories'
 import { AccountBalance } from '@/features/reports'
 import { useUserSettings } from '@/features/settings'
-import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { todayIn, type CalendarDate } from '@/shared/dates'
+import { shiftDate, todayIn } from '@/shared/dates'
 import { detailSeparator } from '@/shared/lib/details'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Money } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { isPending, isTransferLeg, listKey, transactionsQuery, type Transaction } from '../api/transactions'
-import { EditTransaction } from '../components/EditTransaction'
+import { listKey, transactionsQuery } from '../api/transactions'
 import { ListSkeleton } from '../components/ListSkeleton'
+import { TransactionDrawer } from '../components/TransactionDrawer'
 import { TransactionRow } from '../components/TransactionRow'
-import { OpenTransfer } from '../components/TransferDrawer'
 import { VirtualRows } from '../components/VirtualRows'
+import { useLoadNextPage } from '../hooks/useLoadNextPage'
+import { useTransactionDrawer } from '../hooks/useTransactionDrawer'
 
 /** How many days, up to today, the balance chart shows. */
 const chartedDays = 90
-
-/** What the drawer is open for: editing this transaction, or the transfer with this id, which either leg opens. */
-type DrawerFor = { editing: Transaction } | { transferId: string } | null
 
 /**
  * One account (spec section 12, `/accounts/:id`): its balance, how that balance moved over the last 90 days as a
@@ -42,7 +39,7 @@ export function AccountDetailPage() {
   const account = accounts.data ? findAccount(accounts.data.accounts, accountId) : undefined
   useDocumentTitle(account?.name ?? t('screens.accountDetail'))
   const to = todayIn(timeZone)
-  const from = daysBefore(to, chartedDays - 1)
+  const from = shiftDate(to, -(chartedDays - 1))
 
   return (
     <section className="max-w-2xl space-y-6">
@@ -112,19 +109,11 @@ type TransactionsProps = {
 /** The account's transactions, newest first, a page at a time as the list comes near its end. */
 function AccountTransactions({ accountId, name, categories, accounts }: TransactionsProps) {
   const { t } = useTranslation()
-  const [drawer, setDrawer] = useState<DrawerFor>(null)
   const transactions = useInfiniteQuery(transactionsQuery({ accountId }))
   const items = transactions.data?.pages.flatMap((page) => page.items)
-  // Read from the list, to follow a newer version loaded while the drawer is open.
-  const editing =
-    drawer && 'editing' in drawer
-      ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
-      : undefined
-
+  const drawer = useTransactionDrawer(items)
   const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = transactions
-  const loadNextPage = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage()
-  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
+  const loadNextPage = useLoadNextPage(transactions)
 
   return (
     <section className="space-y-3">
@@ -147,7 +136,7 @@ function AccountTransactions({ accountId, name, categories, accounts }: Transact
               account={findAccount(accounts, transaction.accountId)}
               category={findCategory(categories, transaction.categoryId)}
               categories={categories}
-              onEdit={(chosen) => setDrawer(isTransferLeg(chosen) ? { transferId: chosen.transferId } : { editing: chosen })}
+              onEdit={drawer.edit}
             />
           )}
         </VirtualRows>
@@ -159,19 +148,7 @@ function AccountTransactions({ accountId, name, categories, accounts }: Transact
         </Button>
       )}
 
-      <Drawer
-        open={drawer !== null}
-        onOpenChange={(open) => !open && setDrawer(null)}
-        title={drawer && 'transferId' in drawer ? t('transfers.editTitle') : t('transactions.editTitle')}
-      >
-        {editing && <EditTransaction transaction={editing} accounts={accounts} categories={categories} onClose={() => setDrawer(null)} />}
-        {drawer && 'transferId' in drawer && <OpenTransfer id={drawer.transferId} accounts={accounts} categories={categories} onClose={() => setDrawer(null)} />}
-      </Drawer>
+      <TransactionDrawer drawer={drawer.drawer} editing={drawer.editing} accounts={accounts} categories={categories} onClose={drawer.close} />
     </section>
   )
-}
-
-/** The calendar date some days before another. */
-function daysBefore(date: CalendarDate, days: number): CalendarDate {
-  return new Date(Date.parse(`${date}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10)
 }

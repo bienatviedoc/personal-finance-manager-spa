@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
-import { ChevronLeft, ChevronRight, Copy, Gauge, List, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, List } from 'lucide-react'
 import { useId, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -16,6 +16,7 @@ import { cn, focusRing } from '@/shared/lib/utils'
 import { amountExample, AmountInput, Money, type AmountValue, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { budgetStates } from '../components/budgetStates'
+import { PaceLabel } from '../components/PaceLabel'
 import {
   budgetsQuery,
   useCopyBudgets,
@@ -24,7 +25,6 @@ import {
   useSetBudget,
   useSetOverallBudget,
   type Budget,
-  type BudgetPace,
   type BudgetState,
   type BudgetTotals,
   type OverallBudget,
@@ -484,28 +484,6 @@ function StateBadge({ state }: { state: BudgetState }): ReactNode {
 }
 
 /**
- * How a pace is shown (spec BUD-6): in words beside an icon, ahead of pace in the colour of a warning, which only
- * adds to the words.
- */
-const paces: Record<BudgetPace, { label: ParseKeys; icon: LucideIcon; text: string }> = {
-  onPace: { label: 'budgets.pace.onPace', icon: Gauge, text: 'text-muted-foreground' },
-  aheadOfPace: { label: 'budgets.pace.aheadOfPace', icon: Gauge, text: 'text-warning' },
-}
-
-/** Whether the budget is spent faster than the month is passing. Only the current month has a pace: a past month shows its final result. */
-function Pace({ pace }: { pace: BudgetPace }) {
-  const { t } = useTranslation()
-  const { label, icon: Icon, text } = paces[pace]
-
-  return (
-    <p className={cn('inline-flex items-center gap-1 text-sm font-medium', text)}>
-      <Icon aria-hidden className="size-4" />
-      {t(label)}
-    </p>
-  )
-}
-
-/**
  * Spent against the budget: a bar that fills up to the budget and no further, the percentage in figures, what was
  * spent and remains, and in the current month its pace.
  */
@@ -534,7 +512,7 @@ function Progress({ budget, name, currency }: { budget: Spending; name: string; 
         <Figure label={t('budgets.spent')} amount={budget.spent} currency={currency} />
         <Figure label={t('budgets.remaining')} amount={budget.remaining} currency={currency} />
       </dl>
-      {budget.pace && <Pace pace={budget.pace} />}
+      {budget.pace && <PaceLabel pace={budget.pace} />}
       <NotConverted count={Number(budget.notConverted)} />
     </div>
   )

@@ -1009,6 +1009,7 @@
       "title": "Merge {{name}}",
       "into": "Merge into",
       "choose": "Choose a category",
+      "noMatches": "No category matches.",
       "confirm": "Merge",
       "moves": "{{transactions}} and {{budgets}} move to {{target}}, and {{name}} is archived.",
       "transactions_one": "{{count}} transaction",
@@ -1177,7 +1178,8 @@
       "spentOf": "{{spent}} spent of {{budgeted}}",
       "progress": "{{percent}}% of the budget spent",
       "counts": "{{onTrack}} on track, {{warning}} at warning, {{over}} over budget",
-      "needingAttention": "Budgets needing attention"
+      "needingAttention": "Budgets needing attention",
+      "overall": "Overall budget"
     },
     "topCategories": {
       "title": "Top categories",

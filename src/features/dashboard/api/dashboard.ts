@@ -6,6 +6,8 @@ export type Dashboard = components['schemas']['DashboardResponse']
 export type DashboardBudgets = components['schemas']['DashboardBudgetsResponse']
 export type DashboardTransaction = components['schemas']['DashboardTransactionResponse']
 export type DashboardOccurrence = components['schemas']['DashboardOccurrenceResponse']
+/** A budget's state as the dashboard answers it, the overall budget's too. */
+export type BudgetState = DashboardBudgets['needingAttention'][number]['state']
 
 const dashboardKey = ['dashboard']
 

@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { choose, offeredBy } from '@/test/combobox'
 import { renderApp } from '@/test/renderApp'
 import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
 
@@ -171,7 +172,7 @@ describe('the categories screen', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Merge Groceries' }))
     const form = screen.getByRole('form', { name: 'Merge Groceries' })
-    await user.selectOptions(within(form).getByLabelText('Merge into'), within(form).getByRole('option', { name: 'Food & drink › Eating out' }))
+    await choose(user, within(form).getByRole('combobox', { name: 'Merge into' }), 'Food & drink › Eating out')
 
     expect(await within(form).findByText('12 transactions and 1 budget move to Eating out, and Groceries is archived.')).toBeInTheDocument()
     await user.click(within(form).getByRole('button', { name: 'Merge' }))
@@ -186,7 +187,7 @@ describe('the categories screen', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Merge Food & drink' }))
 
-    const offered = within(screen.getByLabelText('Merge into')).getAllByRole('option').slice(1).map((option) => option.textContent)
+    const offered = await offeredBy(user, screen.getByRole('combobox', { name: 'Merge into' }))
     // A category with subcategories goes only into a top-level one: categories are two levels deep.
     expect(offered).toEqual(['Transport'])
   })
@@ -197,7 +198,7 @@ describe('the categories screen', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Merge Groceries' }))
     const form = screen.getByRole('form', { name: 'Merge Groceries' })
-    await user.selectOptions(within(form).getByLabelText('Merge into'), 'Transport')
+    await choose(user, within(form).getByRole('combobox', { name: 'Merge into' }), 'Transport')
     await user.click(await within(form).findByRole('button', { name: 'Merge' }))
 
     expect(await within(form).findByText(/Groceries cannot be merged into Transport/)).toBeInTheDocument()

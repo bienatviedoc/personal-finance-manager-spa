@@ -7,4 +7,5 @@ export const budgetsRoutes: RouteObject[] = [
 
 export { refreshBudgets } from './api/budgets'
 export { budgetStates } from './components/budgetStates'
+export { PaceLabel } from './components/PaceLabel'
 export { BudgetNotifications } from './components/BudgetNotifications'
