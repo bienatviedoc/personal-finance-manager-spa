@@ -5,6 +5,7 @@ import { authRoutes, requireSignedInUser } from '@/features/auth'
 import { budgetsRoutes } from '@/features/budgets'
 import { dashboardRoutes } from '@/features/dashboard'
 import { importsRoutes } from '@/features/imports'
+import { reconciliationsRoutes } from '@/features/reconciliations'
 import { recurringRoutes } from '@/features/recurring'
 import { reportsRoutes } from '@/features/reports'
 import { settingsRoutes } from '@/features/settings'
@@ -19,6 +20,7 @@ const shellScreens: RouteObject[] = [
   ...dashboardRoutes,
   ...transactionsRoutes,
   ...accountsRoutes,
+  ...reconciliationsRoutes,
   ...budgetsRoutes,
   ...reportsRoutes,
   ...recurringRoutes,

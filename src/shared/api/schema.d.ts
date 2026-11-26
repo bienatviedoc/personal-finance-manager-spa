@@ -417,6 +417,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/transactions/deleted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The user's recently deleted transactions: those deleted in the last 30 days, which can still be restored, the last deleted first, a page at a time. Each leg of a deleted transfer is listed. After 30 days a deleted transaction is no longer listed or restorable, and the worker removes it for good. */
+        get: operations["ListDeletedTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transactions/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Restores a transaction deleted in the last 30 days: it is back in lists and its account's balance at once, as it was when it was deleted. Restoring a leg of a transfer restores the whole transfer, the other leg with it. One that is not deleted, or was deleted longer ago, is not found. The ETag header carries its row version. */
+        post: operations["RestoreTransaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transactions/{id}": {
         parameters: {
             query?: never;
@@ -426,11 +460,28 @@ export interface paths {
         };
         /** @description One transaction. The ETag header carries its row version. A deleted transaction is not found. */
         get: operations["GetTransaction"];
-        /** @description Changes income or an expense; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A leg of a transfer is refused on its type: edit the transfer under /transfers. */
+        /** @description Changes income or an expense; the balance of its account, and of the account it was moved from, follows at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A leg of a transfer is refused on its type: edit the transfer under /transfers. A reconciled transaction refuses a change to its amount, date, account, type or refund flag, each named as the field at fault; its payee, note and category can still change. */
         put: operations["EditTransaction"];
         post?: never;
-        /** @description Deletes the transaction: it leaves lists and its account's balance at once. Deleting a leg of a transfer deletes the whole transfer, the other leg with it. */
+        /** @description Deletes the transaction: it leaves lists and its account's balance at once. Deleting a leg of a transfer deletes the whole transfer, the other leg with it. A reconciled transaction, or a leg of a transfer either of whose legs is reconciled, answers 409 with the problem type urn:pfm:problem:transaction-reconciled and is not deleted. */
         delete: operations["DeleteTransaction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The user's tags by name, a page at a time: what the transaction form suggests as a tag is typed. A tag is created the first time a transaction is given it. */
+        get: operations["ListTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -462,10 +513,10 @@ export interface paths {
         };
         /** @description One transfer, by the transferId its two legs carry in the transaction list. The ETag header carries its row version. A deleted transfer is not found. */
         get: operations["GetTransfer"];
-        /** @description Changes a transfer, both legs together; the balances of the accounts it was and is now between follow at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. */
+        /** @description Changes a transfer, both legs together; the balances of the accounts it was and is now between follow at once. Send the row version last read as If-Match: a stale one answers 412, none answers 428. A transfer either of whose legs is reconciled refuses a change to its accounts, amounts or date, each named as the field at fault; its note can still change. */
         put: operations["EditTransfer"];
         post?: never;
-        /** @description Deletes the transfer, both legs together: they leave the transaction list and both accounts' balances at once. */
+        /** @description Deletes the transfer, both legs together: they leave the transaction list and both accounts' balances at once. A transfer either of whose legs is reconciled answers 409 with the problem type urn:pfm:problem:transaction-reconciled and is not deleted. */
         delete: operations["DeleteTransfer"];
         options?: never;
         head?: never;
@@ -481,7 +532,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, or a transaction that is a leg of a transfer already, is refused. Nothing is matched automatically. */
+        /** @description Marks an expense on one account and income on another as one transfer, such as the two rows imported statements show for paying a card: the expense becomes its transferOut leg and the income its transferIn leg, each keeping its id, account, amount, date and note and losing its category and payee, so neither counts as spending or income any more. The two must be on different accounts, on the same date and, between accounts in one currency, of the same amount; an expense that is a refund, a transaction that is a leg of a transfer already, or a reconciled one, is refused. Nothing is matched automatically. */
         post: operations["MarkAsTransfer"];
         delete?: never;
         options?: never;
@@ -498,8 +549,113 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded. Answers the two transactions; the transfer is no more. */
+        /** @description Turns a transfer back into two ordinary transactions: its transferOut leg becomes an expense on expenseCategoryId and its transferIn leg income on incomeCategoryId, each keeping its id, account, amount, date and note. Any transfer can be unmarked, marked or recorded, unless either leg is reconciled: that is refused on id. Answers the two transactions; the transfer is no more. */
         post: operations["UnmarkTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/accounts/{accountId}/reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The account's reconciliations, the last started first, a page at a time, each with its difference. */
+        get: operations["ListReconciliations"];
+        put?: never;
+        /** @description Starts reconciling the account against a statement: its closing date, not in the future, and closing balance, in the account's currency and below zero for what is owed. The difference starts as the statement balance less the account's reconciled balance: its opening balance and everything reconciled before. An account has one reconciliation in progress at a time: another answers 409 with the problem type urn:pfm:problem:reconciliation-in-progress. A statement dated before the account's last reconciliation is refused on statementDate. */
+        post: operations["StartReconciliation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One reconciliation, with the account's reconciled balance, what is ticked in it and the difference still to reach zero. */
+        get: operations["GetReconciliation"];
+        put?: never;
+        post?: never;
+        /** @description Cancels a reconciliation in progress, entered against the wrong statement for instance: what is ticked in it is unticked and it is removed. A completed one answers 409 with the problem type urn:pfm:problem:reconciliation-completed: reopen it first. */
+        delete: operations["CancelReconciliation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The transactions to tick against the statement, oldest first: those ticked in this reconciliation and, while it is in progress, every other transaction on its account dated on or before the statement date that no reconciliation holds yet. Not paged. */
+        get: operations["ListReconciliationTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/transactions/{transactionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Ticks a transaction the statement shows, and answers the reconciliation with its new difference. Only a transaction on the account, dated on or before the statement date and in no other reconciliation can be ticked; any other is refused on transactionId. A completed reconciliation answers 409 with the problem type urn:pfm:problem:reconciliation-completed. */
+        put: operations["TickTransaction"];
+        post?: never;
+        /** @description Unticks a transaction, and answers the reconciliation with its new difference. A completed reconciliation answers 409 with the problem type urn:pfm:problem:reconciliation-completed. */
+        delete: operations["UntickTransaction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Completes the reconciliation, which locks every transaction ticked in it: their amount, date and account cannot change, and they cannot be deleted, until it is reopened. It completes only when the difference is exactly zero; otherwise it answers 409 with the problem type urn:pfm:problem:reconciliation-difference-not-zero, and no adjustment transaction is ever added. Completing one already completed changes nothing. */
+        post: operations["CompleteReconciliation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliations/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reopens a completed reconciliation: its transactions are unlocked and stay ticked, to be changed and completed again. Only the account's latest reconciliation can be reopened; an earlier one answers 409 with the problem type urn:pfm:problem:reconciliation-not-latest. Reopening one in progress changes nothing. */
+        post: operations["ReopenReconciliation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -560,6 +716,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recurring-rules/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every occurrence of the user's recurring rules due from today, in their time zone, and within the days asked for, earliest first: the ones the worker will post and the ones that will be reminders. One due today is listed until it is posted, and not when it is a reminder already. A paused rule has none. */
+        get: operations["ListUpcomingOccurrences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-rules/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The user's reminders, earliest due first: each occurrence of a rule that reminds, due on or before today in their time zone, not yet confirmed or dismissed. A paused rule has none. */
+        get: operations["ListReminders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/recurring-rules/{id}": {
         parameters: {
             query?: never;
@@ -607,6 +797,40 @@ export interface paths {
         put?: never;
         /** @description Resumes a paused rule: it posts again from today. The occurrences that were due while it was paused are skipped. */
         post: operations["ResumeRecurringRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-rules/{id}/reminders/{dueDate}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Confirms a reminder: its transaction is recorded, dated on its due date, saying what the rule says, for the amount sent or else the rule's own, and the rule moves on to its next occurrence. A rule's reminders are confirmed or dismissed earliest first: a later one answers 400 on dueDate. Confirming one twice records one transaction. */
+        post: operations["ConfirmReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-rules/{id}/reminders/{dueDate}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Dismisses a reminder: nothing is recorded for it, and the rule moves on to its next occurrence. A rule's reminders are confirmed or dismissed earliest first: a later one answers 400 on dueDate. */
+        post: operations["DismissReminder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -759,6 +983,23 @@ export interface paths {
         };
         /** @description What the user is worth over a period: at each month end in it, and on its last day when it ends inside a month, the balances of the assets (every account but credit cards and loans) and the amount owed on the liabilities (credit cards and loans), and the assets minus the liabilities, in the user's base currency. Archived accounts count; an account counts from its opening date. Each balance is converted at the exchange rate of the day it is shown on, or the nearest earlier one; one with no rate on or before that day is left out and counted in notConverted. Not paged: one item per month. */
         get: operations["GetNetWorth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/monthly-summary.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A one-document summary of a calendar month, as a PDF file to download: its income, expenses, net and savings rate, spending by top-level category with each one's share, and each budget against what was spent, with what was spent where no budget covered it, all in the user's base currency, worked out as the income vs expenses, spending by category and budget vs actual reports work them out for that month. Written in the locale asked for, or the user's own, or English when they have none, with amounts written the locale's way. */
+        get: operations["GetMonthlySummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -961,6 +1202,9 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        ConfirmReminderRequest: {
+            amount?: null | string;
+        };
         CopiedBudgetsResponse: {
             /** Format: int32 */
             copied: number | string;
@@ -972,6 +1216,33 @@ export interface components {
             income: string;
             expenses: string;
             net: string;
+        };
+        DeletedTransactionListResponse: {
+            items: components["schemas"]["DeletedTransactionResponse"][];
+            nextCursor: null | string;
+        };
+        DeletedTransactionResponse: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["TransactionType"];
+            /** Format: uuid */
+            accountId: string;
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            categoryId: null | string;
+            payee: null | string;
+            note: null | string;
+            /** Format: uuid */
+            transferId: null | string;
+            isRefund: boolean;
+            lines: components["schemas"]["TransactionLineResponse"][];
+            /** Format: date-time */
+            deletedAt: string;
+            /** Format: date-time */
+            restorableUntil: string;
         };
         DeleteUserRequest: {
             password: string;
@@ -1090,6 +1361,25 @@ export interface components {
             currency: components["schemas"]["Currency"];
             balance: string;
         };
+        OccurrenceListResponse: {
+            items: components["schemas"]["OccurrenceResponse"][];
+        };
+        OccurrenceResponse: {
+            /** Format: uuid */
+            recurringRuleId: string;
+            /** Format: date */
+            dueDate: string;
+            type: components["schemas"]["TransactionType"];
+            /** Format: uuid */
+            accountId: string;
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            /** Format: uuid */
+            categoryId: string;
+            payee: null | string;
+            note: null | string;
+            mode: components["schemas"]["RecurringMode"];
+        };
         PeriodChangeResponse: {
             amount: string;
             /** Format: double */
@@ -1147,11 +1437,57 @@ export interface components {
             /** Format: uuid */
             suggestedCategoryId: null | string;
         };
+        ReconciliationListResponse: {
+            items: components["schemas"]["ReconciliationResponse"][];
+            nextCursor: null | string;
+        };
+        ReconciliationResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            /** Format: date */
+            statementDate: string;
+            statementBalance: string;
+            currency: components["schemas"]["Currency"];
+            status: components["schemas"]["ReconciliationStatus"];
+            /** Format: date-time */
+            completedAt: null | string;
+            reconciledBalance: string;
+            tickedTotal: string;
+            difference: string;
+            /** Format: int32 */
+            tickedCount: number | string;
+        };
+        /** @enum {unknown} */
+        ReconciliationStatus: "inProgress" | "completed";
+        ReconciliationTransactionListResponse: {
+            items: components["schemas"]["ReconciliationTransactionResponse"][];
+        };
+        ReconciliationTransactionResponse: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["TransactionType"];
+            /** Format: date */
+            date: string;
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            isRefund: boolean;
+            payee: null | string;
+            note: null | string;
+            /** Format: uuid */
+            categoryId: null | string;
+            /** Format: uuid */
+            transferId: null | string;
+            isTicked: boolean;
+        };
         RecoveryCodesResponse: {
             recoveryCodes: string[];
         };
         /** @enum {unknown} */
         RecurringFrequency: "weekly" | "monthly" | "yearly" | "everyNDays";
+        /** @enum {unknown} */
+        RecurringMode: "autoPost" | "remind";
         RecurringRuleListResponse: {
             items: components["schemas"]["RecurringRuleResponse"][];
             nextCursor: null | string;
@@ -1170,6 +1506,7 @@ export interface components {
             /** Format: int32 */
             interval?: null | number | string;
             endDate?: null | string;
+            mode?: null | string;
         };
         RecurringRuleResponse: {
             /** Format: uuid */
@@ -1193,6 +1530,7 @@ export interface components {
             /** Format: date */
             nextRunDate: null | string;
             isPaused: boolean;
+            mode: components["schemas"]["RecurringMode"];
             rowVersion: string;
         };
         RegisterRequest: {
@@ -1289,6 +1627,19 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
         };
+        StartReconciliationRequest: {
+            statementDate: null | string;
+            statementBalance: null | string;
+        };
+        TagListResponse: {
+            items: components["schemas"]["TagResponse"][];
+            nextCursor: null | string;
+        };
+        TagResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
         TransactionLineRequest: {
             /** Format: uuid */
             categoryId: string;
@@ -1319,6 +1670,7 @@ export interface components {
             /** @default false */
             isRefund: boolean;
             lines?: null | components["schemas"]["TransactionLineRequest"][];
+            tags?: null | string[];
         };
         TransactionResponse: {
             /** Format: uuid */
@@ -1341,6 +1693,8 @@ export interface components {
             lines: components["schemas"]["TransactionLineResponse"][];
             /** Format: uuid */
             recurringRuleId: null | string;
+            tags: string[];
+            isReconciled: boolean;
         };
         /** @enum {unknown} */
         TransactionType: "income" | "expense" | "transferOut" | "transferIn";
@@ -1373,6 +1727,7 @@ export interface components {
             /** Format: uuid */
             inTransactionId: string;
             rowVersion: string;
+            isReconciled: boolean;
         };
         TrendMonthResponse: {
             /** Format: date */
@@ -2857,6 +3212,7 @@ export interface operations {
                 min?: string;
                 max?: string;
                 q?: string;
+                tag?: string;
                 sort?: string;
                 order?: string;
                 limit?: number | string;
@@ -2988,6 +3344,94 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+        };
+    };
+    ListDeletedTransactions: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedTransactionListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RestoreTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -3142,6 +3586,57 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListTags: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3359,6 +3854,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     MarkAsTransfer: {
@@ -3451,6 +3955,472 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ListReconciliations: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StartReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartReconciliationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancelReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListReconciliationTransactions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationTransactionListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TickTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UntickTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                transactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CompleteReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReopenReconciliation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReconciliationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3711,6 +4681,75 @@ export interface operations {
             };
         };
     };
+    ListUpcomingOccurrences: {
+        parameters: {
+            query?: {
+                days?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OccurrenceListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListReminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OccurrenceListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetRecurringRule: {
         parameters: {
             query?: never;
@@ -3900,6 +4939,106 @@ export interface operations {
             header?: never;
             path: {
                 id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringRuleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ConfirmReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                dueDate: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ConfirmReminderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringRuleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DismissReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                dueDate: string;
             };
             cookie?: never;
         };
@@ -4412,6 +5551,45 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NetWorthResponse"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMonthlySummary: {
+        parameters: {
+            query?: {
+                month?: string;
+                locale?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {

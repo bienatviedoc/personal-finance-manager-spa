@@ -247,6 +247,13 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
               {t('accounts.edit')}
             </Button>
             {!account.isArchived && (
+              <Button asChild variant="ghost" size="sm">
+                <Link aria-label={t('accounts.reconcileNamed', { name: account.name })} to={`/accounts/${account.id}/reconcile`}>
+                  {t('accounts.reconcile')}
+                </Link>
+              </Button>
+            )}
+            {!account.isArchived && (
               <Button variant="ghost" size="sm" aria-label={t('accounts.archiveNamed', { name: account.name })} onClick={toConfirmArchive}>
                 {t('accounts.archive')}
               </Button>

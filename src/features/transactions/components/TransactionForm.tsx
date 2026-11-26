@@ -31,6 +31,8 @@ import {
 import { Button } from '@/shared/ui/button'
 import { maxPayeeLength } from '@/shared/api/limits'
 import { isStale } from '@/shared/api/versionedSave'
+import { maxTagLength, maxTags, tagsQuery } from '../api/tags'
+import { TagsField } from './TagsField'
 import { isSplit, suggestedCategoryQuery, transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
 /**
@@ -66,6 +68,8 @@ const schemaFor = (today: CalendarDate, split: boolean) =>
     ),
     // A refund: an expense that is money coming back. Only an expense can be one.
     isRefund: z.boolean(),
+    // Names as the API keeps them, each once: the field sees to that.
+    tags: z.array(z.string()).refine((tags) => tags.length <= maxTags && tags.every((tag) => tag.length <= maxTagLength), { error: 'transactions.errors.tags' }),
   })
 
 type Schema = ReturnType<typeof schemaFor>
@@ -73,6 +77,9 @@ type Schema = ReturnType<typeof schemaFor>
 type Values = z.input<Schema>
 
 const emptyLine = { categoryId: '', amount: '', note: '' }
+
+/** What a reconciled transaction keeps as it is until its reconciliation is reopened (spec section 3, rule 11). */
+const lockedByReconciliation = new Set<string>(['type', 'accountId', 'amount', 'date', 'isRefund'])
 
 /** The message the form shows for each field the API refused. What it refuses about the lines is said once, for all of them. */
 const serverErrors: Record<Exclude<TransactionField, 'lines'>, ParseKeys> = {
@@ -84,11 +91,13 @@ const serverErrors: Record<Exclude<TransactionField, 'lines'>, ParseKeys> = {
   payee: 'transactions.errors.payeeTooLong',
   note: 'transactions.errors.noteTooLong',
   isRefund: 'transactions.errors.refundNotExpense',
+  tags: 'transactions.errors.tags',
 }
 
 // Named outside JSX, where lint would take a field name for user-facing text.
 const amountField = 'amount'
 const categoryField = 'categoryId'
+const tagsField = 'tags'
 const lineAmountField = (index: number) => `lines.${index}.amount` as const
 const lineCategoryField = (index: number) => `lines.${index}.categoryId` as const
 
@@ -150,8 +159,9 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
           note: transaction.note ?? '',
           isRefund: transaction.isRefund,
           lines: isSplit(transaction) ? transaction.lines.map((line) => ({ ...line, note: line.note ?? '' })) : [],
+          tags: transaction.tags,
         }
-      : { type: 'expense', accountId: (accountOptions.find((account) => account.id === lastAccountId) ?? accountOptions[0])?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', isRefund: false, lines: [] },
+      : { type: 'expense', accountId: (accountOptions.find((account) => account.id === lastAccountId) ?? accountOptions[0])?.id ?? '', amount: '', date: today, categoryId: '', payee: '', note: '', isRefund: false, lines: [], tags: [] },
   })
   const lines = useFieldArray({ control: form.control, name: 'lines' })
   const { errors, isSubmitting } = form.formState
@@ -167,6 +177,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
   // Only a new transaction is suggested a category: an edited one already has the one the user gave it.
   const settledPayee = useDebounced(payee, typingSettles)
   const suggestion = useQuery(suggestedCategoryQuery({ type, payee: transaction ? '' : settledPayee }))
+  const tagSuggestions = useQuery(tagsQuery).data ?? []
   // What the payee typed now suggests, among the categories offered: '' when nothing, undefined while it is not
   // known, which it is not while the payee is still being typed or has just been emptied by a save.
   const suggestedId =
@@ -251,6 +262,9 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
           note: values.note || null,
           // Only an expense can be a refund.
           isRefund: values.type === 'expense' && values.isRefund,
+          // In the order the API answers them, so the list shows them so before it has. None is left out: to the
+          // API, an edit without tags takes every tag off.
+          ...(values.tags.length > 0 ? { tags: values.tags.toSorted() } : {}),
         },
         currency: account.currency,
       })
@@ -260,7 +274,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
     }
     if (outcome.saved) {
       if (!transaction) {
-        form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '', isRefund: false, lines: [] })
+        form.reset({ type: values.type, accountId: values.accountId, amount: '', date: values.date, categoryId: '', payee: '', note: '', isRefund: false, lines: [], tags: [] })
         setSplit(false)
         setSumRefused(false)
         setPickedCategory(false)
@@ -272,12 +286,18 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
     if (isStale(outcome)) return
     for (const refused of outcome.fields) {
       if (refused === 'lines') setLinesRefused(true)
-      else form.setError(refused, { message: serverErrors[refused] }, { shouldFocus: true })
+      // A reconciled transaction refuses a change to what its reconciliation locked, named as the field at fault.
+      else form.setError(refused, { message: transaction?.isReconciled && lockedByReconciliation.has(refused) ? 'transactions.errors.reconciled' : serverErrors[refused] }, { shouldFocus: true })
     }
   })
 
   return (
     <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
+      {transaction?.isReconciled && (
+        <p role="note" className="rounded-md bg-muted p-3 text-sm">
+          {t('transactions.reconciledLocked')}
+        </p>
+      )}
       <ToggleField
         legend={t('transactions.type')}
         options={transactionTypes.map((value) => ({ value, label: t(`transactions.types.${value}`) }))}
@@ -374,6 +394,20 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
         autoComplete="off"
         error={errors.note?.message && t(errors.note.message as ParseKeys)}
         {...form.register('note')}
+      />
+      <Controller
+        control={form.control}
+        name={tagsField}
+        render={({ field }) => (
+          <TagsField
+            suggestions={tagSuggestions}
+            error={errors.tags?.message && t(errors.tags.message as ParseKeys)}
+            ref={field.ref}
+            value={field.value}
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+          />
+        )}
       />
 
       <div className="flex flex-wrap gap-2">

@@ -1,4 +1,4 @@
-import { ArrowRightLeft } from 'lucide-react'
+import { ArrowRightLeft, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Account } from '@/features/accounts'
@@ -12,7 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isPending, isSplit, isTransferLeg, takesFromBalance, useDeleteTransaction, type ListedTransaction, type Transaction } from '../api/transactions'
-import { useDeleteTransfer } from '../api/transfers'
+import { TransferReconciled, useDeleteTransfer } from '../api/transfers'
 import type { VirtualRow } from './VirtualRows'
 
 type RowProps = {
@@ -50,9 +50,12 @@ export function TransactionRow({ transaction, account, category, categories, onE
   const split = isSplit(transaction)
   // A transaction is known by who was paid; without a payee, by what it was for. A split is for several things.
   const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
-  // What deleting it says: a leg speaks of its transfer.
+  // What deleting it says: a leg speaks of its transfer, which is locked when its other leg is reconciled.
   const deleting = leg
-    ? { explained: t('transfers.deleteExplained'), failed: t('transfers.errors.notDeleted') }
+    ? {
+        explained: t('transfers.deleteExplained'),
+        failed: removeTransfer.error instanceof TransferReconciled ? t('transfers.errors.deleteReconciled') : t('transfers.errors.notDeleted'),
+      }
     : { explained: t('transactions.deleteExplained', { name: title }), failed: t('transactions.errors.notDeleted') }
 
   return (
@@ -90,7 +93,22 @@ export function TransactionRow({ transaction, account, category, categories, onE
               ))}
             </ul>
           )}
+          {transaction.isReconciled && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Lock aria-hidden className="size-3" />
+              {t('transactions.reconciled')}
+            </span>
+          )}
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
+          {transaction.tags.length > 0 && (
+            <ul aria-label={t('transactions.tags.of', { name: title })} className="flex flex-wrap gap-1 pt-1">
+              {transaction.tags.map((tag) => (
+                <li key={tag} data-testid="tag" className="rounded-full border bg-muted px-2 text-xs text-muted-foreground">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          )}
           {transaction.recurringRuleId && <RecurringRuleLink ruleId={transaction.recurringRuleId} />}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
@@ -103,9 +121,12 @@ export function TransactionRow({ transaction, account, category, categories, onE
             <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={() => onEdit(saved)}>
               {t('transactions.edit')}
             </Button>
-            <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
-              {t('transactions.delete')}
-            </Button>
+            {/* A reconciled transaction cannot be deleted until its reconciliation is reopened. */}
+            {!transaction.isReconciled && (
+              <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
+                {t('transactions.delete')}
+              </Button>
+            )}
           </>
         )}
       </div>

@@ -13,6 +13,7 @@ import { IncomeVsExpensesReport } from '../income/IncomeVsExpensesReport'
 import { SpendingByCategoryReport } from '../spending/SpendingByCategoryReport'
 import { NetWorthReport } from '../netWorth/NetWorthReport'
 import { TrendsReport } from '../trends/TrendsReport'
+import { MonthlySummaryDownload } from '../monthlySummary/MonthlySummaryDownload'
 
 /** A report: its address under `/reports`, its name, how the frame is set up for it, and the report itself. */
 type Report = {
@@ -104,6 +105,7 @@ export function ReportsPage() {
       ) : (
         <p className="text-muted-foreground">{t('reports.notFound')}</p>
       )}
+      <MonthlySummaryDownload />
     </div>
   )
 }

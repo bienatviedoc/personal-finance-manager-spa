@@ -53,7 +53,8 @@ export function OpenTransfer({ id, accounts, categories, onClose }: TransferProp
   return (
     <>
       <EditTransfer transfer={transfer.data} accounts={accounts} onClose={onClose} />
-      <UnmarkTransfer transfer={transfer.data} accounts={accounts} categories={categories} onClose={onClose} />
+      {/* Either leg reconciled, its legs stay a transfer until the reconciliation is reopened. */}
+      {!transfer.data.isReconciled && <UnmarkTransfer transfer={transfer.data} accounts={accounts} categories={categories} onClose={onClose} />}
     </>
   )
 }
