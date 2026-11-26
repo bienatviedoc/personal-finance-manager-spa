@@ -962,6 +962,20 @@
     "archived": "Archived",
     "archiveConfirm": "Archive {{name}}? It disappears from pickers and stays on existing transactions.",
     "archiveConfirmWithSubcategories": "Archive {{name}} and its subcategories? They disappear from pickers and stay on existing transactions.",
+    "mergeButton": "Merge",
+    "mergeAction": "Merge {{name}}",
+    "merge": {
+      "title": "Merge {{name}}",
+      "into": "Merge into",
+      "choose": "Choose a category",
+      "confirm": "Merge",
+      "moves": "{{transactions}} and {{budgets}} move to {{target}}, and {{name}} is archived.",
+      "transactions_one": "{{count}} transaction",
+      "transactions_other": "{{count}} transactions",
+      "budgets_one": "{{count}} budget",
+      "budgets_other": "{{count}} budgets",
+      "refused": "{{name}} cannot be merged into {{target}}: a category and its parent, or one of its subcategories, would then both have a budget in the same month. Remove one of those budgets first."
+    },
     "name": "Name",
     "kind": "Kind",
     "kinds": {

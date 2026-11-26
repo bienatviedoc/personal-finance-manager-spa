@@ -21,12 +21,22 @@ export const defaultTestCategories: FakeCategory[] = [
 /**
  * A stand-in for the API's category endpoints, keeping state across requests and following the same
  * rules as the real API (see the API's CategoryTests): two levels deep, a subcategory has its parent's
- * kind, the kind is fixed once a category has transactions, archiving takes the subcategories along.
+ * kind, the kind is fixed once a category has transactions, archiving takes the subcategories along. A merge
+ * (see the API's CategoryMergeTests) goes only into another category of the same kind, never to three levels, takes
+ * the subcategories under the target and archives the merged one; `moving` says what it moves for each category,
+ * and a merge into one of `refuseMergeInto` is refused as the API refuses one that breaks a budget rule.
  */
 export function fakeCategoriesApi({
   categories = defaultTestCategories,
   withTransactions = [],
-}: { categories?: FakeCategory[]; withTransactions?: string[] } = {}) {
+  moving = {},
+  refuseMergeInto = [],
+}: {
+  categories?: FakeCategory[]
+  withTransactions?: string[]
+  moving?: Record<string, { transactions: number; budgets: number }>
+  refuseMergeInto?: string[]
+} = {}) {
   const state = {
     categories: categories.map((category) => ({ ...category })),
     requests: [] as { method: string; body: unknown }[],
@@ -88,6 +98,35 @@ export function fakeCategoriesApi({
       }
       Object.assign(category, { name: body.name.trim(), icon: body.icon, color: body.color })
       return HttpResponse.json(view(category, state.categories))
+    }),
+    http.get(url('/api/v1/categories/:id/merge-preview'), ({ params }) => {
+      const category = find(params.id)
+      if (!category) return problem(404)
+      return HttpResponse.json(moving[category.id] ?? { transactions: 0, budgets: 0 })
+    }),
+    http.post(url('/api/v1/categories/:id/merge'), async ({ request, params }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const body = (await request.json()) as { targetId: string }
+      state.requests.push({ method: 'POST', body })
+      const category = find(params.id)
+      if (!category) return problem(404)
+      const target = find(body.targetId)
+      const subcategories = subcategoriesOf(category.id)
+      if (
+        !target ||
+        target.id === category.id ||
+        target.kind !== category.kind ||
+        target.isArchived ||
+        target.parentId === category.id ||
+        (subcategories.length > 0 && target.parentId !== null) ||
+        refuseMergeInto.includes(target.id)
+      ) {
+        return invalid('targetId', 'This category cannot be merged into that one.')
+      }
+      for (const sub of subcategories) sub.parentId = target.id
+      category.isArchived = true
+      return HttpResponse.json(moving[category.id] ?? { transactions: 0, budgets: 0 })
     }),
     http.delete(url('/api/v1/categories/:id'), ({ request, params }) => {
       const refused = refuseWithoutToken(request)
