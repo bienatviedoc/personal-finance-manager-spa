@@ -216,6 +216,19 @@
   },
   "transactions": {
     "intro": "Your income and expenses. Filter, search and sort them to find any one.",
+    "recentlyDeleted": {
+      "title": "Recently deleted",
+      "intro": "Transactions you deleted in the last 30 days. Restore one to return it to your lists and balances; after 30 days it is removed for good.",
+      "back": "Back to transactions",
+      "loading": "Loading recently deleted transactions",
+      "notLoaded": "Recently deleted transactions could not be loaded. Try again in a moment.",
+      "empty": "Nothing was deleted in the last 30 days.",
+      "restorableUntil": "Can be restored until {{date}}",
+      "wholeTransfer": "Restoring it restores the whole transfer.",
+      "restore": "Restore",
+      "restoreNamed": "Restore {{name}}",
+      "notRestored": "The transaction was not restored."
+    },
     "add": "Add transaction",
     "new": "New transaction",
     "editTitle": "Edit transaction",
