@@ -67,7 +67,7 @@ type ListQuery = NonNullable<paths['/api/v1/transactions']['get']['parameters'][
  * Which transactions the list shows and in what order, as the API's query names them. Everything left out
  * lets every transaction through, newest date first.
  */
-export type TransactionFilters = Pick<ListQuery, 'from' | 'to' | 'accountId' | 'categoryId' | 'min' | 'max' | 'q'> & {
+export type TransactionFilters = Pick<ListQuery, 'from' | 'to' | 'accountId' | 'categoryId' | 'min' | 'max' | 'q' | 'tag'> & {
   type?: TransactionType
   sort?: 'date' | 'amount'
   order?: 'asc' | 'desc'

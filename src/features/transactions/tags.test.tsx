@@ -89,4 +89,68 @@ describe('tags', () => {
     // A tag stays the user's once no transaction has it.
     expect(transactionsApi.tags).toEqual(['gifts', 'tet-2027'])
   })
+
+  it('are at most 50 characters each: a longer one says so and nothing is sent', async () => {
+    const transactionsApi = fakeApis()
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('button', { name: 'Add transaction' }))
+    const drawer = within(screen.getByRole('dialog', { name: 'New transaction' }))
+    await user.type(drawer.getByLabelText('Amount (VND)'), '300,000')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
+    await user.type(drawer.getByLabelText('Tags'), `${'t'.repeat(51)}{Enter}`)
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+
+    expect(await drawer.findByText('Use at most 20 tags, each of at most 50 characters.')).toBeInTheDocument()
+    expect(transactionsApi.requests).toEqual([])
+  })
+
+  it('filter the list, and the filter lives in the address', async () => {
+    const transactionsApi = fakeApis([
+      { accountId: everyday, amount: '50000.00', date: '2026-11-02', payee: 'Flowers', tags: ['gifts', 'tet-2027'] },
+      { accountId: everyday, amount: '900000.00', date: '2026-11-03', payee: 'Vietnam Airlines', tags: ['japan-trip'] },
+      { accountId: everyday, amount: '30000.00', date: '2026-11-04', payee: 'Phở Thìn' },
+    ])
+    const { user, router } = renderApp('/transactions')
+
+    await screen.findByRole('list', { name: 'Transactions' })
+    const filters = within(screen.getByRole('search', { name: 'Filter transactions' }))
+    expect(within(filters.getByLabelText('Tag')).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'All tags',
+      'gifts',
+      'japan-trip',
+      'tet-2027',
+    ])
+    await user.selectOptions(filters.getByLabelText('Tag'), 'tet-2027')
+
+    await waitFor(() => expect(listed()).toEqual([['Flowers', ['gifts', 'tet-2027']]]))
+    expect(router.state.location.search).toBe('?tag=tet-2027')
+    expect(transactionsApi.listQueries.at(-1)).toEqual(expect.objectContaining({ tag: 'tet-2027' }))
+
+    await user.click(filters.getByRole('button', { name: 'Clear filters' }))
+    await waitFor(() => expect(listed()).toHaveLength(3))
+    expect(router.state.location.search).toBe('')
+  })
+
+  it('filter the list from an address opened again, in any case', async () => {
+    fakeApis([
+      { accountId: everyday, amount: '50000.00', date: '2026-11-02', payee: 'Flowers', tags: ['gifts', 'tet-2027'] },
+      { accountId: everyday, amount: '900000.00', date: '2026-11-03', payee: 'Vietnam Airlines', tags: ['japan-trip'] },
+    ])
+    renderApp('/transactions?tag=Japan-Trip')
+
+    await waitFor(() => expect(listed()).toEqual([['Vietnam Airlines', ['japan-trip']]]))
+    expect(screen.getByLabelText('Tag')).toHaveValue('japan-trip')
+  })
+
+  it('are written in Vietnamese for a user who reads Vietnamese', async () => {
+    fakeApis([{ accountId: everyday, amount: '50000.00', payee: 'Flowers', tags: ['gifts'] }])
+    const { user } = renderApp('/transactions', { language: 'vi' })
+
+    const row = within(await screen.findByRole('list', { name: 'Giao dịch' })).getByRole('list', { name: 'Nhãn của Flowers' })
+    expect(within(row).getByText('gifts')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nhãn')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Sửa Flowers' }))
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Bỏ nhãn gifts' })).toBeInTheDocument()
+  })
 })
