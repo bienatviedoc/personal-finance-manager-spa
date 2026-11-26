@@ -113,11 +113,13 @@ export function useReopenReconciliation(reconciliation: Pick<Reconciliation, 'id
 
 /** Cancels a reconciliation in progress: what is ticked in it is unticked and it is removed. */
 export function useCancelReconciliation(reconciliation: Pick<Reconciliation, 'id' | 'accountId'>) {
-  return useChangeReconciliation(reconciliation, 'Cancelling', async (id) => {
-    const { response } = await api.DELETE('/api/v1/reconciliations/{id}', { params: { path: { id } } })
+  return useChangeReconciliation(
+    reconciliation,
+    'Cancelling',
+    async (id) => api.DELETE('/api/v1/reconciliations/{id}', { params: { path: { id } } }),
     // Not found: cancelled already, which is what was asked for.
-    return { response: response.status === 404 ? new Response(null, { status: 204 }) : response }
-  })
+    (response) => response.ok || response.status === 404,
+  )
 }
 
 /**
@@ -128,12 +130,13 @@ function useChangeReconciliation(
   { id, accountId }: Pick<Reconciliation, 'id' | 'accountId'>,
   changeName: string,
   change: (id: string) => Promise<{ response: Response }>,
+  done: (response: Response) => boolean = (response) => response.ok,
 ) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async () => {
       const { response } = await change(id)
-      if (!response.ok) throw new Error(`${changeName} a reconciliation failed: ${response.status}`)
+      if (!done(response)) throw new Error(`${changeName} a reconciliation failed: ${response.status}`)
     },
     onSettled: () => refreshAfterChange(queryClient, accountId),
   })
