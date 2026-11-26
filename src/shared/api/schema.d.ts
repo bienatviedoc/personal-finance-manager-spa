@@ -611,6 +611,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recurring-rules/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every occurrence of the user's recurring rules due after today, in their time zone, and within the days asked for, earliest first: the ones the worker will post and the ones that will be reminders. A paused rule has none. */
+        get: operations["ListUpcomingOccurrences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-rules/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The user's reminders, earliest due first: each occurrence of a rule that reminds, due on or before today in their time zone, not yet confirmed or dismissed. A paused rule has none. */
+        get: operations["ListReminders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/recurring-rules/{id}": {
         parameters: {
             query?: never;
@@ -658,6 +692,40 @@ export interface paths {
         put?: never;
         /** @description Resumes a paused rule: it posts again from today. The occurrences that were due while it was paused are skipped. */
         post: operations["ResumeRecurringRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-rules/{id}/reminders/{dueDate}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Confirms a reminder: its transaction is recorded, dated on its due date, saying what the rule says, for the amount sent or else the rule's own, and the rule moves on to its next occurrence. A rule's reminders are confirmed or dismissed earliest first: a later one answers 400 on dueDate. Confirming one twice records one transaction. */
+        post: operations["ConfirmReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recurring-rules/{id}/reminders/{dueDate}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Dismisses a reminder: nothing is recorded for it, and the rule moves on to its next occurrence. A rule's reminders are confirmed or dismissed earliest first: a later one answers 400 on dueDate. */
+        post: operations["DismissReminder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1012,6 +1080,9 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        ConfirmReminderRequest: {
+            amount?: null | string;
+        };
         CopiedBudgetsResponse: {
             /** Format: int32 */
             copied: number | string;
@@ -1168,6 +1239,25 @@ export interface components {
             currency: components["schemas"]["Currency"];
             balance: string;
         };
+        OccurrenceListResponse: {
+            items: components["schemas"]["OccurrenceResponse"][];
+        };
+        OccurrenceResponse: {
+            /** Format: uuid */
+            recurringRuleId: string;
+            /** Format: date */
+            dueDate: string;
+            type: components["schemas"]["TransactionType"];
+            /** Format: uuid */
+            accountId: string;
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            /** Format: uuid */
+            categoryId: string;
+            payee: null | string;
+            note: null | string;
+            mode: components["schemas"]["RecurringMode"];
+        };
         PeriodChangeResponse: {
             amount: string;
             /** Format: double */
@@ -1230,6 +1320,8 @@ export interface components {
         };
         /** @enum {unknown} */
         RecurringFrequency: "weekly" | "monthly" | "yearly" | "everyNDays";
+        /** @enum {unknown} */
+        RecurringMode: "autoPost" | "remind";
         RecurringRuleListResponse: {
             items: components["schemas"]["RecurringRuleResponse"][];
             nextCursor: null | string;
@@ -1248,6 +1340,7 @@ export interface components {
             /** Format: int32 */
             interval?: null | number | string;
             endDate?: null | string;
+            mode?: null | string;
         };
         RecurringRuleResponse: {
             /** Format: uuid */
@@ -1271,6 +1364,7 @@ export interface components {
             /** Format: date */
             nextRunDate: null | string;
             isPaused: boolean;
+            mode: components["schemas"]["RecurringMode"];
             rowVersion: string;
         };
         RegisterRequest: {
@@ -3931,6 +4025,75 @@ export interface operations {
             };
         };
     };
+    ListUpcomingOccurrences: {
+        parameters: {
+            query?: {
+                days?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OccurrenceListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListReminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OccurrenceListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetRecurringRule: {
         parameters: {
             query?: never;
@@ -4120,6 +4283,106 @@ export interface operations {
             header?: never;
             path: {
                 id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringRuleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ConfirmReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                dueDate: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ConfirmReminderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringRuleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DismissReminder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                dueDate: string;
             };
             cookie?: never;
         };

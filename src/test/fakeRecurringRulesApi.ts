@@ -6,16 +6,62 @@ import { apiUrl, problem, refuseWithoutToken, server } from './server'
 type RecurringRule = components['schemas']['RecurringRuleResponse']
 type RecurringRuleRequest = components['schemas']['RecurringRuleRequest']
 type Account = components['schemas']['AccountResponse']
+type ConfirmReminderRequest = components['schemas']['ConfirmReminderRequest']
+type Occurrence = components['schemas']['OccurrenceResponse']
 
 const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
 const frequencies = ['weekly', 'monthly', 'yearly', 'everyNDays']
 const isDate = (text: unknown) => typeof text === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(text)
+
+const isoDate = (date: Date) => date.toISOString().slice(0, 10)
+
+function addDays(date: string, days: number) {
+  const moved = new Date(`${date}T00:00:00Z`)
+  moved.setUTCDate(moved.getUTCDate() + days)
+  return isoDate(moved)
+}
+
+/** The date this many months after the start, on the start's day or the month's last day when it has fewer. */
+function addMonths(start: string, months: number) {
+  const [year, month, day] = start.split('-').map(Number) as [number, number, number]
+  const lastDay = new Date(Date.UTC(year, month - 1 + months + 1, 0)).getUTCDate()
+  return isoDate(new Date(Date.UTC(year, month - 1 + months, Math.min(day, lastDay))))
+}
+
+/** Every due date of the rule from its start to its end, worked out from the start date as the API does. */
+function* dueDatesOf(rule: RecurringRule) {
+  for (let n = 0; n < 10000; n++) {
+    const date =
+      rule.frequency === 'weekly' ? addDays(rule.startDate, 7 * n)
+      : rule.frequency === 'everyNDays' ? addDays(rule.startDate, Number(rule.interval) * n)
+      : addMonths(rule.startDate, (rule.frequency === 'yearly' ? 12 : 1) * n)
+    if (rule.endDate !== null && date > rule.endDate) return
+    yield date
+  }
+}
+
+/** The rule's due dates not posted, confirmed, dismissed or skipped yet, up to and including `through`. */
+function unsettledThrough(rule: RecurringRule, through: string) {
+  const dates: string[] = []
+  if (rule.isPaused || rule.nextRunDate === null) return dates
+  for (const date of dueDatesOf(rule)) {
+    if (date > through) break
+    if (date >= rule.nextRunDate) dates.push(date)
+  }
+  return dates
+}
+
+/** Today in the test user's time zone. */
+const todayInHoChiMinh = () =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 
 type Options = {
   /** The accounts rules post to, as `fakeAccountsApi` keeps them. */
   accounts: Account[]
   /** The categories rules take, as `fakeCategoriesApi` keeps them. */
   categories: FakeCategory[]
+  /** Today for the user, `YYYY-MM-DD`; the test user's, in Ho Chi Minh City, when left out. */
+  today?: string
 }
 
 /**
@@ -26,9 +72,11 @@ type Options = {
  * category; archived accounts and categories take no new rules; only `everyNDays` takes an `interval`, of 1 to
  * 365; the end date is not before the start date; an edit must name the row version in `If-Match` (412 when
  * stale, 428 when missing), and pausing and resuming move it on too; pausing and resuming answer the rule; deleting removes it.
- * Nothing posts here, so a rule's next run date stays its start date.
+ * Nothing posts here, so a rule's next run date stays its start date. A rule that reminds has a reminder for
+ * each occurrence due by today; confirming or dismissing one moves the rule on, earliest first (400 on
+ * `dueDate` otherwise), and confirming records nothing here: it only answers the rule.
  */
-export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { accounts, categories }: Options) {
+export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { accounts, categories, today = todayInHoChiMinh() }: Options) {
   let added = 0
   const state = {
     rules: rules.map((rule, index): RecurringRule => {
@@ -49,12 +97,15 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
         endDate: null,
         nextRunDate: startDate,
         isPaused: false,
+        mode: 'autoPost',
         rowVersion: '1',
         ...rule,
       }
     }),
     /** Every request that changes something, in the order they arrived; a body where one was sent. */
-    requests: [] as { method: string; path: string; body?: Partial<RecurringRuleRequest> }[],
+    requests: [] as { method: string; path: string; body?: Partial<RecurringRuleRequest> | Partial<ConfirmReminderRequest> }[],
+    /** The `days` of every upcoming list asked for, in the order they were. */
+    upcomingAsked: [] as number[],
     /** The `If-Match` header of every edit, in the order they arrived. */
     ifMatches: [] as (string | null)[],
     /** The next request that changes something fails with a 500, having saved nothing. */
@@ -81,6 +132,7 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
     else if (body.frequency === 'everyNDays' ? !(Number.isInteger(interval) && Number(interval) >= 1 && Number(interval) <= 365) : interval !== null) {
       errors.interval = ['Send how many days apart for everyNDays and leave it out for any other frequency.']
     }
+    if (body.mode != null && body.mode !== 'autoPost' && body.mode !== 'remind') errors.mode = ['Choose one of: autoPost, remind, or leave it out to post each occurrence.']
     if (!isDate(body.startDate)) errors.startDate = ['Enter a date as YYYY-MM-DD.']
     const endDate = body.endDate ?? null
     if (endDate !== null && !isDate(endDate)) errors.endDate = ['Enter a date as YYYY-MM-DD.']
@@ -114,6 +166,7 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
         startDate: body.startDate!,
         endDate,
         nextRunDate: body.startDate!,
+        mode: (body.mode ?? 'autoPost') as RecurringRule['mode'],
       },
     }
   }
@@ -139,7 +192,52 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
     return HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } })
   }
 
+  const occurrence = (rule: RecurringRule, dueDate: string): Occurrence => ({
+    recurringRuleId: rule.id, dueDate, type: rule.type, accountId: rule.accountId, amount: rule.amount, currency: rule.currency,
+    categoryId: rule.categoryId, payee: rule.payee, note: rule.note, mode: rule.mode,
+  })
+  const byDueDate = (a: Occurrence, b: Occurrence) => a.dueDate.localeCompare(b.dueDate) || a.recurringRuleId.localeCompare(b.recurringRuleId)
+
+  /** Confirming or dismissing a reminder: the rule, refused or moved on to its next occurrence. */
+  const answerReminder = (confirming: boolean) => async ({ request, params }: { request: Request; params: Record<string, unknown> }) => {
+    const stopped = refusedOrFailed(request)
+    if (stopped) return stopped
+    const path = new URL(request.url).pathname
+    const body = confirming ? ((await request.json()) as Partial<ConfirmReminderRequest>) : undefined
+    state.requests.push(confirming ? { method: request.method, path, body } : { method: request.method, path })
+    const dueDate = String(params.dueDate)
+    if (!isDate(dueDate)) return problem(400, { errors: { dueDate: ['Enter a date as YYYY-MM-DD.'] } })
+    if (body?.amount != null && !(/^\d+(\.\d+)?$/.test(body.amount) && Number(body.amount) > 0)) {
+      return problem(400, { errors: { amount: ['Enter an amount greater than zero.'] } })
+    }
+    const found = find(params.id)
+    if (!found || found.mode !== 'remind' || !unsettledThrough(found, today).includes(dueDate)) return problem(404)
+    if (dueDate !== found.nextRunDate) return problem(400, { errors: { dueDate: [`Confirm or dismiss the reminder due on ${found.nextRunDate} first.`] } })
+    const next = unsettledThrough(found, '9999-12-31').find((date) => date > dueDate)
+    Object.assign(found, { nextRunDate: next ?? null, rowVersion: String(Number(found.rowVersion) + 1) })
+    return HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } })
+  }
+
   server.use(
+    http.get(apiUrl('/api/v1/recurring-rules/reminders'), () => {
+      const items = state.rules
+        .filter((rule) => rule.mode === 'remind')
+        .flatMap((rule) => unsettledThrough(rule, today).map((dueDate) => occurrence(rule, dueDate)))
+      return HttpResponse.json({ items: items.sort(byDueDate) })
+    }),
+    http.get(apiUrl('/api/v1/recurring-rules/upcoming'), ({ request }) => {
+      const days = Number(new URL(request.url).searchParams.get('days') ?? 30)
+      state.upcomingAsked.push(days)
+      if (!Number.isInteger(days) || days < 1 || days > 90) return problem(400, { errors: { days: ['Look 1 to 90 days ahead.'] } })
+      const items = state.rules.flatMap((rule) =>
+        unsettledThrough(rule, addDays(today, days))
+          .filter((dueDate) => dueDate > today)
+          .map((dueDate) => occurrence(rule, dueDate)),
+      )
+      return HttpResponse.json({ items: items.sort(byDueDate) })
+    }),
+    http.post(apiUrl('/api/v1/recurring-rules/:id/reminders/:dueDate/confirm'), answerReminder(true)),
+    http.post(apiUrl('/api/v1/recurring-rules/:id/reminders/:dueDate/dismiss'), answerReminder(false)),
     http.get(apiUrl('/api/v1/recurring-rules'), ({ request }) => {
       const query = new URL(request.url).searchParams
       const limit = Number(query.get('limit') ?? 50)

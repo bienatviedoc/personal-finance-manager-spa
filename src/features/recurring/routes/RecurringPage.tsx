@@ -18,6 +18,8 @@ import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import {
   recurringRulesQuery,
+  remindersQuery,
+  upcomingQuery,
   useCreateRecurringRule,
   useDeleteRecurringRule,
   useEditRecurringRule,
@@ -26,6 +28,8 @@ import {
   type RecurringRule,
 } from '../api/recurringRules'
 import { RecurringRuleForm } from '../components/RecurringRuleForm'
+import { Reminders } from '../components/Reminders'
+import { Upcoming } from '../components/Upcoming'
 import { linkedRuleParameter } from '../components/RecurringRuleLink'
 
 /** What the drawer is open for: setting up a rule, or editing the one with this id. */
@@ -43,6 +47,8 @@ export function RecurringPage() {
   const [search] = useSearchParams()
   const linkedRule = search.get(linkedRuleParameter)
   const rules = useQuery(recurringRulesQuery)
+  const reminders = useQuery(remindersQuery)
+  const upcoming = useQuery(upcomingQuery())
   // Archived accounts and categories are loaded too: the rules on them still show their names.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
@@ -71,7 +77,9 @@ export function RecurringPage() {
         </Button>
       )}
 
-      {(rules.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('recurring.errors.generic')}</ErrorMessage>}
+      {categories.data && reminders.data && reminders.data.length > 0 && <Reminders reminders={reminders.data} categories={categories.data} />}
+
+      {(rules.isError || reminders.isError || upcoming.isError || accounts.isError || categories.isError) && <ErrorMessage>{t('recurring.errors.generic')}</ErrorMessage>}
       {!loaded && !rules.isError && <ListSkeleton />}
       {loaded && rules.data.length === 0 && canSetUp && <p className="text-muted-foreground">{t('recurring.empty')}</p>}
       {loaded && rules.data.length > 0 && (
@@ -88,6 +96,8 @@ export function RecurringPage() {
           ))}
         </ul>
       )}
+
+      {loaded && rules.data.length > 0 && upcoming.data && <Upcoming occurrences={upcoming.data} categories={categories.data} />}
 
       <Drawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} title={editing ? t('recurring.editTitle') : t('recurring.new')}>
           {loaded && drawer && 'adding' in drawer && (
@@ -169,7 +179,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {joinDetails([category?.name, account?.name, frequency])}
+            {joinDetails([category?.name, account?.name, frequency, rule.mode === 'remind' ? t('recurring.remindsYou') : undefined])}
           </p>
           <p data-testid="next" className="text-sm text-muted-foreground">
             {nextText(rule, t, (date) => formatDate(date, locale))}

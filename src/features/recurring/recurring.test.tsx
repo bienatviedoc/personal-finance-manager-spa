@@ -15,6 +15,17 @@ const firstRule = '01970000-0000-7000-8000-500000000000'
 /** Today in the test user's time zone. */
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 
+/** The calendar date this many days from today. */
+function daysFromToday(days: number) {
+  const date = new Date(`${today}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+/** A calendar date as the screen shows it in English. */
+const shown = (date: string) =>
+  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
+
 const twoAccounts: Parameters<typeof fakeAccountsApi>[0] = [{ name: 'Everyday' }, { name: 'Savings in dollars', currency: 'USD' }]
 
 function fakeApis(
@@ -108,11 +119,30 @@ describe('the recurring screen', () => {
         path: '/api/v1/recurring-rules',
         body: {
           type: 'expense', accountId: everyday, amount: '9000000', categoryId: 'c-transport', frequency: 'monthly', interval: null,
-          startDate: '2027-01-31', endDate: '2027-12-31', payee: 'Landlord', note: 'flat',
+          startDate: '2027-01-31', endDate: '2027-12-31', payee: 'Landlord', note: 'flat', mode: 'autoPost',
         },
       },
     ])
     expect(listed()).toEqual([['Landlord', 'Transport · Everyday · Every month', 'Next on Jan 31, 2027', '-₫9,000,000']])
+  })
+
+  it('sets up a rule that reminds instead of recording each occurrence, which the list then says', async () => {
+    const { rulesApi } = fakeApis()
+    const { user } = renderApp('/recurring')
+    const drawer = await openNewRule(user)
+
+    expect(drawer.getByLabelText('On each due date')).toHaveDisplayValue('Record it for me')
+    await user.type(drawer.getByLabelText('Amount (VND)'), '100')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
+    await user.selectOptions(drawer.getByLabelText('On each due date'), 'Remind me to confirm it')
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(rulesApi.requests[0]!.body).toMatchObject({ mode: 'remind' })
+    expect(listed()[0]![1]).toBe('Transport · Everyday · Every month · Reminds you')
+
+    await user.click(screen.getByRole('button', { name: 'Edit Transport' }))
+    expect(within(screen.getByRole('dialog', { name: 'Edit recurring rule' })).getByLabelText('On each due date')).toHaveDisplayValue('Remind me to confirm it')
   })
 
   it('closes the category picker on Escape before the drawer', async () => {
@@ -204,7 +234,7 @@ describe('the recurring screen', () => {
         path: `/api/v1/recurring-rules/${firstRule}`,
         body: {
           type: 'expense', accountId: everyday, amount: '9500000', categoryId: 'c-transport', frequency: 'monthly', interval: null,
-          startDate: '2026-12-05', endDate: null, payee: 'Landlord', note: 'flat',
+          startDate: '2026-12-05', endDate: null, payee: 'Landlord', note: 'flat', mode: 'autoPost',
         },
       },
     ])
@@ -302,6 +332,123 @@ describe('the recurring screen', () => {
     await user.click(drawer.getByRole('button', { name: 'Try again' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+})
+
+describe('the reminders of a rule that reminds', () => {
+  const reminds = { ...rent, mode: 'remind', frequency: 'weekly', startDate: daysFromToday(-7) } as const
+
+  /** Each reminder listed: what it is headed by, when it is due, and its amount. */
+  function reminders() {
+    return within(screen.getByRole('list', { name: 'Reminders' }))
+      .getAllByRole('listitem')
+      .map((item) => [within(item).getByRole('heading').textContent, within(item).getByTestId('due').textContent, within(item).getByTestId('amount').textContent])
+  }
+
+  it('lists every occurrence due by today that is not answered yet, earliest first, and none of a rule that records', async () => {
+    fakeApis([reminds, { ...rent, payee: 'Gym', startDate: daysFromToday(-7) }, { ...reminds, payee: 'Cleaner', isPaused: true }])
+    renderApp('/recurring')
+
+    await screen.findByRole('list', { name: 'Reminders' })
+    expect(reminders()).toEqual([
+      ['Landlord', `Due on ${shown(daysFromToday(-7))}`, '-₫9,000,000'],
+      ['Landlord', `Due on ${shown(today)}`, '-₫9,000,000'],
+    ])
+  })
+
+  it('records a reminder the user confirms, for the rule\'s own amount, and it is gone', async () => {
+    const { rulesApi } = fakeApis([reminds])
+    const { user } = renderApp('/recurring')
+
+    await user.click(await screen.findByRole('button', { name: `Confirm Landlord, due on ${shown(daysFromToday(-7))}` }))
+    const confirming = within(screen.getByRole('group', { name: 'Confirm Landlord' }))
+    expect(confirming.getByLabelText('Amount (VND)')).toHaveValue('9,000,000')
+    await user.click(confirming.getByRole('button', { name: 'Record' }))
+
+    await waitFor(() => expect(reminders()).toEqual([['Landlord', `Due on ${shown(today)}`, '-₫9,000,000']]))
+    expect(rulesApi.requests).toEqual([{ method: 'POST', path: `/api/v1/recurring-rules/${firstRule}/reminders/${daysFromToday(-7)}/confirm`, body: {} }])
+  })
+
+  it('records a reminder for another amount the user enters, refusing one that is not above zero', async () => {
+    const { rulesApi } = fakeApis([{ ...reminds, startDate: today }])
+    const { user } = renderApp('/recurring')
+
+    await user.click(await screen.findByRole('button', { name: `Confirm Landlord, due on ${shown(today)}` }))
+    const confirming = within(screen.getByRole('group', { name: 'Confirm Landlord' }))
+    await user.clear(confirming.getByLabelText('Amount (VND)'))
+    await user.type(confirming.getByLabelText('Amount (VND)'), '0')
+    await user.click(confirming.getByRole('button', { name: 'Record' }))
+    expect(await confirming.findByText('Enter an amount greater than zero.')).toBeInTheDocument()
+
+    await user.clear(confirming.getByLabelText('Amount (VND)'))
+    await user.type(confirming.getByLabelText('Amount (VND)'), '9,500,000')
+    await user.click(confirming.getByRole('button', { name: 'Record' }))
+
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Reminders' })).not.toBeInTheDocument())
+    expect(rulesApi.requests).toEqual([
+      { method: 'POST', path: `/api/v1/recurring-rules/${firstRule}/reminders/${today}/confirm`, body: { amount: '9500000' } },
+    ])
+  })
+
+  it('dismisses a reminder, recording nothing', async () => {
+    const { rulesApi } = fakeApis([reminds])
+    const { user } = renderApp('/recurring')
+
+    await user.click(await screen.findByRole('button', { name: `Dismiss Landlord, due on ${shown(daysFromToday(-7))}` }))
+
+    await waitFor(() => expect(reminders()).toEqual([['Landlord', `Due on ${shown(today)}`, '-₫9,000,000']]))
+    expect(rulesApi.requests).toEqual([{ method: 'POST', path: `/api/v1/recurring-rules/${firstRule}/reminders/${daysFromToday(-7)}/dismiss` }])
+  })
+
+  it('says to answer a rule\'s earlier reminder first', async () => {
+    fakeApis([reminds])
+    const { user } = renderApp('/recurring')
+
+    await user.click(await screen.findByRole('button', { name: `Dismiss Landlord, due on ${shown(today)}` }))
+
+    expect(await screen.findByText('Confirm or dismiss the earlier reminder of this rule first.')).toBeInTheDocument()
+    expect(reminders()).toHaveLength(2)
+  })
+})
+
+describe('the upcoming list', () => {
+  /** Each occurrence listed: when it is due, what it is headed by, what happens on the day, and its amount. */
+  function upcoming() {
+    return within(screen.getByRole('list', { name: 'Due in the next 30 days' }))
+      .getAllByRole('listitem')
+      .map((item) => [
+        within(item).getByTestId('due').textContent,
+        within(item).getByRole('heading').textContent,
+        within(item).getByTestId('what').textContent,
+        within(item).getByTestId('amount').textContent,
+      ])
+  }
+
+  it('shows every occurrence due in the next 30 days across all rules, earliest first, saying which will be reminders', async () => {
+    const { rulesApi } = fakeApis([
+      { ...rent, payee: 'Cleaner', amount: '300000.00', frequency: 'weekly', startDate: daysFromToday(3) },
+      { ...rent, mode: 'remind', startDate: daysFromToday(5) },
+      { ...rent, payee: 'Gym', startDate: daysFromToday(4), isPaused: true },
+      { ...rent, payee: 'Later', startDate: daysFromToday(31) },
+    ])
+    renderApp('/recurring')
+
+    await screen.findByRole('list', { name: 'Due in the next 30 days' })
+    expect(upcoming()).toEqual([
+      [shown(daysFromToday(3)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+      [shown(daysFromToday(5)), 'Landlord', 'Reminder', '-₫9,000,000'],
+      [shown(daysFromToday(10)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+      [shown(daysFromToday(17)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+      [shown(daysFromToday(24)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+    ])
+    expect(rulesApi.upcomingAsked).toEqual([30])
+  })
+
+  it('says so when nothing is due in the next 30 days', async () => {
+    fakeApis([{ ...rent, startDate: daysFromToday(40) }])
+    renderApp('/recurring')
+
+    expect(await screen.findByText('Nothing is due in the next 30 days.')).toBeInTheDocument()
   })
 })
 

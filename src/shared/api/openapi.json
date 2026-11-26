@@ -2925,6 +2925,93 @@
         }
       }
     },
+    "/api/v1/recurring-rules/upcoming": {
+      "get": {
+        "tags": [
+          "Recurring rules"
+        ],
+        "description": "Every occurrence of the user's recurring rules due after today, in their time zone, and within the days asked for, earliest first: the ones the worker will post and the ones that will be reminders. A paused rule has none.",
+        "operationId": "ListUpcomingOccurrences",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OccurrenceListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recurring-rules/reminders": {
+      "get": {
+        "tags": [
+          "Recurring rules"
+        ],
+        "description": "The user's reminders, earliest due first: each occurrence of a rule that reminds, due on or before today in their time zone, not yet confirmed or dismissed. A paused rule has none.",
+        "operationId": "ListReminders",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OccurrenceListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/recurring-rules/{id}": {
       "get": {
         "tags": [
@@ -3156,6 +3243,148 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurringRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/recurring-rules/{id}/reminders/{dueDate}/confirm": {
+      "post": {
+        "tags": [
+          "Recurring rules"
+        ],
+        "description": "Confirms a reminder: its transaction is recorded, dated on its due date, saying what the rule says, for the amount sent or else the rule's own, and the rule moves on to its next occurrence. A rule's reminders are confirmed or dismissed earliest first: a later one answers 400 on dueDate. Confirming one twice records one transaction.",
+        "operationId": "ConfirmReminder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dueDate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ConfirmReminderRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurringRuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/recurring-rules/{id}/reminders/{dueDate}/dismiss": {
+      "post": {
+        "tags": [
+          "Recurring rules"
+        ],
+        "description": "Dismisses a reminder: nothing is recorded for it, and the rule moves on to its next occurrence. A rule's reminders are confirmed or dismissed earliest first: a later one answers 400 on dueDate.",
+        "operationId": "DismissReminder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "dueDate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -4722,6 +4951,17 @@
           }
         }
       },
+      "ConfirmReminderRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CopiedBudgetsResponse": {
         "required": [
           "copied"
@@ -5342,6 +5582,77 @@
           }
         }
       },
+      "OccurrenceListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OccurrenceResponse"
+            }
+          }
+        }
+      },
+      "OccurrenceResponse": {
+        "required": [
+          "recurringRuleId",
+          "dueDate",
+          "type",
+          "accountId",
+          "amount",
+          "currency",
+          "categoryId",
+          "payee",
+          "note",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "recurringRuleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payee": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "mode": {
+            "$ref": "#/components/schemas/RecurringMode"
+          }
+        }
+      },
       "PeriodChangeResponse": {
         "required": [
           "amount",
@@ -5589,6 +5900,12 @@
           "everyNDays"
         ]
       },
+      "RecurringMode": {
+        "enum": [
+          "autoPost",
+          "remind"
+        ]
+      },
       "RecurringRuleListResponse": {
         "required": [
           "items",
@@ -5667,6 +5984,12 @@
               "null",
               "string"
             ]
+          },
+          "mode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5686,6 +6009,7 @@
           "endDate",
           "nextRunDate",
           "isPaused",
+          "mode",
           "rowVersion"
         ],
         "type": "object",
@@ -5755,6 +6079,9 @@
           },
           "isPaused": {
             "type": "boolean"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/RecurringMode"
           },
           "rowVersion": {
             "type": "string"
