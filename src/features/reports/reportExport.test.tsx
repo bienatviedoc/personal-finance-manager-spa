@@ -170,3 +170,48 @@ describe('exporting the income vs expenses report', () => {
     ])
   })
 })
+
+describe('exporting the trends report', () => {
+  const food: FakeExpense[] = [
+    { id: 't-jan-market', date: '2026-01-10', categoryId: 'c-groceries', spent: '400000', payee: 'Market' },
+    { id: 't-jan-coffee', date: '2026-01-20', categoryId: 'c-eating-out', spent: '100000', payee: 'Cafe' },
+    { id: 't-mar-market', date: '2026-03-05', categoryId: 'c-groceries', spent: '600000', payee: 'market ' },
+    { id: 't-dec-market', date: '2025-12-15', categoryId: 'c-food', spent: '250000', payee: 'Market' },
+  ]
+  const foodInQ1 = '/reports/trends?period=custom&from=2026-01-01&to=2026-03-31&categoryId=c-food'
+
+  function setUpTrends() {
+    fakeCategoriesApi()
+    fakeAccountsApi([{ id: 'a-everyday', name: 'Everyday' }])
+    fakeReportsApi({ expenses: food })
+  }
+
+  it("downloads the followed category's total in each month, with its change from the month before", async () => {
+    setUpTrends()
+
+    expect(await exportReport(foodInQ1)).toEqual({
+      name: 'trends-2026-01-01-2026-03-31.csv',
+      hasByteOrderMark: true,
+      text: [
+        'from,to,total,change,changePercent,notConverted,currency',
+        '2026-01-01,2026-01-31,500000.00,,,0,VND',
+        '2026-02-01,2026-02-28,0.00,-500000.00,-100,0,VND',
+        '2026-03-01,2026-03-31,600000.00,600000.00,,0,VND',
+        '',
+      ].join('\r\n'),
+    })
+  })
+
+  it('adds the month of the period before at the same place, and its total, when the report compares', async () => {
+    setUpTrends()
+
+    const lines = (await exportReport(`${foodInQ1}&compare=true`)).text.split('\r\n')
+
+    expect(lines[0]).toBe('from,to,total,change,changePercent,notConverted,previousFrom,previousTo,previousTotal,currency')
+    expect(lines.slice(1, 4).map((line) => line.split(',').slice(6, 9).join(','))).toEqual([
+      '2025-10-01,2025-10-31,0.00',
+      '2025-11-01,2025-11-30,0.00',
+      '2025-12-01,2025-12-31,250000.00',
+    ])
+  })
+})
