@@ -8,7 +8,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, formatMoney, Money, type Currency } from '@/shared/money'
 import { incomeVsExpensesQuery, type IncomeAndExpenses, type MonthIncomeAndExpenses } from '../api/incomeVsExpenses'
-import { ExportCsv } from '../frame/ExportCsv'
+import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { monthName } from '../frame/monthName'
@@ -55,18 +55,19 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
   ]
   const previousTitle = previous && t('reports.previousPeriod', { from: formatDate(previous.from, locale), to: formatDate(previous.to, locale) })
 
+  const csv: ReportCsv = {
+    name: 'income-vs-expenses',
+    columns: ['row', 'from', 'to', 'income', 'expenses', 'net', 'savingsRate', 'notConverted', 'currency'],
+    rows: exported,
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-2">
         <Summary title={t('reports.income.wholePeriod')} flow={total} currency={currency} />
         {previous && <Summary title={previousTitle!} flow={previous.total} currency={currency} />}
       </div>
-      <ExportCsv
-        name="income-vs-expenses"
-        filters={filters}
-        columns={['row', 'from', 'to', 'income', 'expenses', 'net', 'savingsRate', 'notConverted', 'currency']}
-        rows={exported}
-      />
+      <ExportCsv csv={csv} filters={filters} />
 
       {filters.view === 'chart' ? (
         <MonthsChart months={months} previousMonths={previous?.months} currency={currency} />

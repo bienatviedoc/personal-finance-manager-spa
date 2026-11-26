@@ -8,7 +8,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money } from '@/shared/money'
 import { netWorthQuery, type NetWorth } from '../api/netWorth'
-import { ExportCsv } from '../frame/ExportCsv'
+import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
@@ -40,6 +40,12 @@ function NetWorthView({ netWorth, filters }: { netWorth: NetWorth; filters: Repo
   const { currency, items } = netWorth
   const last = items.at(-1)
 
+  const csv: ReportCsv = {
+    name: 'net-worth',
+    columns: ['date', 'assets', 'liabilities', 'netWorth', 'notConverted', 'currency'],
+    rows: items.map((item) => [item.date, item.assets, item.liabilities, item.netWorth, item.notConverted, currency]),
+  }
+
   return (
     <>
       {last && (
@@ -53,12 +59,7 @@ function NetWorthView({ netWorth, filters }: { netWorth: NetWorth; filters: Repo
           </dd>
         </dl>
       )}
-      <ExportCsv
-        name="net-worth"
-        filters={filters}
-        columns={['date', 'assets', 'liabilities', 'netWorth', 'notConverted', 'currency']}
-        rows={items.map((item) => [item.date, item.assets, item.liabilities, item.netWorth, item.notConverted, currency])}
-      />
+      <ExportCsv csv={csv} filters={filters} />
 
       {filters.view === 'chart' ? (
         <StackedAreaChart

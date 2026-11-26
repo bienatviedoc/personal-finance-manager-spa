@@ -15,7 +15,7 @@ import { typingSettles, useDebounced } from '@/shared/lib/useDebounced'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { trendQuery, type PeriodChange, type Trend, type TrendType } from '../api/trends'
-import { ExportCsv } from '../frame/ExportCsv'
+import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { formatChangePercent } from '../frame/formatChangePercent'
 import { monthName } from '../frame/monthName'
 import { NotConverted } from '../frame/NotConverted'
@@ -136,6 +136,24 @@ function TrendView({ trend, filters }: { trend: Trend; filters: ReportFilters })
   const name = trend.category && trend.payee ? t('reports.trends.categoryAndPayee', { category: trend.category.name, payee: trend.payee }) : (trend.category?.name ?? trend.payee ?? '')
   const { currency, previous } = trend
 
+  const csv: ReportCsv = {
+    name: 'trends',
+    columns: ['from', 'to', 'total', 'change', 'changePercent', 'notConverted', ...(previous ? ['previousFrom', 'previousTo', 'previousTotal'] : []), 'currency'],
+    rows: trend.months.map((month, index) => {
+      const before = previous?.months[index]
+      return [
+        month.from,
+        month.to,
+        month.total,
+        month.change?.amount,
+        month.change?.percent,
+        month.notConverted,
+        ...(previous ? [before?.from, before?.to, before?.total] : []),
+        currency,
+      ]
+    }),
+  }
+
   return (
     <>
       <dl className="grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-3">
@@ -166,24 +184,7 @@ function TrendView({ trend, filters }: { trend: Trend; filters: ReportFilters })
           <NotConverted count={Number(trend.notConverted)} />
         </div>
       </dl>
-      <ExportCsv
-        name="trends"
-        filters={filters}
-        columns={['from', 'to', 'total', 'change', 'changePercent', 'notConverted', ...(previous ? ['previousFrom', 'previousTo', 'previousTotal'] : []), 'currency']}
-        rows={trend.months.map((month, index) => {
-          const before = previous?.months[index]
-          return [
-            month.from,
-            month.to,
-            month.total,
-            month.change?.amount,
-            month.change?.percent,
-            month.notConverted,
-            ...(previous ? [before?.from, before?.to, before?.total] : []),
-            currency,
-          ]
-        })}
-      />
+      <ExportCsv csv={csv} filters={filters} />
 
       {filters.view === 'chart' ? (
         <LineChart
