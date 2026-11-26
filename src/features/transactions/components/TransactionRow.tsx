@@ -1,4 +1,4 @@
-import { ArrowRightLeft } from 'lucide-react'
+import { ArrowRightLeft, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Account } from '@/features/accounts'
@@ -90,6 +90,12 @@ export function TransactionRow({ transaction, account, category, categories, onE
               ))}
             </ul>
           )}
+          {transaction.isReconciled && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Lock aria-hidden className="size-3" />
+              {t('transactions.reconciled')}
+            </span>
+          )}
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
           {transaction.tags.length > 0 && (
             <ul aria-label={t('transactions.tags.of', { name: title })} className="flex flex-wrap gap-1 pt-1">
@@ -112,9 +118,12 @@ export function TransactionRow({ transaction, account, category, categories, onE
             <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={() => onEdit(saved)}>
               {t('transactions.edit')}
             </Button>
-            <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
-              {t('transactions.delete')}
-            </Button>
+            {/* A reconciled transaction cannot be deleted until its reconciliation is reopened. */}
+            {!transaction.isReconciled && (
+              <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
+                {t('transactions.delete')}
+              </Button>
+            )}
           </>
         )}
       </div>

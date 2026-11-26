@@ -135,12 +135,13 @@ export function useCreateTransaction() {
  * Edits the transaction from the row version it was read at, sent as `If-Match`; the list shows the change at
  * once. If the transaction has changed since (a 412) nothing is saved and the outcome is stale.
  */
-export function useEditTransaction({ id, rowVersion, recurringRuleId }: Pick<Transaction, 'id' | 'rowVersion' | 'recurringRuleId'>) {
+export function useEditTransaction({ id, rowVersion, recurringRuleId, isReconciled }: Pick<Transaction, 'id' | 'rowVersion' | 'recurringRuleId' | 'isReconciled'>) {
   return useSaveTransaction(
     async ({ fields }: TransactionDraft) =>
       api.PUT('/api/v1/transactions/{id}', { params: { path: { id }, header: { 'If-Match': ifMatch(rowVersion) } }, body: fields }),
     // An edit leaves the transaction linked to the recurring rule that posted it.
-    () => ({ id, rowVersion, recurringRuleId }),
+    // Nor does it change whether it is reconciled.
+    () => ({ id, rowVersion, recurringRuleId, isReconciled }),
   )
 }
 
@@ -169,7 +170,7 @@ type LoadedPages = InfiniteData<TransactionPage, string | undefined>
 function useSaveTransaction<Draft extends TransactionDraft>(
   save: (draft: Draft) => Promise<VersionedSaveResponse<Transaction>>,
   /** What the transaction is known by while it is shown ahead of the API's answer. */
-  identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion' | 'recurringRuleId'> | Pick<PendingTransaction, 'pendingKey'>,
+  identify: (draft: Draft) => Pick<Transaction, 'id' | 'rowVersion' | 'recurringRuleId' | 'isReconciled'> | Pick<PendingTransaction, 'pendingKey'>,
 ) {
   const queryClient = useQueryClient()
   const list = { queryKey: transactionsQuery().queryKey, exact: true }
@@ -185,8 +186,9 @@ function useSaveTransaction<Draft extends TransactionDraft>(
         { categoryId: fields.categoryId ?? '', amount: fields.amount, note: null },
       ]
       const shown: ListedTransaction = {
-        // What a user records is posted by no recurring rule.
+        // What a user records is posted by no recurring rule, and is in no reconciliation.
         recurringRuleId: null,
+        isReconciled: false,
         ...identify(draft),
         ...fields,
         // Income or an expense, never a leg of a transfer.
