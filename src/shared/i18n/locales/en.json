@@ -826,6 +826,8 @@
       "language": "Language",
       "budgetWarning": "Budget warning threshold (%)",
       "budgetWarningHint": "A budget’s state becomes a warning once this share of it is spent.",
+      "emailBudgetNotifications": "Email me budget notifications",
+      "emailBudgetNotificationsHint": "When a category’s spending reaches its warning threshold or goes over budget. They are always shown in the app.",
       "amountExample": "Amounts will look like this:",
       "save": "Save",
       "saved": "Your settings are saved.",

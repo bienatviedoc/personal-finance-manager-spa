@@ -826,6 +826,8 @@
       "language": "Ngôn ngữ",
       "budgetWarning": "Ngưỡng cảnh báo ngân sách (%)",
       "budgetWarningHint": "Ngân sách chuyển sang trạng thái cảnh báo khi đã chi đến tỷ lệ này.",
+      "emailBudgetNotifications": "Gửi email thông báo ngân sách cho tôi",
+      "emailBudgetNotificationsHint": "Khi chi tiêu của một danh mục chạm ngưỡng cảnh báo hoặc vượt ngân sách. Thông báo luôn hiện trong ứng dụng.",
       "amountExample": "Số tiền sẽ hiển thị như sau:",
       "save": "Lưu",
       "saved": "Đã lưu cài đặt của bạn.",

@@ -53,7 +53,8 @@ export function refreshProfile(queryClient: QueryClient) {
 
 /**
  * The signed-in user's settings, for screens inside the shell (whose loader has already loaded the user):
- * their base currency and whether it is locked, time zone, locale and budget warning threshold.
+ * their base currency and whether it is locked, time zone, locale, budget warning threshold and whether budget
+ * notifications are emailed.
  */
 export function useUserSettings() {
   const { data: user } = useQuery(signedInUserQuery)
@@ -64,6 +65,7 @@ export function useUserSettings() {
     timeZone: user.timeZone,
     locale: user.locale,
     budgetWarningPercent: Number(user.budgetWarningPercent),
+    emailBudgetNotifications: user.emailBudgetNotifications,
   }
 }
 
