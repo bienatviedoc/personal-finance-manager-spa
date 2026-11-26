@@ -58,7 +58,7 @@ export const isTransferLeg = (transaction: ListedTransaction): transaction is Tr
 export const canBePicked = (transaction: ListedTransaction): transaction is Transaction =>
   !isPending(transaction) && !isTransferLeg(transaction) && !transaction.isRefund && (transaction.type === 'income' || transaction.type === 'expense')
 /** Whether the transaction takes its amount off its account's balance: its type gives the sign, except that a refund is an expense coming back. */
-export const takesFromBalance = (transaction: ListedTransaction) =>
+export const takesFromBalance = (transaction: Pick<ListedTransaction, 'type' | 'isRefund'>) =>
   (transaction.type === 'expense' && !transaction.isRefund) || transaction.type === 'transferOut'
 
 type ListQuery = NonNullable<paths['/api/v1/transactions']['get']['parameters']['query']>

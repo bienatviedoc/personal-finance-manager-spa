@@ -98,6 +98,9 @@ export function TransactionsPage() {
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">{t('screens.transactions')}</h1>
         <p className="text-muted-foreground">{t('transactions.intro')}</p>
+        <Link className="text-sm underline" to="/transactions/deleted">
+          {t('transactions.recentlyDeleted.title')}
+        </Link>
       </div>
 
       {accounts.data && !canRecord ? (
