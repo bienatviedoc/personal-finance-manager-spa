@@ -12,7 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isPending, isSplit, isTransferLeg, takesFromBalance, useDeleteTransaction, type ListedTransaction, type Transaction } from '../api/transactions'
-import { useDeleteTransfer } from '../api/transfers'
+import { TransferReconciled, useDeleteTransfer } from '../api/transfers'
 import type { VirtualRow } from './VirtualRows'
 
 type RowProps = {
@@ -50,9 +50,12 @@ export function TransactionRow({ transaction, account, category, categories, onE
   const split = isSplit(transaction)
   // A transaction is known by who was paid; without a payee, by what it was for. A split is for several things.
   const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
-  // What deleting it says: a leg speaks of its transfer.
+  // What deleting it says: a leg speaks of its transfer, which is locked when its other leg is reconciled.
   const deleting = leg
-    ? { explained: t('transfers.deleteExplained'), failed: t('transfers.errors.notDeleted') }
+    ? {
+        explained: t('transfers.deleteExplained'),
+        failed: removeTransfer.error instanceof TransferReconciled ? t('transfers.errors.deleteReconciled') : t('transfers.errors.notDeleted'),
+      }
     : { explained: t('transactions.deleteExplained', { name: title }), failed: t('transactions.errors.notDeleted') }
 
   return (

@@ -402,6 +402,7 @@
       "notLoaded": "The transfer could not be loaded. Try again.",
       "notSaved": "The transfer was not saved.",
       "notDeleted": "The transfer was not deleted.",
+      "deleteReconciled": "This transfer is reconciled, so it cannot be deleted until its reconciliation is reopened.",
       "markRefused": "These two could not be marked as a transfer: one of them changed somewhere else. Check them and try again.",
       "notMarked": "The two were not marked as a transfer.",
       "categoryArchived": "Choose one of your categories that is not archived.",

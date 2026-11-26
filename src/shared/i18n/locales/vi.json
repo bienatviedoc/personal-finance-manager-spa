@@ -402,6 +402,7 @@
       "notLoaded": "Chưa tải được chuyển khoản. Hãy thử lại.",
       "notSaved": "Chưa lưu được chuyển khoản.",
       "notDeleted": "Chưa xóa được chuyển khoản.",
+      "deleteReconciled": "Khoản chuyển tiền này đã được đối soát, nên không thể xóa cho đến khi lần đối soát được mở lại.",
       "markRefused": "Không thể đánh dấu hai giao dịch này là chuyển khoản: một trong hai đã được thay đổi ở nơi khác. Hãy kiểm tra và thử lại.",
       "notMarked": "Chưa đánh dấu được hai giao dịch là chuyển khoản.",
       "categoryArchived": "Chọn một danh mục của bạn chưa bị lưu trữ.",

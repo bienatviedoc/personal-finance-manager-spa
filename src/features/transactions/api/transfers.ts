@@ -14,6 +14,8 @@ export type TransferFields = components['schemas']['TransferRequest']
 const transferFields = ['fromAccountId', 'toAccountId', 'amount', 'toAmount', 'date', 'note'] as const
 export type TransferField = (typeof transferFields)[number]
 
+const transactionReconciled = 'urn:pfm:problem:transaction-reconciled'
+
 export type TransferSaveOutcome = VersionedSaveOutcome<'transfer', Transfer, TransferField>
 
 /**
@@ -127,11 +129,16 @@ export function useUnmarkTransfer(id: string) {
 }
 
 /** Deletes the transfer: both legs leave the list, and both accounts' balances follow. */
+/** A transfer either of whose legs is reconciled is locked: it is not deleted until its reconciliation is reopened. */
+export class TransferReconciled extends Error {}
+
+/** Deletes the transfer, both legs together. A locked one fails with `TransferReconciled`. */
 export function useDeleteTransfer() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const { response } = await api.DELETE('/api/v1/transfers/{id}', { params: { path: { id } } })
+      const { error, response } = await api.DELETE('/api/v1/transfers/{id}', { params: { path: { id } } })
+      if (response.status === 409 && error?.type === transactionReconciled) throw new TransferReconciled(`The transfer ${id} is reconciled`)
       // Not found: deleted already, which is what was asked for.
       if (!response.ok && response.status !== 404) throw new Error(`Deleting a transfer failed: ${response.status}`)
     },

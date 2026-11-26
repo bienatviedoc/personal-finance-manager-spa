@@ -169,4 +169,18 @@ describe('a reconciled transaction', () => {
     expect(await drawer.findByText('This transfer is reconciled: its accounts, amounts and date are locked until its reconciliation is reopened.')).toBeInTheDocument()
     expect(drawer.queryByRole('button', { name: 'Unmark transfer' })).not.toBeInTheDocument()
   })
+
+  it('says a transfer is locked when a leg is deleted whose other leg is reconciled', async () => {
+    const { transactionsApi } = fakeApis([
+      { type: 'transferOut', accountId: everyday, amount: '1000.00', date: '2026-10-20', transferId: 't-1', isReconciled: true },
+      { type: 'transferIn', accountId: savings, amount: '1000.00', date: '2026-10-20', transferId: 't-1' },
+    ])
+    const { user } = renderApp('/transactions')
+    await user.click(await screen.findByRole('button', { name: 'Delete Transfer in' }))
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('This transfer is reconciled, so it cannot be deleted until its reconciliation is reopened.')).toBeInTheDocument()
+    expect(screen.queryByText('The transfer was not deleted.')).not.toBeInTheDocument()
+    expect(transactionsApi.transactions).toHaveLength(2)
+  })
 })
