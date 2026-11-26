@@ -119,3 +119,54 @@ describe('exporting the net worth report', () => {
     })
   })
 })
+
+describe('exporting the income vs expenses report', () => {
+  const income: FakeIncome[] = [
+    { id: 't-january-salary', date: '2026-01-05', categoryId: 'c-salary', accountId: 'a-everyday', amount: '20000000' },
+    { id: 't-march-salary', date: '2026-03-31', categoryId: 'c-salary', accountId: 'a-everyday', amount: '10000000' },
+    { id: 't-december-salary', date: '2025-12-05', categoryId: 'c-salary', accountId: 'a-everyday', amount: '8000000' },
+  ]
+  const spent: FakeExpense[] = [
+    { id: 't-car', date: '2026-01-20', categoryId: 'c-transport', accountId: 'a-everyday', spent: '15000000' },
+    { id: 't-market', date: '2026-03-01', categoryId: 'c-groceries', accountId: 'a-everyday', spent: '12500000' },
+    { id: 't-november', date: '2025-11-01', categoryId: 'c-groceries', accountId: 'a-everyday', spent: '6000000' },
+  ]
+  const firstQuarter = '/reports/income-vs-expenses?period=custom&from=2026-01-01&to=2026-03-31'
+
+  function setUpIncome() {
+    fakeCategoriesApi()
+    fakeAccountsApi([{ id: 'a-everyday', name: 'Everyday' }])
+    fakeReportsApi({ income, expenses: spent })
+  }
+
+  it('downloads each month and the whole period, each with its dates, and no savings rate where there was no income', async () => {
+    setUpIncome()
+
+    expect(await exportReport(firstQuarter)).toEqual({
+      name: 'income-vs-expenses-2026-01-01-2026-03-31.csv',
+      hasByteOrderMark: true,
+      text: [
+        'row,from,to,income,expenses,net,savingsRate,notConverted,currency',
+        'month,2026-01-01,2026-01-31,20000000.00,15000000.00,5000000.00,25,0,VND',
+        'month,2026-02-01,2026-02-28,0.00,0.00,0.00,,0,VND',
+        'month,2026-03-01,2026-03-31,10000000.00,12500000.00,-2500000.00,-25,0,VND',
+        'total,2026-01-01,2026-03-31,30000000.00,27500000.00,2500000.00,8.3,0,VND',
+        '',
+      ].join('\r\n'),
+    })
+  })
+
+  it('adds the months and the whole of the period before when the report compares', async () => {
+    setUpIncome()
+
+    const { text } = await exportReport(`${firstQuarter}&compare=true`)
+
+    expect(text.split('\r\n').slice(5)).toEqual([
+      'previousMonth,2025-10-01,2025-10-31,0.00,0.00,0.00,,0,VND',
+      'previousMonth,2025-11-01,2025-11-30,0.00,6000000.00,-6000000.00,,0,VND',
+      'previousMonth,2025-12-01,2025-12-31,8000000.00,0.00,8000000.00,100,0,VND',
+      'previousTotal,2025-10-01,2025-12-31,8000000.00,6000000.00,2000000.00,25,0,VND',
+      '',
+    ])
+  })
+})
