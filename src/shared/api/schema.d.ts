@@ -436,6 +436,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The user's tags by name, a page at a time: what the transaction form suggests as a tag is typed. A tag is created the first time a transaction is given it. */
+        get: operations["ListTags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transfers": {
         parameters: {
             query?: never;
@@ -1063,6 +1080,15 @@ export interface components {
             notConverted: number | string;
             items: components["schemas"]["SpendingTransactionResponse"][];
         };
+        TagListResponse: {
+            items: components["schemas"]["TagResponse"][];
+            nextCursor: null | string;
+        };
+        TagResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
         TransactionLineRequest: {
             /** Format: uuid */
             categoryId: string;
@@ -1093,6 +1119,7 @@ export interface components {
             /** @default false */
             isRefund: boolean;
             lines?: null | components["schemas"]["TransactionLineRequest"][];
+            tags?: null | string[];
         };
         TransactionResponse: {
             /** Format: uuid */
@@ -1115,6 +1142,7 @@ export interface components {
             lines: components["schemas"]["TransactionLineResponse"][];
             /** Format: uuid */
             recurringRuleId: null | string;
+            tags: string[];
         };
         /** @enum {unknown} */
         TransactionType: "income" | "expense" | "transferOut" | "transferIn";
@@ -2584,6 +2612,7 @@ export interface operations {
                 min?: string;
                 max?: string;
                 q?: string;
+                tag?: string;
                 sort?: string;
                 order?: string;
                 limit?: number | string;
@@ -2869,6 +2898,48 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ListTags: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
