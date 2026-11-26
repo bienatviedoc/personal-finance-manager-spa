@@ -53,9 +53,9 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
         <Figure label={t('reports.budgetVsActual.budgeted')} amount={totals.budgeted} currency={currency} />
         <Figure label={t('reports.budgetVsActual.spent')} amount={totals.spent} currency={currency} />
         <Figure label={t('reports.budgetVsActual.remaining')} amount={totals.remaining} currency={currency} />
-        <div className="sm:col-span-3">
+        <dd className="sm:col-span-3">
           <NotConverted count={Number(totals.notConverted)} />
-        </div>
+        </dd>
       </dl>
       {report.items.length === 0 ? (
         <p className="text-muted-foreground">{t('reports.budgetVsActual.noBudgets')}</p>

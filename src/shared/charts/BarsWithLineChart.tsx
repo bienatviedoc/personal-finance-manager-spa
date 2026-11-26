@@ -27,7 +27,7 @@ type Props = {
   /** Each drawn as a line over the bars. */
   lines: ChartLine[]
   /** Writes a value in the tooltip, in full. */
-  formatValue: (value: number) => string
+  formatTooltip: (value: number) => string
   /** Writes a value on the side axis, short (`formatAxisAmount`). */
   formatAxis: (value: number) => string
   /** In pixels. */
@@ -38,7 +38,7 @@ type Props = {
  * Grouped bars with a line over them (spec section 12, Charts): the one place the app draws one, over the charting
  * library, so the library can be swapped without touching a feature.
  */
-export function BarsWithLineChart({ label, points, bars, lines, formatValue, formatAxis, height = 300 }: Props) {
+export function BarsWithLineChart({ label, points, bars, lines, formatTooltip, formatAxis, height = 300 }: Props) {
   const data = points.map((point, index) => ({
     point,
     ...Object.fromEntries(bars.map((series) => [series.key, series.values[index] ?? 0])),
@@ -49,10 +49,15 @@ export function BarsWithLineChart({ label, points, bars, lines, formatValue, for
     <figure role="img" aria-label={label} className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height={height} initialDimension={{ width: 600, height }}>
         <ComposedChart data={data} accessibilityLayer={false}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
           <XAxis dataKey="point" />
           <YAxis tickFormatter={formatAxis} width={96} />
-          <Tooltip formatter={(value) => formatValue(Number(value))} />
+          <Tooltip
+            formatter={(value) => formatTooltip(Number(value))}
+            // In the theme's colours, so it reads in dark mode too.
+            contentStyle={{ background: 'var(--color-popover)', borderColor: 'var(--color-border)', color: 'var(--color-popover-foreground)' }}
+            cursor={{ className: 'fill-muted' }}
+          />
           <Legend />
           {bars.map((series) => (
             <Bar key={series.key} dataKey={series.key} name={series.name} fill={series.color} isAnimationActive={false} />

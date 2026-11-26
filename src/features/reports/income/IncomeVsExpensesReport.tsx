@@ -17,8 +17,8 @@ import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
 /** The figures of each month and of a period, in the order they are shown, and how each is drawn in the chart. */
 const figureKeys = ['income', 'expenses', 'net', 'savingsRate'] as const
 const series = {
-  income: { key: 'income', color: 'var(--color-success)' },
-  expenses: { key: 'expenses', color: 'var(--color-destructive)' },
+  income: { key: 'income', color: 'var(--chart-2)' },
+  expenses: { key: 'expenses', color: 'var(--chart-1)' },
   net: { key: 'net', color: 'var(--color-foreground)' },
   previousNet: { key: 'previousNet', color: 'var(--color-muted-foreground)', dashed: true },
 }
@@ -44,7 +44,6 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
         <Summary title={t('reports.income.wholePeriod')} flow={total} currency={currency} />
         {previous && <Summary title={previousTitle!} flow={previous.total} currency={currency} />}
       </div>
-      <NotConverted count={Number(total.notConverted)} />
 
       {filters.view === 'chart' ? (
         <MonthsChart months={months} previousMonths={previous?.months} currency={currency} />
@@ -82,7 +81,7 @@ function Summary({ title, flow, currency }: { title: string; flow: IncomeAndExpe
           </div>
         ))}
       </dl>
-      <NotConverted count={Number(flow.notConverted)} short />
+      <NotConverted count={Number(flow.notConverted)} />
     </section>
   )
 }
@@ -114,7 +113,7 @@ function MonthsChart({ months, previousMonths, currency }: { months: MonthIncome
           ? [{ ...series.previousNet, name: t('reports.income.previousNet'), values: months.map((_, index) => (previousMonths[index] ? Number(previousMonths[index].net) : null)) }]
           : []),
       ]}
-      formatValue={(value) => formatMoney(String(value), currency, locale)}
+      formatTooltip={(value) => formatMoney(String(value), currency, locale)}
       formatAxis={(value) => formatAxisAmount(value, locale)}
     />
   )
