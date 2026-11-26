@@ -13,6 +13,8 @@ type Account = components['schemas']['AccountResponse']
 type MarkRequest = components['schemas']['MarkAsTransferRequest']
 type UnmarkRequest = components['schemas']['UnmarkTransferRequest']
 type DeletedTransaction = components['schemas']['DeletedTransactionResponse']
+type BulkRequest = components['schemas']['BulkEditRequest']
+type RefusedTransaction = components['schemas']['RefusedTransactionResponse']
 
 const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
 
@@ -63,6 +65,12 @@ type Options = {
  * ReconciliationTests): an edit of its amount, date, account, type or refund flag is refused on that field, and
  * deleting it answers 409 `transaction-reconciled`. A transfer either of whose legs is reconciled is locked the
  * same way, and is neither marked from a reconciled transaction nor unmarked.
+ *
+ * A bulk action (see the API's BulkEditTests) acts on the `transactionIds` sent or on every transaction that passes
+ * `filter`, never both, all or none: when any cannot take it, it answers 409 `bulk-action-refused` listing each one
+ * and why, and changes nothing. A category takes only transactions of its kind, and not a split or a leg; a
+ * transaction moves only to an account in its currency, and not while reconciled or a leg; a reconciled one is not
+ * deleted, and deleting a leg deletes its transfer; a transaction takes at most 20 tags.
  *
  * A deleted transaction is recently deleted (see the API's RecentlyDeletedTests) for 30 days, listed the last deleted
  * first, each leg of a transfer on its own; restoring one puts it back in the list and its account's balance, and
@@ -126,6 +134,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     transferRequests: [] as { method: string; body: Partial<TransferRequest> }[],
     /** Every body sent to mark two transactions as a transfer, in the order they arrived. */
     markRequests: [] as Partial<MarkRequest>[],
+    /** Every body sent to `/transactions/bulk`, in the order they arrived. */
+    bulkRequests: [] as Partial<BulkRequest>[],
     /** Every body sent to unmark a transfer, with the transfer's id, in the order they arrived. */
     unmarkRequests: [] as { id: string; body: Partial<UnmarkRequest> }[],
     /**
@@ -397,6 +407,83 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     state.deleted.push({ ...transaction, deletedAt: new Date().toISOString() })
   }
 
+  /** A bulk action: every selected transaction takes it, or none does and each that cannot is named. */
+  function bulk(body: Partial<BulkRequest>) {
+    const invalid = (field: string, message: string) => problem(400, { errors: { [field]: [message] } })
+    const actions = ['setCategory', 'addTag', 'removeTag', 'moveToAccount', 'delete']
+    if (!actions.includes(body.action ?? '')) return invalid('action', `Choose one of: ${actions.join(', ')}.`)
+    const ids = body.transactionIds ? [...new Set(body.transactionIds)] : null
+    if ((ids === null) === !body.filter || (ids !== null && (ids.length === 0 || ids.length > 1000)))
+      return invalid('transactionIds', 'Select 1 to 1000 transactions by their ids, or by a filter.')
+    const refused: RefusedTransaction[] = []
+    const refuse = (transactionId: string, reason: RefusedTransaction['reason']) => refused.push({ transactionId, reason, message: reason })
+    let selected: Transaction[]
+    if (ids) {
+      for (const id of ids.filter((id) => !find(id))) refuse(id, 'notFound')
+      selected = ids.flatMap((id) => find(id) ?? [])
+    } else {
+      const query = new URLSearchParams(Object.entries(body.filter!).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
+      selected = state.transactions.filter(passes(query))
+    }
+    const tag = body.tag?.trim().toLowerCase() ?? ''
+    if ((body.action === 'addTag' || body.action === 'removeTag') && (tag === '' || tag.length > 50)) return invalid('tag', 'Enter a tag of 1 to 50 characters.')
+
+    let act: (transaction: Transaction) => void
+    switch (body.action) {
+      case 'setCategory': {
+        const category = categories.find((candidate) => candidate.id === body.categoryId && !candidate.isArchived)
+        if (!category) return invalid('categoryId', 'Choose one of your categories that is not archived.')
+        for (const transaction of selected) {
+          if (transaction.transferId) refuse(transaction.id, 'transferLeg')
+          else if (category.kind !== transaction.type) refuse(transaction.id, 'categoryKind')
+          else if (transaction.lines.length > 1) refuse(transaction.id, 'split')
+        }
+        act = (transaction) => {
+          transaction.categoryId = category.id
+          transaction.lines = [{ categoryId: category.id, amount: transaction.amount, note: transaction.lines[0]?.note ?? null }]
+        }
+        break
+      }
+      case 'addTag':
+        for (const transaction of selected.filter((transaction) => transaction.tags.length >= 20 && !transaction.tags.includes(tag)))
+          refuse(transaction.id, 'tooManyTags')
+        act = (transaction) => {
+          transaction.tags = [...new Set([...transaction.tags, tag])].toSorted()
+          keepTags(transaction)
+        }
+        break
+      case 'removeTag':
+        act = (transaction) => (transaction.tags = transaction.tags.filter((has) => has !== tag))
+        break
+      case 'moveToAccount': {
+        const account = accounts.find((candidate) => candidate.id === body.accountId && !candidate.isArchived)
+        if (!account) return invalid('accountId', 'Choose one of your accounts that is not archived.')
+        for (const transaction of selected.filter((transaction) => transaction.accountId !== account.id)) {
+          if (transaction.transferId) refuse(transaction.id, 'transferLeg')
+          else if (transaction.currency !== account.currency) refuse(transaction.id, 'otherCurrency')
+          else if (transaction.isReconciled) refuse(transaction.id, 'reconciled')
+        }
+        act = (transaction) => {
+          move(transaction, -1)
+          transaction.accountId = account.id
+          move(transaction, 1)
+        }
+        break
+      }
+      default:
+        for (const transaction of selected) {
+          if (transaction.transferId ? legsOf(transaction.transferId).some((leg) => leg.isReconciled) : transaction.isReconciled) refuse(transaction.id, 'reconciled')
+        }
+        act = (transaction) => (transaction.transferId ? removeTransfer(transaction.transferId) : find(transaction.id) && remove(transaction))
+    }
+    if (refused.length > 0) return problem(409, { type: 'urn:pfm:problem:bulk-action-refused', refused })
+    for (const transaction of selected) {
+      act(transaction)
+      transaction.rowVersion = String(Number(transaction.rowVersion) + 1)
+    }
+    return HttpResponse.json({ count: selected.length })
+  }
+
   const recoveryPeriod = 30 * 24 * 60 * 60 * 1000
   const restorableUntil = (deleted: { deletedAt: string }) => new Date(Date.parse(deleted.deletedAt) + recoveryPeriod)
   const recentlyDeleted = () => state.deleted.filter((deleted) => restorableUntil(deleted).getTime() > Date.now())
@@ -436,6 +523,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
       return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null, total: totalOf(passing, query.get('categoryId')) })
+    }),
+    http.post(apiUrl('/api/v1/transactions/bulk'), async ({ request }) => {
+      const stopped = await refusedOrFailed(request)
+      if (stopped) return stopped
+      const body = (await request.json()) as Partial<BulkRequest>
+      state.bulkRequests.push(body)
+      return bulk(body)
     }),
     // Before the handler for one transaction, which would take "deleted" for an id.
     http.get(apiUrl('/api/v1/transactions/deleted'), ({ request }) => {
