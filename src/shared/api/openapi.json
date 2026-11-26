@@ -134,6 +134,119 @@
         }
       }
     },
+    "/api/v1/export/transactions.csv": {
+      "get": {
+        "tags": [
+          "Export"
+        ],
+        "description": "Every transaction that passes the filters sent, as a CSV file to download: the whole list, however many pages GET /transactions would take, in its order. One line for each transaction under a line of column names (date, type, isRefund, account, category, payee, note, tags, amount, currency): dates are YYYY-MM-DD, amounts plain decimals above zero, as the list answers them, beside their currency's code. The account and category are named; a split names each of its categories, separated by \"; \", and a leg of a transfer none. Tags are separated the same way. UTF-8 with a byte order mark, comma-separated (RFC 4180).",
+        "operationId": "ExportTransactions",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "min",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "max",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": [
@@ -1977,6 +2090,77 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/transactions/bulk": {
+      "post": {
+        "tags": [
+          "Transactions"
+        ],
+        "description": "One action on many transactions at once: setCategory, addTag, removeTag, moveToAccount or delete. Select them by transactionIds, or every one that passes filter, which takes the list's filters; never both, and at most 1000: a filter that more pass answers 422 with the problem type urn:pfm:problem:bulk-selection-too-large and its max, and nothing changes. All of them take the action in one save, or none does: when any cannot, it answers 409 with the problem type urn:pfm:problem:bulk-action-refused, listing each transaction refused and why, and nothing changes. Income takes only an income category and an expense only an expense one; a split keeps its lines and a leg of a transfer has no category; a transaction moves only to an account in its currency, and not while it is reconciled; a reconciled transaction, or a transfer with a reconciled leg, is not deleted. Deleting a leg of a transfer deletes the whole transfer. The balances of the accounts involved follow at once.",
+        "operationId": "BulkEditTransactions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkEditRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkEditResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkActionRefusedProblem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkSelectionTooLargeProblem"
+                }
+              }
+            }
           }
         }
       }
@@ -4288,6 +4472,37 @@
         }
       }
     },
+    "/api/v1/reports/dashboard": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "description": "The state of the user's money on one screen: the balance of every account that is not archived, in the base currency as the accounts list adds it up; this calendar month's income, expenses and net, its budgets against what was spent, and the five top-level categories that spent most, as the income vs expenses, budget vs actual and spending by category reports work them out for this month in the user's time zone; the ten latest transactions, as the transaction list starts; and the occurrences of recurring rules due in the next 30 days, at most ten, earliest first. Takes no filters.",
+        "operationId": "GetDashboard",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/spending-by-category": {
       "get": {
         "tags": [
@@ -5456,6 +5671,156 @@
           }
         }
       },
+      "BulkActionRefusedProblem": {
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "refused"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "refused": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RefusedTransactionResponse"
+            }
+          }
+        }
+      },
+      "BulkEditRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "transactionIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "filter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TransactionFilterRequest"
+              }
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "BulkEditResponse": {
+        "required": [
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "BulkRefusal": {
+        "enum": [
+          "notFound",
+          "transferLeg",
+          "split",
+          "categoryKind",
+          "reconciled",
+          "otherCurrency",
+          "tooManyTags"
+        ]
+      },
+      "BulkSelectionTooLargeProblem": {
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "max": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "CategoryChangeRequest": {
         "required": [
           "name",
@@ -5647,6 +6012,386 @@
             "type": "string"
           }
         }
+      },
+      "DashboardAccountResponse": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "DashboardBalanceResponse": {
+        "required": [
+          "balance",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardNotConvertedResponse"
+            }
+          }
+        }
+      },
+      "DashboardBudgetResponse": {
+        "required": [
+          "category",
+          "budgeted",
+          "spent",
+          "remaining",
+          "percentSpent",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ReportCategoryResponse"
+          },
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetVsActualState"
+          }
+        }
+      },
+      "DashboardBudgetsResponse": {
+        "required": [
+          "budgeted",
+          "spent",
+          "remaining",
+          "percentSpent",
+          "onTrack",
+          "warning",
+          "over",
+          "notConverted",
+          "needingAttention"
+        ],
+        "type": "object",
+        "properties": {
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "onTrack": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "warning": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "over": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "needingAttention": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardBudgetResponse"
+            }
+          }
+        }
+      },
+      "DashboardCategoryResponse": {
+        "required": [
+          "category",
+          "spent",
+          "share",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/ReportCategoryResponse"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "share": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DashboardNotConvertedResponse": {
+        "required": [
+          "currency",
+          "balance"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "balance": {
+            "type": "string"
+          }
+        }
+      },
+      "DashboardOccurrenceResponse": {
+        "required": [
+          "recurringRuleId",
+          "dueDate",
+          "type",
+          "account",
+          "amount",
+          "currency",
+          "category",
+          "payee",
+          "isReminder"
+        ],
+        "type": "object",
+        "properties": {
+          "recurringRuleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "type": {
+            "$ref": "#/components/schemas/DashboardTransactionType"
+          },
+          "account": {
+            "$ref": "#/components/schemas/DashboardAccountResponse"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ReportCategoryResponse"
+          },
+          "payee": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isReminder": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DashboardResponse": {
+        "required": [
+          "from",
+          "to",
+          "currency",
+          "hasAccounts",
+          "balance",
+          "thisMonth",
+          "budgets",
+          "topCategories",
+          "recentTransactions",
+          "upcoming"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "hasAccounts": {
+            "type": "boolean"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/DashboardBalanceResponse"
+          },
+          "thisMonth": {
+            "$ref": "#/components/schemas/IncomeAndExpensesResponse"
+          },
+          "budgets": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DashboardBudgetsResponse"
+              }
+            ]
+          },
+          "topCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardCategoryResponse"
+            }
+          },
+          "recentTransactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardTransactionResponse"
+            }
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardOccurrenceResponse"
+            }
+          }
+        }
+      },
+      "DashboardTransactionResponse": {
+        "required": [
+          "id",
+          "date",
+          "type",
+          "account",
+          "amount",
+          "currency",
+          "category",
+          "payee",
+          "isRefund",
+          "isSplit",
+          "transferId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "type": {
+            "$ref": "#/components/schemas/DashboardTransactionType"
+          },
+          "account": {
+            "$ref": "#/components/schemas/DashboardAccountResponse"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "category": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ReportCategoryResponse"
+              }
+            ]
+          },
+          "payee": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isRefund": {
+            "type": "boolean"
+          },
+          "isSplit": {
+            "type": "boolean"
+          },
+          "transferId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "DashboardTransactionType": {
+        "enum": [
+          "income",
+          "expense",
+          "transferOut",
+          "transferIn"
+        ]
       },
       "DeletedTransactionListResponse": {
         "required": [
@@ -6899,6 +7644,37 @@
           }
         }
       },
+      "RefusedTransactionResponse": {
+        "required": [
+          "transactionId",
+          "reason",
+          "message",
+          "transaction"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/BulkRefusal"
+          },
+          "message": {
+            "type": "string"
+          },
+          "transaction": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TransactionResponse"
+              }
+            ]
+          }
+        }
+      },
       "RegisterRequest": {
         "required": [
           "email",
@@ -7333,6 +8109,65 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "TransactionFilterRequest": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "min": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "max": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "q": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

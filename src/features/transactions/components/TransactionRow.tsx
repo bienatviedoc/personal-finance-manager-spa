@@ -8,11 +8,12 @@ import { FailureToast } from '@/shared/components/FailureToast'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { detailSeparator, joinDetails } from '@/shared/lib/details'
-import { cn } from '@/shared/lib/utils'
+import { cn, focusRing } from '@/shared/lib/utils'
 import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isPending, isSplit, isTransferLeg, takesFromBalance, useDeleteTransaction, type ListedTransaction, type Transaction } from '../api/transactions'
 import { TransferReconciled, useDeleteTransfer } from '../api/transfers'
+import { transactionTitle } from './transactionTitle'
 import type { VirtualRow } from './VirtualRows'
 
 type RowProps = {
@@ -23,8 +24,8 @@ type RowProps = {
   /** The user's category tree, to name the category of each line of a split. */
   categories: Category[]
   onEdit: (transaction: Transaction) => void
-  /** Whether it is picked to mark as a transfer, and how to pick it or not; none when it cannot be. */
-  pick?: { picked: boolean; onToggle: () => void }
+  /** Whether it is selected, for a bulk action or to mark as a transfer, and how to select it or not; none when it cannot be. */
+  select?: { selected: boolean; onToggle: () => void }
   /** Where the list has the row, and how it measures it. */
   row: VirtualRow
 }
@@ -32,9 +33,9 @@ type RowProps = {
 /**
  * One transaction in the list: what it was for, on which account and when, its amount with its sign, a split's
  * lines, and editing and deleting it. A leg of a transfer is marked as one, and edits and deletes the transfer.
- * Income or an expense can be picked, to mark it and another as a transfer.
+ * Any transaction the API has can be selected, for a bulk action or to mark it and another as a transfer.
  */
-export function TransactionRow({ transaction, account, category, categories, onEdit, pick, row }: RowProps) {
+export function TransactionRow({ transaction, account, category, categories, onEdit, select, row }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const removeTransaction = useDeleteTransaction()
@@ -48,8 +49,7 @@ export function TransactionRow({ transaction, account, category, categories, onE
   const id = leg?.transferId ?? saved?.id
   const pending = saved === undefined
   const split = isSplit(transaction)
-  // A transaction is known by who was paid; without a payee, by what it was for. A split is for several things.
-  const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
+  const title = transactionTitle(transaction, category, t)
   // What deleting it says: a leg speaks of its transfer, which is locked when its other leg is reconciled.
   const deleting = leg
     ? {
@@ -61,8 +61,14 @@ export function TransactionRow({ transaction, account, category, categories, onE
   return (
     <li {...row} className="space-y-2 border-b p-3 last:border-b-0" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
-        {pick && (
-          <input type="checkbox" className="size-4" aria-label={t('transfers.pick', { name: title })} checked={pick.picked} onChange={pick.onToggle} />
+        {select && (
+          <input
+            type="checkbox"
+            className={cn('size-4', focusRing)}
+            aria-label={t('transactions.bulk.select', { name: title })}
+            checked={select.selected}
+            onChange={select.onToggle}
+          />
         )}
         {category && !split && <CategoryBadge icon={category.icon} color={category.color} />}
         {leg && (

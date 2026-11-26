@@ -353,7 +353,54 @@
       "reconciled": "Giao dịch này đã được đối soát, nên không thể thay đổi mục này."
     },
     "reconciled": "Đã đối soát",
-    "reconciledLocked": "Giao dịch này đã được đối soát: số tiền, ngày, tài khoản và loại bị khóa cho đến khi lần đối soát được mở lại."
+    "reconciledLocked": "Giao dịch này đã được đối soát: số tiền, ngày, tài khoản và loại bị khóa cho đến khi lần đối soát được mở lại.",
+    "bulk": {
+      "title": "Giao dịch đã chọn",
+      "select": "Chọn {{name}}",
+      "selectAll_other": "Chọn tất cả {{total}} giao dịch",
+      "done_other": "Đã thay đổi {{total}} giao dịch.",
+      "selected": "Đã chọn {{count}}",
+      "clear": "Bỏ chọn",
+      "setCategory": "Đặt danh mục",
+      "tag": "Thẻ",
+      "addTag": "Thêm thẻ",
+      "removeTag": "Gỡ thẻ",
+      "chooseAccount": "Chọn tài khoản",
+      "move": "Chuyển",
+      "delete": "Xóa",
+      "deleteExplained_other": "Xóa {{count}} giao dịch? Bạn có thể khôi phục chúng trong Đã xóa gần đây trong 30 ngày.",
+      "deleteConfirm": "Xóa",
+      "refused": "Không có gì thay đổi: các giao dịch này không thể áp dụng thao tác đó.",
+      "notChanged": "Không thay đổi",
+      "refusedRow": "{{name}}: {{reason}}",
+      "unknown": "Một giao dịch",
+      "refusals": {
+        "notFound": "giao dịch không còn tồn tại.",
+        "transferLeg": "một vế của chuyển khoản không có danh mục và chỉ thay đổi cùng chuyển khoản.",
+        "split": "giao dịch chia nhỏ giữ nguyên các dòng; hãy sửa giao dịch để đổi danh mục của chúng.",
+        "categoryKind": "thu nhập dùng danh mục thu nhập, chi tiêu dùng danh mục chi tiêu.",
+        "reconciled": "giao dịch đã đối soát nên không thể chuyển hoặc xóa cho đến khi mở lại đối soát.",
+        "otherCurrency": "giao dịch chỉ chuyển được sang tài khoản cùng loại tiền.",
+        "tooManyTags": "giao dịch đã có 20 thẻ."
+      },
+      "failed": "Các giao dịch đã chọn chưa được thay đổi.",
+      "selectAll_one": "Chọn {{total}} giao dịch",
+      "done_one": "Đã thay đổi {{total}} giao dịch.",
+      "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày.",
+      "tooManyToSelect_other": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
+      "tooMany": "Hiện có hơn {{max}} giao dịch khớp với bộ lọc này. Hãy thu hẹp bộ lọc hoặc chọn ít hơn, rồi thử lại.",
+      "tooManyToSelect_one": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
+      "refusedTransaction": "{{title}}, {{date}}, {{amount}}",
+      "fieldRefused": {
+        "categoryId": "Không thể chọn danh mục đó nữa. Hãy chọn danh mục khác.",
+        "accountId": "Không thể chọn tài khoản đó nữa. Hãy chọn tài khoản khác.",
+        "tag": "Nhập một thẻ từ 1 đến 50 ký tự."
+      }
+    },
+    "export": {
+      "start": "Xuất CSV",
+      "failed": "Không tải được tệp CSV. Hãy thử lại sau ít phút."
+    }
   },
   "transfers": {
     "add": "Chuyển giữa các tài khoản",
@@ -374,8 +421,6 @@
     "markAs": "Đánh dấu là chuyển khoản",
     "markTitle": "Đã chọn để đánh dấu là chuyển khoản",
     "markExplained": "Chọn một khoản chi ở một tài khoản và khoản thu tương ứng ở tài khoản khác, như hai dòng sao kê nhập vào khi thanh toán thẻ. Sau khi đánh dấu, cả hai không còn được tính là chi tiêu hay thu nhập.",
-    "pick": "Chọn {{name}}",
-    "clearPicked": "Bỏ chọn",
     "whyNot": {
       "types": "Chọn một khoản chi và một khoản thu.",
       "sameAccount": "Chuyển khoản phải giữa hai tài khoản khác nhau.",
@@ -656,6 +701,7 @@
       "refund": "Hoàn tiền",
       "split": "Giao dịch chia nhiều danh mục"
     },
+    "export": "Xuất CSV",
     "trends": {
       "title": "Xu hướng",
       "chooseWhat": "Chọn một danh mục hoặc nhập một bên nhận để theo dõi theo từng tháng.",
@@ -1027,6 +1073,56 @@
       "notCompleted": "Chưa hoàn tất được đối soát.",
       "notCancelled": "Chưa hủy được đối soát.",
       "notReopened": "Chưa mở lại được đối soát."
+    }
+  },
+  "dashboard": {
+    "loading": "Đang tải bảng tổng quan",
+    "errors": {
+      "notLoaded": "Không tải được bảng tổng quan."
+    },
+    "start": {
+      "title": "Bắt đầu bằng cách thêm một tài khoản",
+      "body": "Thêm các tài khoản đang giữ tiền của bạn, như tài khoản ngân hàng, thẻ hoặc tiền mặt. Số dư, chi tiêu và ngân sách sẽ hiện ở đây.",
+      "action": "Thêm tài khoản"
+    },
+    "balance": {
+      "title": "Tổng số dư",
+      "link": "Xem tài khoản",
+      "notConverted": "Chưa tính: {{amounts}}, vì chưa có tỷ giá."
+    },
+    "thisMonth": {
+      "title": "Tháng này",
+      "income": "Thu nhập",
+      "expenses": "Chi tiêu",
+      "net": "Chênh lệch",
+      "savingsRate": "Tỷ lệ tiết kiệm {{rate}}",
+      "link": "Xem thu nhập và chi tiêu"
+    },
+    "budgets": {
+      "title": "Ngân sách tháng này",
+      "none": "Chưa có ngân sách nào trong tháng này.",
+      "set": "Đặt ngân sách",
+      "link": "Xem ngân sách",
+      "spentOf": "Đã chi {{spent}} trên {{budgeted}}",
+      "progress": "Đã chi {{percent}}% ngân sách",
+      "counts": "{{onTrack}} đúng kế hoạch, {{warning}} cảnh báo, {{over}} vượt ngân sách",
+      "needingAttention": "Ngân sách cần chú ý"
+    },
+    "topCategories": {
+      "title": "Danh mục chi nhiều nhất",
+      "empty": "Tháng này chưa chi gì.",
+      "link": "Xem chi tiêu theo danh mục"
+    },
+    "recent": {
+      "title": "Giao dịch gần đây",
+      "empty": "Chưa có giao dịch nào.",
+      "refund": "Hoàn tiền",
+      "link": "Xem tất cả giao dịch"
+    },
+    "upcoming": {
+      "title": "Sắp tới",
+      "empty": "Không có gì đến hạn trong 30 ngày tới.",
+      "link": "Xem giao dịch định kỳ"
     }
   }
 }

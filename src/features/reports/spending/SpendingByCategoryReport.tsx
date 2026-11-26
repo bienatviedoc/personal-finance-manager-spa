@@ -12,6 +12,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { spendingByCategoryQuery, spendingTransactionsQuery, type CategorySpending, type ReportCategory, type SpendingByCategory } from '../api/spendingByCategory'
+import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { Share } from '../frame/Share'
@@ -100,11 +101,26 @@ type BreakdownProps = { report: SpendingByCategory; filters: ReportFilters; onCh
 function Breakdown({ report, filters, onChoose }: BreakdownProps) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const labelOf = (item: CategorySpending) =>
-    report.parent && item.category.id === report.parent.id ? t('reports.spending.directly', { name: item.category.name }) : item.category.name
+  // What the category drilled into spent directly, in none of its subcategories, is a row of its own.
+  const isDirectly = (item: CategorySpending) => report.parent?.id === item.category.id
+  const labelOf = (item: CategorySpending) => (isDirectly(item) ? t('reports.spending.directly', { name: item.category.name }) : item.category.name)
   const colors = distinctColors(report.items.map((item) => item.category.color))
   const colorOf = (index: number) => colors[index] ?? report.items[index]!.category.color
   const slices = report.items.map((item, index) => ({ key: item.category.id, value: Number(item.spent), color: colorOf(index) }))
+
+  const csv: ReportCsv = {
+    name: 'spending-by-category',
+    columns: ['row', 'category', 'spent', 'share', ...(report.previous ? ['previousSpent'] : []), 'notConverted', 'currency'],
+    rows: report.items.map((item) => [
+      isDirectly(item) ? 'directly' : 'category',
+      item.category.name,
+      item.spent,
+      item.share,
+      ...(report.previous ? [item.previousSpent] : []),
+      item.notConverted,
+      report.currency,
+    ]),
+  }
 
   return (
     <>
@@ -130,6 +146,8 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
           <NotConverted count={Number(report.notConverted)} />
         </div>
       </dl>
+
+      <ExportCsv csv={csv} filters={filters} />
 
       {report.items.length === 0 ? (
         <p className="text-muted-foreground">{t('reports.spending.empty')}</p>
@@ -250,6 +268,23 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
   if (!list.data) return <ReportLoading />
   const { category, currency, items } = list.data
 
+  const csv: ReportCsv = {
+    name: 'spending-by-category-transactions',
+    columns: ['date', 'payee', 'note', 'account', 'amount', 'currency', 'isRefund', 'isSplit', 'spent', 'baseCurrency'],
+    rows: items.map((item) => [
+      item.date,
+      item.payee,
+      item.note,
+      findAccount(accounts.data?.accounts ?? [], item.accountId)?.name,
+      item.amount,
+      item.currency,
+      item.isRefund,
+      item.isSplit,
+      item.spent,
+      currency,
+    ]),
+  }
+
   return (
     <>
       <h3 className="flex items-center gap-2 text-lg font-semibold">
@@ -265,6 +300,7 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
           <NotConverted count={Number(list.data.notConverted)} />
         </dd>
       </dl>
+      <ExportCsv csv={csv} filters={filters} />
       {items.length === 0 ? (
         <p className="text-muted-foreground">{t('reports.spending.noTransactions')}</p>
       ) : (

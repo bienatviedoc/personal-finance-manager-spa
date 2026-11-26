@@ -42,8 +42,8 @@ describe('marking as a transfer', () => {
     const transactionsApi = fakeApis(cardPayment)
     const { user } = renderApp('/transactions')
 
-    await user.click(await screen.findByRole('checkbox', { name: 'Pick VISA PAYMENT' }))
-    await user.click(screen.getByRole('checkbox', { name: 'Pick PAYMENT RECEIVED' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Select VISA PAYMENT' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select PAYMENT RECEIVED' }))
     await user.click(screen.getByRole('button', { name: 'Mark as transfer' }))
 
     await waitFor(() =>
@@ -63,17 +63,17 @@ describe('marking as a transfer', () => {
     const transactionsApi = fakeApis(cardPayment)
     const { user, router } = renderApp(`/transactions?accountId=${everyday}`)
 
-    await user.click(await screen.findByRole('checkbox', { name: 'Pick VISA PAYMENT' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Select VISA PAYMENT' }))
     await router.navigate(`/transactions?accountId=${visa}`)
-    await user.click(await screen.findByRole('checkbox', { name: 'Pick PAYMENT RECEIVED' }))
-    expect(screen.queryByText('Pick one expense and one income.')).not.toBeInTheDocument()
+    await user.click(await screen.findByRole('checkbox', { name: 'Select PAYMENT RECEIVED' }))
+    expect(screen.queryByText('Select one expense and one income.')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Mark as transfer' }))
 
     const [expense, income] = cardPayment.map((_, index) => transactionsApi.transactions[index]!.id)
     await waitFor(() => expect(transactionsApi.markRequests).toEqual([{ expenseId: expense, incomeId: income }]))
   })
 
-  it('is offered for income and expenses only: not for a refund or a leg of a transfer, and once one expense and one income are picked', async () => {
+  it('is offered for income and expenses only: not for a refund or a leg of a transfer, and once one expense and one income are selected', async () => {
     fakeApis([
       ...cardPayment,
       { type: 'expense', accountId: everyday, amount: '50000.00', date: '2026-11-01', categoryId: 'c-food', payee: 'Shop', isRefund: true },
@@ -82,16 +82,21 @@ describe('marking as a transfer', () => {
     ])
     const { user } = renderApp('/transactions')
 
-    await screen.findByRole('checkbox', { name: 'Pick VISA PAYMENT' })
-    expect(screen.getAllByRole('checkbox').map((box) => box.getAttribute('aria-label')).toSorted()).toEqual(['Pick PAYMENT RECEIVED', 'Pick VISA PAYMENT'])
+    await screen.findByRole('checkbox', { name: 'Select VISA PAYMENT' })
     expect(screen.queryByRole('button', { name: 'Mark as transfer' })).not.toBeInTheDocument()
+    // A refund or a leg can be selected for a bulk action, but not marked as a transfer.
+    for (const other of ['Shop', 'Transfer out']) {
+      await user.click(screen.getByRole('checkbox', { name: `Select ${other}` }))
+      expect(screen.queryByRole('button', { name: 'Mark as transfer' })).not.toBeInTheDocument()
+      await user.click(screen.getByRole('checkbox', { name: `Select ${other}` }))
+    }
 
-    await user.click(screen.getByRole('checkbox', { name: 'Pick VISA PAYMENT' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select VISA PAYMENT' }))
     expect(screen.getByRole('button', { name: 'Mark as transfer' })).toBeDisabled()
-    expect(screen.getByText('Pick one expense and one income.')).toBeInTheDocument()
+    expect(screen.getByText('Select one expense and one income.')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Clear' }))
-    expect(screen.getByRole('checkbox', { name: 'Pick VISA PAYMENT' })).not.toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Clear selection' }))
+    expect(screen.getByRole('checkbox', { name: 'Select VISA PAYMENT' })).not.toBeChecked()
     expect(screen.queryByRole('button', { name: 'Mark as transfer' })).not.toBeInTheDocument()
   })
 
@@ -104,19 +109,19 @@ describe('marking as a transfer', () => {
       { type: 'income', accountId: dollars, amount: '0.01', currency: 'USD', date: '2026-11-02', categoryId: 'c-salary', payee: 'Dollars' },
     ])
     const { user } = renderApp('/transactions')
-    await user.click(await screen.findByRole('checkbox', { name: 'Pick Out' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Select Out' }))
     const tryWith = async (income: string, reason: string) => {
-      await user.click(screen.getByRole('checkbox', { name: `Pick ${income}` }))
+      await user.click(screen.getByRole('checkbox', { name: `Select ${income}` }))
       expect(screen.getByText(reason)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Mark as transfer' })).toBeDisabled()
-      await user.click(screen.getByRole('checkbox', { name: `Pick ${income}` }))
+      await user.click(screen.getByRole('checkbox', { name: `Select ${income}` }))
     }
 
     await tryWith('Same account', 'A transfer is between two different accounts.')
     await tryWith('Day before', 'The two must be on the same date.')
     await tryWith('Less', 'Between accounts in one currency, the two must be of the same amount.')
     // Between currencies each keeps its own amount.
-    await user.click(screen.getByRole('checkbox', { name: 'Pick Dollars' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select Dollars' }))
     expect(screen.getByRole('button', { name: 'Mark as transfer' })).toBeEnabled()
     expect(transactionsApi.markRequests).toEqual([])
   })
@@ -124,8 +129,8 @@ describe('marking as a transfer', () => {
   it('says so when the API refuses, and loads the list again', async () => {
     const transactionsApi = fakeApis(cardPayment)
     const { user } = renderApp('/transactions')
-    await user.click(await screen.findByRole('checkbox', { name: 'Pick VISA PAYMENT' }))
-    await user.click(screen.getByRole('checkbox', { name: 'Pick PAYMENT RECEIVED' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Select VISA PAYMENT' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select PAYMENT RECEIVED' }))
     // Made a refund somewhere else since the list was loaded.
     transactionsApi.transactions[0]!.isRefund = true
     await user.click(screen.getByRole('button', { name: 'Mark as transfer' }))
@@ -137,8 +142,8 @@ describe('marking as a transfer', () => {
   it('says in a toast when marking fails, and trying again marks them', async () => {
     const transactionsApi = fakeApis(cardPayment)
     const { user } = renderApp('/transactions')
-    await user.click(await screen.findByRole('checkbox', { name: 'Pick VISA PAYMENT' }))
-    await user.click(screen.getByRole('checkbox', { name: 'Pick PAYMENT RECEIVED' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Select VISA PAYMENT' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select PAYMENT RECEIVED' }))
     transactionsApi.failNext()
     await user.click(screen.getByRole('button', { name: 'Mark as transfer' }))
 

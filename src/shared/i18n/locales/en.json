@@ -353,7 +353,54 @@
       "reconciled": "This transaction is reconciled, so this cannot change."
     },
     "reconciled": "Reconciled",
-    "reconciledLocked": "This transaction is reconciled: its amount, date, account and type are locked until its reconciliation is reopened."
+    "reconciledLocked": "This transaction is reconciled: its amount, date, account and type are locked until its reconciliation is reopened.",
+    "bulk": {
+      "title": "Selected transactions",
+      "select": "Select {{name}}",
+      "selectAll_one": "Select all {{total}} transaction",
+      "selectAll_other": "Select all {{total}} transactions",
+      "done_one": "{{total}} transaction changed.",
+      "done_other": "{{total}} transactions changed.",
+      "selected": "{{count}} selected",
+      "clear": "Clear selection",
+      "setCategory": "Set category",
+      "tag": "Tag",
+      "addTag": "Add tag",
+      "removeTag": "Remove tag",
+      "chooseAccount": "Choose an account",
+      "move": "Move",
+      "delete": "Delete",
+      "deleteExplained_one": "Delete {{count}} transaction? You can restore it from Recently deleted for 30 days.",
+      "deleteExplained_other": "Delete {{count}} transactions? You can restore them from Recently deleted for 30 days.",
+      "deleteConfirm": "Delete them",
+      "refused": "Nothing was changed: these transactions cannot take it.",
+      "notChanged": "Not changed",
+      "refusedRow": "{{name}}: {{reason}}",
+      "unknown": "A transaction",
+      "refusals": {
+        "notFound": "it no longer exists.",
+        "transferLeg": "a leg of a transfer has no category and changes only with its transfer.",
+        "split": "a split transaction keeps its lines; edit it to change their categories.",
+        "categoryKind": "income takes an income category, and an expense an expense one.",
+        "reconciled": "it is reconciled, so it cannot move or be deleted until its reconciliation is reopened.",
+        "otherCurrency": "a transaction moves only to an account in its own currency.",
+        "tooManyTags": "it has 20 tags already."
+      },
+      "failed": "The selected transactions were not changed.",
+      "tooManyToSelect_one": "{{total}} transaction passes these filters, and a bulk action takes at most {{max}}. Narrow the filters to select them all.",
+      "tooManyToSelect_other": "{{total}} transactions pass these filters, and a bulk action takes at most {{max}}. Narrow the filters to select them all.",
+      "tooMany": "More than {{max}} transactions pass these filters now. Narrow the filters, or select fewer, and try again.",
+      "refusedTransaction": "{{title}}, {{date}}, {{amount}}",
+      "fieldRefused": {
+        "categoryId": "That category can no longer be chosen. Choose another.",
+        "accountId": "That account can no longer be chosen. Choose another.",
+        "tag": "Enter a tag of 1 to 50 characters."
+      }
+    },
+    "export": {
+      "start": "Export CSV",
+      "failed": "The CSV file could not be downloaded. Try again in a moment."
+    }
   },
   "transfers": {
     "add": "Transfer between accounts",
@@ -372,12 +419,10 @@
     "cancel": "Cancel",
     "deleteExplained": "Delete this transfer? Both of its legs leave this list, and both accounts get their balance back.",
     "markAs": "Mark as transfer",
-    "markTitle": "Picked to mark as a transfer",
-    "markExplained": "Pick an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
-    "pick": "Pick {{name}}",
-    "clearPicked": "Clear",
+    "markTitle": "Selected to mark as a transfer",
+    "markExplained": "Select an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
     "whyNot": {
-      "types": "Pick one expense and one income.",
+      "types": "Select one expense and one income.",
       "sameAccount": "A transfer is between two different accounts.",
       "date": "The two must be on the same date.",
       "amount": "Between accounts in one currency, the two must be of the same amount."
@@ -656,6 +701,7 @@
       "refund": "Refund",
       "split": "Split transaction"
     },
+    "export": "Export CSV",
     "trends": {
       "title": "Trends",
       "chooseWhat": "Choose a category or type a payee to follow it month by month.",
@@ -1027,6 +1073,56 @@
       "notCompleted": "The reconciliation was not completed.",
       "notCancelled": "The reconciliation was not cancelled.",
       "notReopened": "The reconciliation was not reopened."
+    }
+  },
+  "dashboard": {
+    "loading": "Loading the dashboard",
+    "errors": {
+      "notLoaded": "The dashboard could not be loaded."
+    },
+    "start": {
+      "title": "Start by adding an account",
+      "body": "Add the accounts your money is in, such as a bank account, a card or cash. Your balance, spending and budgets will show here.",
+      "action": "Add an account"
+    },
+    "balance": {
+      "title": "Total balance",
+      "link": "See accounts",
+      "notConverted": "Not included: {{amounts}}, for want of an exchange rate."
+    },
+    "thisMonth": {
+      "title": "This month",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net",
+      "savingsRate": "Savings rate {{rate}}",
+      "link": "See income vs expenses"
+    },
+    "budgets": {
+      "title": "Budgets this month",
+      "none": "No budgets this month.",
+      "set": "Set budgets",
+      "link": "See budgets",
+      "spentOf": "{{spent}} spent of {{budgeted}}",
+      "progress": "{{percent}}% of the budget spent",
+      "counts": "{{onTrack}} on track, {{warning}} at warning, {{over}} over budget",
+      "needingAttention": "Budgets needing attention"
+    },
+    "topCategories": {
+      "title": "Top categories",
+      "empty": "Nothing spent this month yet.",
+      "link": "See spending by category"
+    },
+    "recent": {
+      "title": "Recent transactions",
+      "empty": "No transactions yet.",
+      "refund": "Refund",
+      "link": "See all transactions"
+    },
+    "upcoming": {
+      "title": "Coming up",
+      "empty": "Nothing is due in the next 30 days.",
+      "link": "See recurring rules"
     }
   }
 }

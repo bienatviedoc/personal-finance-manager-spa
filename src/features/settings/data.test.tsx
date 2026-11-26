@@ -2,6 +2,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import { http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fakeDataApi, testExportFileName } from '@/test/fakeDataApi'
+import { catchDownloads, type SavedFile } from '@/test/downloads'
 import { renderApp } from '@/test/renderApp'
 import { apiUrl, problem, server, testPassword } from '@/test/server'
 
@@ -20,24 +21,11 @@ describe('the settings for your data', () => {
 })
 
 describe('exporting your data', () => {
-  /** What the browser was handed to save: jsdom has no downloads, so the link the app clicks is caught here. */
-  const saved: { name: string; file: Blob | undefined }[] = []
-  const files = new Map<string, Blob>()
+  /** What the browser was handed to save. */
+  let saved: SavedFile[] = []
 
   beforeEach(() => {
-    saved.length = 0
-    files.clear()
-    vi.stubGlobal('URL', Object.assign(URL, {
-      createObjectURL: (file: Blob) => {
-        const address = `blob:test/${files.size}`
-        files.set(address, file)
-        return address
-      },
-      revokeObjectURL: () => undefined,
-    }))
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-      saved.push({ name: this.download, file: files.get(this.href) })
-    })
+    saved = catchDownloads()
   })
 
   afterEach(() => {

@@ -106,8 +106,22 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the transfer by that id (`transferQuery`) and saves both legs through `/transfers` (`features/transactions/api/transfers.ts`).
   Between accounts in different currencies the form asks for both amounts; nothing converts one into the other.
   Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
-- **Marking as a transfer** (spec IMP-7; see the glossary). Income and expenses in the list can be picked
-  (`canBePicked`: not a refund, not a leg); once one expense and one income are, `MarkAsTransfer` sends them to
+- **Selecting transactions.** Every transaction the API has can be selected in the list, one by one, or all
+  that pass the filters at once ("Select all N transactions", N being the API's `total.count`), loaded on the
+  screen or not. A bulk action takes at most 1,000 (`maxBulkSelection` in `src/shared/api/limits.ts`): a view more
+  pass offers no "Select all" and says to narrow the filters, and if more pass by the time the action is sent, the
+  API's 422 (`bulk-selection-too-large`) says the same. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
+  they were selected in, and unselecting one leaves the others loaded selected one by one.
+- **Bulk actions** (spec TXN-7; see the glossary). `BulkActions` acts on what is selected through
+  `POST /transactions/bulk` (`useBulkEdit`): set the category, add or remove a tag, move to another account, or
+  delete (once confirmed). Selected one by one, it sends their `transactionIds`; all of them, the view's filters as
+  `filter`, and the API finds them. All take it or none does: the API decides, never the screen, and when it refuses
+  (a 409) the screen names each transaction it refused with why, translated from its `reason`, and keeps the selection.
+  Each refused one comes with the transaction as it is (`transaction`), so it is named by its title, date and amount
+  whether it is loaded on the screen or not; one the API no longer has is named as the list had it.
+  Done, the selection is cleared and the lists, balances, budgets and reports are loaded again, as after any change.
+- **Marking as a transfer** (spec IMP-7; see the glossary). Once one or two income and expenses are selected
+  (`canBePicked`: not a refund, not a leg), `MarkAsTransfer` is offered; with one expense and one income it sends them to
   `POST /transfers/mark` and both become the legs of one transfer. The screen says why it cannot before asking
   (one account, two dates, two amounts in one currency), and the API checks again; a refusal means one of them
   changed, so the list is loaded again. Nothing is matched automatically. The transfer drawer unmarks any transfer
@@ -165,6 +179,16 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **Last month's budgets are copied in one action** (BUD-4): the budget screen's "Copy budgets from …" button
   calls `useCopyBudgets(month)` with the month before the one shown. The API decides what is copied (never over a
   budget the month has, nor onto an archived category) and answers how many; the screen says that number.
+- **The dashboard** (spec RPT-1, `/`) is one request, `GET /api/v1/reports/dashboard` (`dashboardQuery` in
+  `features/dashboard`): the total balance, this month's income, expenses and net, budget status, the top five
+  categories, the ten latest transactions and what recurring rules will record or remind about in the next 30 days.
+  Every figure is the API's, worked out as the accounts screen and the reports work it out; the screen adds nothing
+  up, and signs an amount only as the transaction list does. Each card links to what is behind it: the accounts,
+  income vs expenses and spending by category for this month (`period=thisMonth`), the budgets, the transactions and
+  the recurring rules. Skeletons stand in for the cards while it loads, and a user with no account that is not
+  archived (`hasAccounts`) is shown how to add one instead. Nearly anything done elsewhere moves something on it, so
+  it is loaded again every time it opens (`staleTime: 0`), and a change to a transaction made on it (quick add) loads it
+  again through `refreshDashboard`.
 - **Reports share one frame** (spec sections 7 and 12). `ReportFrame` in `features/reports/frame` holds what every
   report has: the period (a preset, or dates the user chooses), the account and category filters, comparing with
   the period before, and the chart or table view, all in the address (`period`, `from`, `to`, `accountId`,
@@ -183,6 +207,21 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   net worth above; it takes no category filter and is not compared. Budget vs actual
   (`budgetVsActual/BudgetVsActualReport`) sets each category's budget against what was spent as horizontal bars or a
   table with the totals, and lists apart what was spent with no budget.
+- **Every report downloads as CSV** (spec section 7, export), from the answer already on screen, in either view:
+  `ExportCsv` in `features/reports/frame` saves the numbers of the report's table view (`saveCsv` from
+  `@/shared/lib/csv`, RFC 4180 and UTF-8 with a byte order mark, as the API writes its own), named for the report
+  and its period (`net-worth-2026-01-01-2026-03-31.csv`). Columns take the API's names, amounts stay as the API
+  answers them, plain decimals beside a `currency` column, and dates are `YYYY-MM-DD`; a report that compares adds
+  the period before. No report asks the API for a file.
+- **A CSV file is the same in every language.** Nothing in it is translated: a report whose rows are of more than one
+  kind starts each with a `row` column, a fixed code in English saying what the row is, and its other columns hold only
+  numbers, codes, dates and what the user named. Income vs expenses: `month`, `total`, `previousMonth`,
+  `previousTotal`. Budget vs actual: `budget`, `total`, `unbudgeted` (spent in a category with no budget) and
+  `unbudgetedTotal`. Spending by category: `category`, and `directly` for what the category drilled into spent in
+  none of its subcategories. A total names no category; its `category` is empty.
+- **The transaction list downloads as CSV** from the API (`useExportTransactions`, `GET /api/v1/export/transactions.csv`)
+  with the filters and sort order in the address: every transaction that passes, not only the pages loaded. A
+  failure says so in a toast with a way to try again.
 - **The monthly summary** (spec section 7, export) sits under every report on the reports screen
   (`monthlySummary/MonthlySummaryDownload`): a month to choose, this one first and two years back, and a button that
   downloads its PDF from `GET /api/v1/reports/monthly-summary.pdf` (`useDownloadMonthlySummary`) in the language the
@@ -274,15 +313,21 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
-| `fakeTransactionsApi` | `/api/v1/transactions`, and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeTransactionsApi` | `/api/v1/transactions` (a test stands in for `/api/v1/export/transactions.csv` itself, in `transactionExport.test.tsx`), bulk actions (`/api/v1/transactions/bulk`, kept in `bulkRequests`), and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming, reminders to confirm or dismiss and the upcoming list (worked out from each rule's dates as the API does, from `today`, the test user's by default); nothing posts there, so a rule's next run date stays its start date until a reminder is answered |
 | `fakeReconciliationsApi` | `/api/v1/accounts/{accountId}/reconciliations` and `/api/v1/reconciliations`: starting, ticking, completing, reopening and cancelling, over the accounts and transactions the other fakes hold; completing sets `isReconciled` on what is ticked, which `fakeTransactionsApi` then locks |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
+| `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual` and `/api/v1/reports/net-worth` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, …), and can fail an answer |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
+
+One kind of test stands apart: a race the real router cannot be made to lose on cue. `useReportFilters.test.ts`
+renders the hook alone with `react-router`'s `useSearchParams` mocked, so it can render an older address after a newer
+change was asked for, which the router does only under load. Reach for this only when the app-level test cannot
+show the bug, and say in the test which race it stands in for.
 
 jsdom lays nothing out, so the virtualised transaction list cannot tell which rows are on screen: every test
 starts on a pretend screen tall enough for every row it lists (`src/test/setup.ts`), and a row counts as tall as

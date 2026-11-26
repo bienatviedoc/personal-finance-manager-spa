@@ -68,6 +68,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/export/transactions.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every transaction that passes the filters sent, as a CSV file to download: the whole list, however many pages GET /transactions would take, in its order. One line for each transaction under a line of column names (date, type, isRefund, account, category, payee, note, tags, amount, currency): dates are YYYY-MM-DD, amounts plain decimals above zero, as the list answers them, beside their currency's code. The account and category are named; a split names each of its categories, separated by "; ", and a leg of a transfer none. Tags are separated the same way. UTF-8 with a byte order mark, comma-separated (RFC 4180). */
+        get: operations["ExportTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -445,6 +462,23 @@ export interface paths {
         put?: never;
         /** @description Restores a transaction deleted in the last 30 days: it is back in lists and its account's balance at once, as it was when it was deleted. Restoring a leg of a transfer restores the whole transfer, the other leg with it. One that is not deleted, or was deleted longer ago, is not found. The ETag header carries its row version. */
         post: operations["RestoreTransaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transactions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description One action on many transactions at once: setCategory, addTag, removeTag, moveToAccount or delete. Select them by transactionIds, or every one that passes filter, which takes the list's filters; never both, and at most 1000: a filter that more pass answers 422 with the problem type urn:pfm:problem:bulk-selection-too-large and its max, and nothing changes. All of them take the action in one save, or none does: when any cannot, it answers 409 with the problem type urn:pfm:problem:bulk-action-refused, listing each transaction refused and why, and nothing changes. Income takes only an income category and an expense only an expense one; a split keeps its lines and a leg of a transfer has no category; a transaction moves only to an account in its currency, and not while it is reconciled; a reconciled transaction, or a transfer with a reconciled leg, is not deleted. Deleting a leg of a transfer deletes the whole transfer. The balances of the accounts involved follow at once. */
+        post: operations["BulkEditTransactions"];
         delete?: never;
         options?: never;
         head?: never;
@@ -889,6 +923,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The state of the user's money on one screen: the balance of every account that is not archived, in the base currency as the accounts list adds it up; this calendar month's income, expenses and net, its budgets against what was spent, and the five top-level categories that spent most, as the income vs expenses, budget vs actual and spending by category reports work them out for this month in the user's time zone; the ten latest transactions, as the transaction list starts; and the occurrences of recurring rules due in the next 30 days, at most ten, earliest first. Takes no filters. */
+        get: operations["GetDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/spending-by-category": {
         parameters: {
             query?: never;
@@ -1167,6 +1218,39 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
         };
+        BulkActionRefusedProblem: {
+            type: string;
+            title: string;
+            /** Format: int32 */
+            status: number | string;
+            detail: string;
+            refused: components["schemas"]["RefusedTransactionResponse"][];
+        };
+        BulkEditRequest: {
+            action: string;
+            transactionIds?: null | string[];
+            filter?: null | components["schemas"]["TransactionFilterRequest"];
+            /** Format: uuid */
+            categoryId?: null | string;
+            tag?: null | string;
+            /** Format: uuid */
+            accountId?: null | string;
+        };
+        BulkEditResponse: {
+            /** Format: int32 */
+            count: number | string;
+        };
+        /** @enum {unknown} */
+        BulkRefusal: "notFound" | "transferLeg" | "split" | "categoryKind" | "reconciled" | "otherCurrency" | "tooManyTags";
+        BulkSelectionTooLargeProblem: {
+            type: string;
+            title: string;
+            /** Format: int32 */
+            status: number | string;
+            detail: string;
+            /** Format: int32 */
+            max: number | string;
+        };
         CategoryChangeRequest: {
             name: string;
             kind: components["schemas"]["CategoryKind"];
@@ -1217,6 +1301,97 @@ export interface components {
             expenses: string;
             net: string;
         };
+        DashboardAccountResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        DashboardBalanceResponse: {
+            balance: string;
+            notConverted: components["schemas"]["DashboardNotConvertedResponse"][];
+        };
+        DashboardBudgetResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            state: components["schemas"]["BudgetVsActualState"];
+        };
+        DashboardBudgetsResponse: {
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            /** Format: int32 */
+            onTrack: number | string;
+            /** Format: int32 */
+            warning: number | string;
+            /** Format: int32 */
+            over: number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+            needingAttention: components["schemas"]["DashboardBudgetResponse"][];
+        };
+        DashboardCategoryResponse: {
+            category: components["schemas"]["ReportCategoryResponse"];
+            spent: string;
+            /** Format: double */
+            share: null | number | string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        DashboardNotConvertedResponse: {
+            currency: components["schemas"]["Currency"];
+            balance: string;
+        };
+        DashboardOccurrenceResponse: {
+            /** Format: uuid */
+            recurringRuleId: string;
+            /** Format: date */
+            dueDate: string;
+            type: components["schemas"]["DashboardTransactionType"];
+            account: components["schemas"]["DashboardAccountResponse"];
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            category: components["schemas"]["ReportCategoryResponse"];
+            payee: null | string;
+            isReminder: boolean;
+        };
+        DashboardResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            currency: components["schemas"]["Currency"];
+            hasAccounts: boolean;
+            balance: components["schemas"]["DashboardBalanceResponse"];
+            thisMonth: components["schemas"]["IncomeAndExpensesResponse"];
+            budgets: null | components["schemas"]["DashboardBudgetsResponse"];
+            topCategories: components["schemas"]["DashboardCategoryResponse"][];
+            recentTransactions: components["schemas"]["DashboardTransactionResponse"][];
+            upcoming: components["schemas"]["DashboardOccurrenceResponse"][];
+        };
+        DashboardTransactionResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            type: components["schemas"]["DashboardTransactionType"];
+            account: components["schemas"]["DashboardAccountResponse"];
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            category: null | components["schemas"]["ReportCategoryResponse"];
+            payee: null | string;
+            isRefund: boolean;
+            isSplit: boolean;
+            /** Format: uuid */
+            transferId: null | string;
+        };
+        /** @enum {unknown} */
+        DashboardTransactionType: "income" | "expense" | "transferOut" | "transferIn";
         DeletedTransactionListResponse: {
             items: components["schemas"]["DeletedTransactionResponse"][];
             nextCursor: null | string;
@@ -1533,6 +1708,13 @@ export interface components {
             mode: components["schemas"]["RecurringMode"];
             rowVersion: string;
         };
+        RefusedTransactionResponse: {
+            /** Format: uuid */
+            transactionId: string;
+            reason: components["schemas"]["BulkRefusal"];
+            message: string;
+            transaction: null | components["schemas"]["TransactionResponse"];
+        };
         RegisterRequest: {
             email: string;
             password: string;
@@ -1639,6 +1821,17 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+        };
+        TransactionFilterRequest: {
+            from?: null | string;
+            to?: null | string;
+            accountId?: null | string;
+            categoryId?: null | string;
+            type?: null | string;
+            min?: null | string;
+            max?: null | string;
+            q?: null | string;
+            tag?: null | string;
         };
         TransactionLineRequest: {
             /** Format: uuid */
@@ -1935,6 +2128,54 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ExportTransactions: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                categoryId?: string;
+                type?: string;
+                min?: string;
+                max?: string;
+                q?: string;
+                tag?: string;
+                sort?: string;
+                order?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3432,6 +3673,66 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    BulkEditTransactions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkEditRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkEditResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["BulkActionRefusedProblem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["BulkSelectionTooLargeProblem"];
+                };
             };
         };
     };
@@ -5275,6 +5576,35 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DashboardResponse"];
                 };
             };
             /** @description Unauthorized */
