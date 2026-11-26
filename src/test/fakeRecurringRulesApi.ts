@@ -231,7 +231,8 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
       if (!Number.isInteger(days) || days < 1 || days > 90) return problem(400, { errors: { days: ['Look 1 to 90 days ahead.'] } })
       const items = state.rules.flatMap((rule) =>
         unsettledThrough(rule, addDays(today, days))
-          .filter((dueDate) => dueDate > today)
+          // One due today is upcoming until it is posted, which never happens here, unless it is a reminder already.
+          .filter((dueDate) => dueDate > today || (dueDate === today && rule.mode !== 'remind'))
           .map((dueDate) => occurrence(rule, dueDate)),
       )
       return HttpResponse.json({ items: items.sort(byDueDate) })

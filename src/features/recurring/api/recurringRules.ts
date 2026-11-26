@@ -77,8 +77,8 @@ export const remindersQuery = queryOptions({
 export const upcomingDays = 30
 
 /**
- * Every occurrence of the user's rules due after today and within `days` days, earliest first, whether it
- * will be recorded or be a reminder. A paused rule has none.
+ * Every occurrence of the user's rules due from today to `days` days ahead, earliest first, whether it will be
+ * recorded or be a reminder: one due today until it is recorded, and not when it is a reminder already. A paused rule has none.
  */
 export const upcomingQuery = (days: number = upcomingDays) =>
   queryOptions({
