@@ -108,11 +108,30 @@ describe('the recurring screen', () => {
         path: '/api/v1/recurring-rules',
         body: {
           type: 'expense', accountId: everyday, amount: '9000000', categoryId: 'c-transport', frequency: 'monthly', interval: null,
-          startDate: '2027-01-31', endDate: '2027-12-31', payee: 'Landlord', note: 'flat',
+          startDate: '2027-01-31', endDate: '2027-12-31', payee: 'Landlord', note: 'flat', mode: 'autoPost',
         },
       },
     ])
     expect(listed()).toEqual([['Landlord', 'Transport · Everyday · Every month', 'Next on Jan 31, 2027', '-₫9,000,000']])
+  })
+
+  it('sets up a rule that reminds instead of recording each occurrence, which the list then says', async () => {
+    const { rulesApi } = fakeApis()
+    const { user } = renderApp('/recurring')
+    const drawer = await openNewRule(user)
+
+    expect(drawer.getByLabelText('On each due date')).toHaveDisplayValue('Record it for me')
+    await user.type(drawer.getByLabelText('Amount (VND)'), '100')
+    await choose(user, drawer.getByLabelText('Category'), 'Transport')
+    await user.selectOptions(drawer.getByLabelText('On each due date'), 'Remind me to confirm it')
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(rulesApi.requests[0]!.body).toMatchObject({ mode: 'remind' })
+    expect(listed()[0]![1]).toBe('Transport · Everyday · Every month · Reminds you')
+
+    await user.click(screen.getByRole('button', { name: 'Edit Transport' }))
+    expect(within(screen.getByRole('dialog', { name: 'Edit recurring rule' })).getByLabelText('On each due date')).toHaveDisplayValue('Remind me to confirm it')
   })
 
   it('closes the category picker on Escape before the drawer', async () => {
@@ -204,7 +223,7 @@ describe('the recurring screen', () => {
         path: `/api/v1/recurring-rules/${firstRule}`,
         body: {
           type: 'expense', accountId: everyday, amount: '9500000', categoryId: 'c-transport', frequency: 'monthly', interval: null,
-          startDate: '2026-12-05', endDate: null, payee: 'Landlord', note: 'flat',
+          startDate: '2026-12-05', endDate: null, payee: 'Landlord', note: 'flat', mode: 'autoPost',
         },
       },
     ])

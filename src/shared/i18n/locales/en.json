@@ -444,6 +444,12 @@
     "endDate": "Ends on (optional)",
     "payee": "Payee",
     "note": "Note",
+    "mode": "On each due date",
+    "modes": {
+      "autoPost": "Record it for me",
+      "remind": "Remind me to confirm it"
+    },
+    "remindsYou": "Reminds you",
     "save": "Save",
     "cancel": "Cancel",
     "nextOn": "Next on {{date}}",
@@ -475,6 +481,7 @@
       "endBeforeStart": "The end date cannot be before the start date.",
       "payeeTooLong": "Use at most 200 characters.",
       "noteTooLong": "Use at most 1000 characters.",
+      "mode": "Choose what happens on each due date.",
       "generic": "Something went wrong. Try again.",
       "stale": "This recurring rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "notSaved": "The recurring rule was not saved.",

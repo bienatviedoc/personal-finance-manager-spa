@@ -49,6 +49,7 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
         endDate: null,
         nextRunDate: startDate,
         isPaused: false,
+        mode: 'autoPost',
         rowVersion: '1',
         ...rule,
       }
@@ -81,6 +82,7 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
     else if (body.frequency === 'everyNDays' ? !(Number.isInteger(interval) && Number(interval) >= 1 && Number(interval) <= 365) : interval !== null) {
       errors.interval = ['Send how many days apart for everyNDays and leave it out for any other frequency.']
     }
+    if (body.mode != null && body.mode !== 'autoPost' && body.mode !== 'remind') errors.mode = ['Choose one of: autoPost, remind, or leave it out to post each occurrence.']
     if (!isDate(body.startDate)) errors.startDate = ['Enter a date as YYYY-MM-DD.']
     const endDate = body.endDate ?? null
     if (endDate !== null && !isDate(endDate)) errors.endDate = ['Enter a date as YYYY-MM-DD.']
@@ -114,6 +116,7 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
         startDate: body.startDate!,
         endDate,
         nextRunDate: body.startDate!,
+        mode: (body.mode ?? 'autoPost') as RecurringRule['mode'],
       },
     }
   }

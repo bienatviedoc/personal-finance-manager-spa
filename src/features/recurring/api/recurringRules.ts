@@ -5,6 +5,7 @@ import type { components } from '@/shared/api/schema'
 
 export type RecurringRule = components['schemas']['RecurringRuleResponse']
 export type RecurringFrequency = components['schemas']['RecurringFrequency']
+export type RecurringMode = components['schemas']['RecurringMode']
 
 /** What a recurring rule can be: income or an expense, never a transfer. In the order the toggle shows them. */
 export const recurringRuleTypes = ['expense', 'income'] as const
@@ -13,22 +14,29 @@ export type RecurringRuleType = (typeof recurringRuleTypes)[number]
 /** Every frequency, in the order the picker shows them. One the API adds and this list lacks fails typecheck. */
 export const recurringFrequencies = ['weekly', 'monthly', 'yearly', 'everyNDays'] as const satisfies readonly RecurringFrequency[]
 
+/** Every mode, in the order the picker shows them: the worker records each occurrence, or each is a reminder the user confirms. */
+export const recurringModes = ['autoPost', 'remind'] as const satisfies readonly RecurringMode[]
+
+type MissingMode = Exclude<RecurringMode, (typeof recurringModes)[number]>
+export const everyModeListed: MissingMode extends never ? true : MissingMode = true
+
 type MissingFrequency = Exclude<RecurringFrequency, (typeof recurringFrequencies)[number]>
 export const everyFrequencyListed: MissingFrequency extends never ? true : MissingFrequency = true
 
 /**
  * What setting up or editing a rule sends. The API takes the type and frequency as text, to name them when
  * refusing them; the SPA only ever sends ones it knows. `interval` is the days between occurrences, for
- * `everyNDays` only.
+ * `everyNDays` only. `mode` says whether each occurrence is recorded on its due date or is a reminder.
  */
-export type RecurringRuleFields = Omit<components['schemas']['RecurringRuleRequest'], 'type' | 'frequency' | 'interval'> & {
+export type RecurringRuleFields = Omit<components['schemas']['RecurringRuleRequest'], 'type' | 'frequency' | 'interval' | 'mode'> & {
   type: RecurringRuleType
   frequency: RecurringFrequency
   interval: number | null
+  mode: RecurringMode
 }
 
 /** Fields the API can refuse, which the form shows its own translated message for. */
-const recurringRuleFields = ['type', 'accountId', 'amount', 'categoryId', 'payee', 'note', 'frequency', 'interval', 'startDate', 'endDate'] as const
+const recurringRuleFields = ['type', 'accountId', 'amount', 'categoryId', 'payee', 'note', 'frequency', 'interval', 'startDate', 'endDate', 'mode'] as const
 export type RecurringRuleField = (typeof recurringRuleFields)[number]
 
 export type SaveOutcome = VersionedSaveOutcome<'rule', RecurringRule, RecurringRuleField>

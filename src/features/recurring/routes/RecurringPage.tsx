@@ -169,7 +169,7 @@ function RuleRow({ rule, account, category, linked, onEdit }: RowProps) {
         <div className="min-w-24 flex-1">
           <h2 className="font-medium break-words">{title}</h2>
           <p data-testid="details" className="text-sm text-muted-foreground">
-            {joinDetails([category?.name, account?.name, frequency])}
+            {joinDetails([category?.name, account?.name, frequency, rule.mode === 'remind' ? t('recurring.remindsYou') : undefined])}
           </p>
           <p data-testid="next" className="text-sm text-muted-foreground">
             {nextText(rule, t, (date) => formatDate(date, locale))}
