@@ -16,6 +16,7 @@ function fakeApis(transactions: Parameters<typeof fakeTransactionsApi>[0]) {
   const categoriesApi = fakeCategoriesApi({ categories: defaultTestCategories })
   return Object.assign(fakeTransactionsApi(transactions, { accounts: accountsApi.accounts, categories: categoriesApi.categories }), {
     accounts: accountsApi.accounts,
+    categories: categoriesApi.categories,
   })
 }
 
@@ -104,6 +105,23 @@ describe('bulk actions', () => {
     expect(within(refused).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
       'Payroll, Oct 1, 2026, +₫9,000,000: income takes an income category, and an expense an expense one.',
     ])
+  })
+
+  it('say which of the category and the account named can no longer be chosen, field by field', async () => {
+    const transactionsApi = fakeApis(shopping)
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select Grab' }))
+    await user.selectOptions(bar().getByLabelText('Category'), 'Eating out')
+    transactionsApi.categories.find((category) => category.id === 'c-eating-out')!.isArchived = true
+    await user.click(bar().getByRole('button', { name: 'Set category' }))
+    expect(await bar().findByText('That category can no longer be chosen. Choose another.')).toBeInTheDocument()
+
+    await user.selectOptions(bar().getByLabelText('Account'), 'Savings')
+    transactionsApi.accounts.find((account) => account.id === savings)!.isArchived = true
+    await user.click(bar().getByRole('button', { name: 'Move' }))
+    expect(await bar().findByText('That account can no longer be chosen. Choose another.')).toBeInTheDocument()
+    expect(bar().queryByText('That category can no longer be chosen. Choose another.')).not.toBeInTheDocument()
   })
 
   it('add a tag to and remove one from the selected transactions', async () => {
@@ -217,7 +235,7 @@ describe('bulk actions', () => {
     await user.click(bar().getByRole('button', { name: 'Add tag' }))
 
     expect(await bar().findByText('More than 1,000 transactions pass these filters now. Narrow the filters, or select fewer, and try again.')).toBeInTheDocument()
-    expect(screen.queryByText('That category or account can no longer be chosen. Choose again.')).not.toBeInTheDocument()
+    expect(bar().queryByText(/can no longer be chosen/)).not.toBeInTheDocument()
     expect(transactionsApi.transactions.filter((transaction) => transaction.tags.includes('weekly'))).toHaveLength(0)
   })
 

@@ -384,12 +384,16 @@
         "otherCurrency": "a transaction moves only to an account in its own currency.",
         "tooManyTags": "it has 20 tags already."
       },
-      "invalid": "That category or account can no longer be chosen. Choose again.",
       "failed": "The selected transactions were not changed.",
       "tooManyToSelect_one": "{{total}} transaction passes these filters, and a bulk action takes at most {{max}}. Narrow the filters to select them all.",
       "tooManyToSelect_other": "{{total}} transactions pass these filters, and a bulk action takes at most {{max}}. Narrow the filters to select them all.",
       "tooMany": "More than {{max}} transactions pass these filters now. Narrow the filters, or select fewer, and try again.",
-      "refusedTransaction": "{{title}}, {{date}}, {{amount}}"
+      "refusedTransaction": "{{title}}, {{date}}, {{amount}}",
+      "fieldRefused": {
+        "categoryId": "That category can no longer be chosen. Choose another.",
+        "accountId": "That account can no longer be chosen. Choose another.",
+        "tag": "Enter a tag of 1 to 50 characters."
+      }
     },
     "export": {
       "start": "Export CSV",

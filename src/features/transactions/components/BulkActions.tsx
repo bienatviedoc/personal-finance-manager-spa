@@ -155,7 +155,9 @@ export function BulkActions({ count, selection, accounts, categories, nameOf, on
           </ul>
         </div>
       )}
-      {outcome && !outcome.done && 'invalid' in outcome && <ErrorMessage>{t('transactions.bulk.invalid')}</ErrorMessage>}
+      {outcome && !outcome.done && 'fields' in outcome && (
+        <ErrorMessage>{outcome.fields.map((field) => t(`transactions.bulk.fieldRefused.${field}`)).join(' ')}</ErrorMessage>
+      )}
       {outcome && !outcome.done && 'tooMany' in outcome && (
         <ErrorMessage>{t('transactions.bulk.tooMany', { max: outcome.tooMany.toLocaleString(locale) })}</ErrorMessage>
       )}
