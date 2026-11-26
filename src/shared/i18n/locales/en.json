@@ -353,7 +353,40 @@
       "reconciled": "This transaction is reconciled, so this cannot change."
     },
     "reconciled": "Reconciled",
-    "reconciledLocked": "This transaction is reconciled: its amount, date, account and type are locked until its reconciliation is reopened."
+    "reconciledLocked": "This transaction is reconciled: its amount, date, account and type are locked until its reconciliation is reopened.",
+    "bulk": {
+      "title": "Selected transactions",
+      "select": "Select {{name}}",
+      "selectAll_one": "Select all {{count}} transaction",
+      "selectAll_other": "Select all {{count}} transactions",
+      "selected": "{{count}} selected",
+      "clear": "Clear selection",
+      "setCategory": "Set category",
+      "tag": "Tag",
+      "addTag": "Add tag",
+      "removeTag": "Remove tag",
+      "chooseAccount": "Choose an account",
+      "move": "Move",
+      "delete": "Delete",
+      "deleteExplained_one": "Delete {{count}} transaction? You can restore it from Recently deleted for 30 days.",
+      "deleteExplained_other": "Delete {{count}} transactions? You can restore them from Recently deleted for 30 days.",
+      "deleteConfirm": "Delete them",
+      "refused": "Nothing was changed: these transactions cannot take it.",
+      "notChanged": "Not changed",
+      "refusedRow": "{{name}}: {{reason}}",
+      "unknown": "A transaction",
+      "refusals": {
+        "notFound": "it no longer exists.",
+        "transferLeg": "a leg of a transfer has no category and changes only with its transfer.",
+        "split": "a split transaction keeps its lines; edit it to change their categories.",
+        "categoryKind": "income takes an income category, and an expense an expense one.",
+        "reconciled": "it is reconciled, so it cannot move or be deleted until its reconciliation is reopened.",
+        "otherCurrency": "a transaction moves only to an account in its own currency.",
+        "tooManyTags": "it has 20 tags already."
+      },
+      "invalid": "That category or account can no longer be chosen. Choose again.",
+      "failed": "The selected transactions were not changed."
+    }
   },
   "transfers": {
     "add": "Transfer between accounts",
@@ -374,8 +407,6 @@
     "markAs": "Mark as transfer",
     "markTitle": "Picked to mark as a transfer",
     "markExplained": "Pick an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
-    "pick": "Pick {{name}}",
-    "clearPicked": "Clear",
     "whyNot": {
       "types": "Pick one expense and one income.",
       "sameAccount": "A transfer is between two different accounts.",

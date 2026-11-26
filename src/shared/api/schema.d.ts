@@ -451,6 +451,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/transactions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description One action on many transactions at once: setCategory, addTag, removeTag, moveToAccount or delete. Select them by transactionIds, or every one that passes filter, which takes the list's filters; never both, and at most 1000. All of them take the action in one save, or none does: when any cannot, it answers 409 with the problem type urn:pfm:problem:bulk-action-refused, listing each transaction refused and why, and nothing changes. Income takes only an income category and an expense only an expense one; a split keeps its lines and a leg of a transfer has no category; a transaction moves only to an account in its currency, and not while it is reconciled; a reconciled transaction, or a transfer with a reconciled leg, is not deleted. Deleting a leg of a transfer deletes the whole transfer. The balances of the accounts involved follow at once. */
+        post: operations["BulkEditTransactions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transactions/{id}": {
         parameters: {
             query?: never;
@@ -1184,6 +1201,40 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
         };
+        BulkActionRefusedProblem: {
+            type: string;
+            title: string;
+            /** Format: int32 */
+            status: number | string;
+            refused: components["schemas"]["RefusedTransactionResponse"][];
+        };
+        BulkEditRequest: {
+            action: string;
+            transactionIds?: null | string[];
+            filter?: null | components["schemas"]["BulkFilterRequest"];
+            /** Format: uuid */
+            categoryId?: null | string;
+            tag?: null | string;
+            /** Format: uuid */
+            accountId?: null | string;
+        };
+        BulkEditResponse: {
+            /** Format: int32 */
+            count: number | string;
+        };
+        BulkFilterRequest: {
+            from?: null | string;
+            to?: null | string;
+            accountId?: null | string;
+            categoryId?: null | string;
+            type?: null | string;
+            min?: null | string;
+            max?: null | string;
+            q?: null | string;
+            tag?: null | string;
+        };
+        /** @enum {unknown} */
+        BulkRefusal: "notFound" | "transferLeg" | "split" | "categoryKind" | "reconciled" | "otherCurrency" | "tooManyTags";
         CategoryChangeRequest: {
             name: string;
             kind: components["schemas"]["CategoryKind"];
@@ -1640,6 +1691,12 @@ export interface components {
             isPaused: boolean;
             mode: components["schemas"]["RecurringMode"];
             rowVersion: string;
+        };
+        RefusedTransactionResponse: {
+            /** Format: uuid */
+            transactionId: string;
+            reason: components["schemas"]["BulkRefusal"];
+            message: string;
         };
         RegisterRequest: {
             email: string;
@@ -3540,6 +3597,57 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    BulkEditTransactions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkEditRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkEditResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["BulkActionRefusedProblem"];
+                };
             };
         };
     };
