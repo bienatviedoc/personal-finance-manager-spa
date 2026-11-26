@@ -184,7 +184,7 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   spent; the SPA only shows them. `BudgetNotifications` from `@/features/budgets`, a bell in the sidebar (atop the
   screen on phones), says how many are unread and opens a drawer listing them the newest first, a page at a time
   (`budgetNotificationsQuery`). Choosing one opens its budget month and marks it read; "Mark all as read" reads
-  them all (`useReadBudgetNotifications`). Their key is under the budgets', so `refreshBudgets` after any change
+  them all (`useReadBudgetNotification` and `useReadAllBudgetNotifications`, after the API's use cases). Their key is under the budgets', so `refreshBudgets` after any change
   loads them again. Whether they are also emailed is a profile setting (`emailBudgetNotifications`).
 - **A budget is set, not created or edited:** `useSetBudget(month)` sends `PUT /budgets/{month}/{categoryId}`
   with the budget's `rowVersion` as `If-Match` when the category already has one that month and without it when
