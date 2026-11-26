@@ -91,7 +91,7 @@ describe('the spending by category report', () => {
     await user.click(within(filters).getByRole('checkbox', { name: 'Compare with the previous period' }))
 
     const last3Months = periodOf('last3Months', todayIn(testUser.timeZone))
-    expect(search()).toEqual({ period: 'last3Months', accountId: 'a-card', categoryId: 'c-food', compare: 'true' })
+    await waitFor(() => expect(search()).toEqual({ period: 'last3Months', accountId: 'a-card', categoryId: 'c-food', compare: 'true' }))
     await waitFor(() => expect(api.reportsAsked.at(-1)).toEqual({ ...last3Months, accountId: 'a-card', categoryId: 'c-food', compare: 'true' }))
     expect(within(filters).getByLabelText('From')).toHaveValue(last3Months.from)
     expect(within(filters).getByLabelText('To')).toHaveValue(last3Months.to)
