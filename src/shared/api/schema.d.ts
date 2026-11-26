@@ -1094,6 +1094,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Cash flow over time: the running balance at the end of every day, or of every week (Monday to Sunday) and of the period's last day, of one account in its own currency, or of all the user's accounts, archived ones included, in the user's base currency. A balance is the account's opening balance plus every transaction dated on or before the day, and nothing before the account opened. Across accounts, the balances in each currency are added up and converted at the exchange rate of the day shown, or the nearest earlier one; those with no rate are left out and counted in notConverted. Not paged: one item per day or week. */
+        get: operations["GetCashFlow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/monthly-summary.pdf": {
         parameters: {
             query?: never;
@@ -1183,6 +1200,8 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        /** @enum {unknown} */
+        BalanceInterval: "day" | "week";
         BaseCurrencyTotalResponse: {
             currency: components["schemas"]["Currency"];
             balance: string;
@@ -1308,6 +1327,24 @@ export interface components {
             detail: string;
             /** Format: int32 */
             max: number | string;
+        };
+        CashFlowPointResponse: {
+            /** Format: date */
+            date: string;
+            balance: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        CashFlowResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            interval: components["schemas"]["BalanceInterval"];
+            currency: components["schemas"]["Currency"];
+            /** Format: uuid */
+            accountId: null | string;
+            items: components["schemas"]["CashFlowPointResponse"][];
         };
         CategoryChangeRequest: {
             name: string;
@@ -6167,6 +6204,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NetWorthResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetCashFlow: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                interval?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashFlowResponse"];
                 };
             };
             /** @description Bad Request */

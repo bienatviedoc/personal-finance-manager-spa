@@ -217,6 +217,21 @@
     "reconcile": "Đối soát",
     "reconcileNamed": "Đối soát {{name}}"
   },
+  "accountDetail": {
+    "toAccounts": "Quay lại tài khoản",
+    "notFound": "Không có tài khoản này.",
+    "balance": "Số dư theo thời gian",
+    "balanceChart": "Số dư của {{name}} trong {{days}} ngày qua",
+    "loadingBalance": "Đang tải số dư",
+    "cashFlow": "Dòng tiền của {{name}}",
+    "transactions": "Giao dịch",
+    "transactionsOn": "Giao dịch trên {{name}}",
+    "allTransactions": "Tất cả giao dịch trên {{name}}",
+    "noTransactions": "Tài khoản này chưa có giao dịch nào.",
+    "errors": {
+      "notLoaded": "Không tải được tài khoản."
+    }
+  },
   "transactions": {
     "intro": "Các khoản thu và chi của bạn. Lọc, tìm và sắp xếp để tìm bất kỳ giao dịch nào.",
     "recentlyDeleted": {
@@ -783,6 +798,19 @@
       "assets": "Tài sản",
       "liabilities": "Nợ phải trả",
       "netWorth": "Giá trị tài sản ròng"
+    },
+    "cashFlow": {
+      "title": "Dòng tiền",
+      "on": "Số dư ngày {{date}}",
+      "chart": "Dòng tiền: số dư lũy kế trong kỳ",
+      "table": "Số dư lũy kế",
+      "date": "Ngày",
+      "balance": "Số dư",
+      "interval": "Hiển thị số dư",
+      "intervals": {
+        "day": "Theo ngày",
+        "week": "Theo tuần"
+      }
     },
     "monthlySummary": {
       "title": "Tổng kết tháng",

@@ -213,7 +213,16 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   month end, and on the period's last day when it ends inside a month, as stacked areas or a table, with the latest
   net worth above; it takes no category filter and is not compared. Budget vs actual
   (`budgetVsActual/BudgetVsActualReport`) sets each category's budget against what was spent as horizontal bars or a
-  table with the totals, and lists apart what was spent with no budget.
+  table with the totals, and lists apart what was spent with no budget. Cash flow (`cashFlow/CashFlowReport`,
+  `cashFlowQuery`) shows the running balance at the end of every day, or of every week once Weekly is chosen (kept in
+  the address as `interval=week`), as a line or a table: of one account in its own currency with the account filter,
+  otherwise of all of them in the base currency. It takes no category filter and is not compared.
+- **The account detail page** (`/accounts/:accountId`, spec section 12) lives in `features/transactions`, since it is
+  an account's transactions and balance, and the accounts feature depends on neither. Each account's name on the
+  accounts screen links to it. It shows the account's balance, its running balance over the last 90 days as a line or
+  a table (`AccountBalance` from `@/features/reports`, loaded with the charting library when first shown), its
+  transactions newest first, edited in a drawer as on the transactions screen, and links on to reconciling it (not
+  when archived), to the transactions screen filtered by it, and to its cash flow report.
 - **Every report downloads as CSV** (spec section 7, export), from the answer already on screen, in either view:
   `ExportCsv` in `features/reports/frame` saves the numbers of the report's table view (`saveCsv` from
   `@/shared/lib/csv`, RFC 4180 and UTF-8 with a byte order mark, as the API writes its own), named for the report
@@ -326,7 +335,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeReconciliationsApi` | `/api/v1/accounts/{accountId}/reconciliations` and `/api/v1/reconciliations`: starting, ticking, completing, reopening and cancelling, over the accounts and transactions the other fakes hold; completing sets `isReconciled` on what is ticked, which `fakeTransactionsApi` then locks |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
 | `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
-| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual` and `/api/v1/reports/net-worth` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, …), and can fail an answer |
+| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual`, `/api/v1/reports/net-worth` and `/api/v1/reports/cash-flow` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, `cashFlowAsked`, …), and can fail an answer |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.

@@ -217,6 +217,21 @@
     "reconcile": "Reconcile",
     "reconcileNamed": "Reconcile {{name}}"
   },
+  "accountDetail": {
+    "toAccounts": "Back to accounts",
+    "notFound": "There is no such account.",
+    "balance": "Balance over time",
+    "balanceChart": "Balance of {{name}} over the last {{days}} days",
+    "loadingBalance": "Loading the balance",
+    "cashFlow": "Cash flow of {{name}}",
+    "transactions": "Transactions",
+    "transactionsOn": "Transactions on {{name}}",
+    "allTransactions": "All transactions on {{name}}",
+    "noTransactions": "No transactions on this account yet.",
+    "errors": {
+      "notLoaded": "The account could not be loaded."
+    }
+  },
   "transactions": {
     "intro": "Your income and expenses. Filter, search and sort them to find any one.",
     "recentlyDeleted": {
@@ -783,6 +798,19 @@
       "assets": "Assets",
       "liabilities": "Liabilities",
       "netWorth": "Net worth"
+    },
+    "cashFlow": {
+      "title": "Cash flow",
+      "on": "Balance on {{date}}",
+      "chart": "Cash flow: the running balance over the period",
+      "table": "Running balance",
+      "date": "Date",
+      "balance": "Balance",
+      "interval": "Show the balance",
+      "intervals": {
+        "day": "Daily",
+        "week": "Weekly"
+      }
     },
     "monthlySummary": {
       "title": "Monthly summary",

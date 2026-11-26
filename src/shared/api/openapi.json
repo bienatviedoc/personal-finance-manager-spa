@@ -5229,6 +5229,77 @@
         }
       }
     },
+    "/api/v1/reports/cash-flow": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "description": "Cash flow over time: the running balance at the end of every day, or of every week (Monday to Sunday) and of the period's last day, of one account in its own currency, or of all the user's accounts, archived ones included, in the user's base currency. A balance is the account's opening balance plus every transaction dated on or before the day, and nothing before the account opened. Across accounts, the balances in each currency are added up and converted at the exchange rate of the day shown, or the nearest earlier one; those with no rate are left out and counted in notConverted. Not paged: one item per day or week.",
+        "operationId": "GetCashFlow",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashFlowResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/monthly-summary.pdf": {
       "get": {
         "tags": [
@@ -5571,6 +5642,12 @@
             "format": "date-time"
           }
         }
+      },
+      "BalanceInterval": {
+        "enum": [
+          "day",
+          "week"
+        ]
       },
       "BaseCurrencyTotalResponse": {
         "required": [
@@ -6110,6 +6187,71 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "CashFlowPointResponse": {
+        "required": [
+          "date",
+          "balance",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "CashFlowResponse": {
+        "required": [
+          "from",
+          "to",
+          "interval",
+          "currency",
+          "accountId",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "interval": {
+            "$ref": "#/components/schemas/BalanceInterval"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CashFlowPointResponse"
+            }
           }
         }
       },
