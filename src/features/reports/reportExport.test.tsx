@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { catchDownloads, textOf, type SavedFile } from '@/test/downloads'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
-import { fakeReportsApi, type FakeExpense } from '@/test/fakeReportsApi'
+import { fakeReportsApi, type FakeBudget, type FakeExpense, type FakeHolding, type FakeIncome } from '@/test/fakeReportsApi'
 import { renderApp } from '@/test/renderApp'
 
 const report = '/reports/spending-by-category'
@@ -28,25 +28,26 @@ function setUp() {
   return fakeReportsApi({ expenses })
 }
 
-describe('exporting a report', () => {
-  let saved: SavedFile[] = []
+let saved: SavedFile[] = []
 
-  beforeEach(() => {
-    saved = catchDownloads()
-  })
+beforeEach(() => {
+  saved = catchDownloads()
+})
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-    vi.unstubAllGlobals()
-  })
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
-  const exportReport = async (address: string) => {
-    const { user } = renderApp(address)
-    await user.click(await screen.findByRole('button', { name: 'Export CSV' }, { timeout: 5000 }))
-    await waitFor(() => expect(saved).toHaveLength(1))
-    return { name: saved[0]!.name, ...(await textOf(saved[0]!.file)) }
-  }
+/** Opens the report at the address, clicks its export, and gives back the file the browser was handed. */
+const exportReport = async (address: string) => {
+  const { user } = renderApp(address)
+  await user.click(await screen.findByRole('button', { name: 'Export CSV' }, { timeout: 5000 }))
+  await waitFor(() => expect(saved).toHaveLength(1))
+  return { name: saved[0]!.name, ...(await textOf(saved[0]!.file)) }
+}
 
+describe('exporting the spending by category report', () => {
   it('downloads the numbers of the table view as CSV: amounts as plain decimals beside the currency, the period in its name', async () => {
     setUp()
 
@@ -96,6 +97,25 @@ describe('exporting a report', () => {
         '2026-03-05,,,Card,200000.00,VND,false,false,200000.00,VND',
         '',
       ].join('\r\n'),
+    })
+  })
+})
+
+describe('exporting the net worth report', () => {
+  it('downloads the assets, liabilities and net worth at each month end, liabilities above zero as the table shows them', async () => {
+    fakeCategoriesApi()
+    fakeAccountsApi([{ id: 'a-everyday', name: 'Everyday' }])
+    const holdings: FakeHolding[] = [
+      { accountId: 'a-everyday', from: '2026-01-01', balance: '1000000' },
+      { accountId: 'a-visa', from: '2026-01-01', balance: '-300000', holdsAmountOwed: true },
+      { accountId: 'a-loan', from: '2026-02-15', balance: '-5000000', holdsAmountOwed: true },
+    ]
+    fakeReportsApi({ holdings })
+
+    expect(await exportReport('/reports/net-worth?period=custom&from=2026-01-01&to=2026-02-28')).toEqual({
+      name: 'net-worth-2026-01-01-2026-02-28.csv',
+      hasByteOrderMark: true,
+      text: ['date,assets,liabilities,netWorth,notConverted,currency', '2026-01-31,1000000.00,300000.00,700000.00,0,VND', '2026-02-28,1000000.00,5300000.00,-4300000.00,0,VND', ''].join('\r\n'),
     })
   })
 })
