@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Account } from '@/features/accounts'
-import type { Category } from '@/features/categories'
+import { findCategory, type Category } from '@/features/categories'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
+import { formatDate } from '@/shared/dates'
+import { useLocale } from '@/shared/i18n/useLocale'
+import { formatMoney, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
-import { useBulkEdit, type BulkAction, type BulkSelection } from '../api/bulk'
+import { useBulkEdit, type BulkAction, type BulkSelection, type RefusedTransaction } from '../api/bulk'
+import { takesFromBalance } from '../api/transactions'
+import { transactionTitle } from './transactionTitle'
 
 type Props = {
   /** How many transactions are selected. */
@@ -18,7 +23,7 @@ type Props = {
   accounts: Account[]
   /** The category tree, archived too: the ones not archived are offered. */
   categories: Category[]
-  /** What a transaction the API refused is called in the list, by its id. */
+  /** What a transaction the API refused and no longer has is called in the list, by its id. */
   nameOf: (id: string) => string
   /** Called once the action is done, to clear the selection. */
   onDone: () => void
@@ -32,6 +37,7 @@ type Props = {
  */
 export function BulkActions({ count, selection, accounts, categories, nameOf, onDone, onClear }: Props) {
   const { t } = useTranslation()
+  const locale = useLocale()
   const bulk = useBulkEdit()
   const [categoryId, setCategoryId] = useState('')
   const [accountId, setAccountId] = useState('')
@@ -51,6 +57,15 @@ export function BulkActions({ count, selection, accounts, categories, nameOf, on
     .flatMap((category) => [category, ...category.subcategories.filter((sub) => !sub.isArchived)])
     .map((category) => ({ value: category.id, label: category.name }))
   const accountOptions = accounts.filter((account) => !account.isArchived).map((account) => ({ value: account.id, label: account.name }))
+  // Named as the API answers it, loaded on the screen or not: by its title, date and amount, signed as the list signs it.
+  const describe = ({ transactionId, transaction }: RefusedTransaction) =>
+    transaction
+      ? t('transactions.bulk.refusedTransaction', {
+          title: transactionTitle(transaction, findCategory(categories, transaction.categoryId), t),
+          date: formatDate(transaction.date, locale),
+          amount: formatMoney(signedAmount(transaction.amount, takesFromBalance(transaction)), transaction.currency, locale, true),
+        })
+      : nameOf(transactionId)
   const hasTag = tag.trim() !== ''
   const setCategory = () => send({ action: 'setCategory', categoryId })
   const addTag = () => send({ action: 'addTag', tag })
@@ -134,13 +149,18 @@ export function BulkActions({ count, selection, accounts, categories, nameOf, on
           <ul aria-label={t('transactions.bulk.notChanged')} className="list-disc pl-5">
             {outcome.refused.map((row) => (
               <li key={row.transactionId}>
-                {t('transactions.bulk.refusedRow', { name: nameOf(row.transactionId), reason: t(`transactions.bulk.refusals.${row.reason}`) })}
+                {t('transactions.bulk.refusedRow', { name: describe(row), reason: t(`transactions.bulk.refusals.${row.reason}`) })}
               </li>
             ))}
           </ul>
         </div>
       )}
-      {outcome && !outcome.done && 'invalid' in outcome && <ErrorMessage>{t('transactions.bulk.invalid')}</ErrorMessage>}
+      {outcome && !outcome.done && 'fields' in outcome && (
+        <ErrorMessage>{outcome.fields.map((field) => t(`transactions.bulk.fieldRefused.${field}`)).join(' ')}</ErrorMessage>
+      )}
+      {outcome && !outcome.done && 'tooMany' in outcome && (
+        <ErrorMessage>{t('transactions.bulk.tooMany', { max: outcome.tooMany.toLocaleString(locale) })}</ErrorMessage>
+      )}
       <FailureToast failed={bulk.isError} message={t('transactions.bulk.failed')} retry={retry} onDismiss={bulk.reset} />
     </section>
   )

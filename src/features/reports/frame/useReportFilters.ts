@@ -44,10 +44,20 @@ export function useReportFilters(drillDown: readonly string[] = []) {
   const filters = useMemo(() => read(params, today), [params, today])
   // What the address was last set to. The router's own `current` is the address as of the last render, so a
   // second change made before the screen renders again (picking a category, then ticking compare) would
-  // otherwise undo the first.
+  // otherwise undo the first. The router applies each address in a transition, so it can also render one this
+  // hook asked for after a later one was asked for: that one, older, is not what to change from. Only an address
+  // the hook did not ask for (a link, Back) is.
   const latest = useRef(params)
+  const asked = useRef<string[]>([])
   useLayoutEffect(() => {
-    latest.current = params
+    const rendered = asked.current.indexOf(params.toString())
+    if (rendered === -1) {
+      asked.current = []
+      latest.current = params
+    } else {
+      // Those asked for after it are still to come, and the latest of them stays what to change from.
+      asked.current = asked.current.slice(rendered + 1)
+    }
   }, [params])
 
   const change = useCallback(
@@ -76,6 +86,7 @@ export function useReportFilters(drillDown: readonly string[] = []) {
       if ('compare' in changes) set('compare', changes.compare ? 'true' : undefined)
       if ('view' in changes) set('view', changes.view === 'table' ? 'table' : undefined)
       latest.current = next
+      asked.current.push(next.toString())
       // A report is one screen, however many filters it took to get to it: Back leaves it.
       setParams(next, { replace: true })
     },

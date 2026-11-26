@@ -9,3 +9,4 @@ export const transactionsRoutes: RouteObject[] = [
 
 export { QuickAdd } from './components/QuickAdd'
 export { refreshTransactions, takesFromBalance } from './api/transactions'
+export { titleOf } from './components/transactionTitle'

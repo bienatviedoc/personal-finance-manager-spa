@@ -101,17 +101,19 @@ type BreakdownProps = { report: SpendingByCategory; filters: ReportFilters; onCh
 function Breakdown({ report, filters, onChoose }: BreakdownProps) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const labelOf = (item: CategorySpending) =>
-    report.parent && item.category.id === report.parent.id ? t('reports.spending.directly', { name: item.category.name }) : item.category.name
+  // What the category drilled into spent directly, in none of its subcategories, is a row of its own.
+  const isDirectly = (item: CategorySpending) => report.parent?.id === item.category.id
+  const labelOf = (item: CategorySpending) => (isDirectly(item) ? t('reports.spending.directly', { name: item.category.name }) : item.category.name)
   const colors = distinctColors(report.items.map((item) => item.category.color))
   const colorOf = (index: number) => colors[index] ?? report.items[index]!.category.color
   const slices = report.items.map((item, index) => ({ key: item.category.id, value: Number(item.spent), color: colorOf(index) }))
 
   const csv: ReportCsv = {
     name: 'spending-by-category',
-    columns: ['category', 'spent', 'share', ...(report.previous ? ['previousSpent'] : []), 'notConverted', 'currency'],
+    columns: ['row', 'category', 'spent', 'share', ...(report.previous ? ['previousSpent'] : []), 'notConverted', 'currency'],
     rows: report.items.map((item) => [
-      labelOf(item),
+      isDirectly(item) ? 'directly' : 'category',
+      item.category.name,
       item.spent,
       item.share,
       ...(report.previous ? [item.previousSpent] : []),

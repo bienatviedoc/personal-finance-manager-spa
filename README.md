@@ -108,13 +108,17 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
 - **Selecting transactions.** Every transaction the API has can be selected in the list, one by one, or all
   that pass the filters at once ("Select all N transactions", N being the API's `total.count`), loaded on the
-  screen or not. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
+  screen or not. A bulk action takes at most 1,000 (`maxBulkSelection` in `src/shared/api/limits.ts`): a view more
+  pass offers no "Select all" and says to narrow the filters, and if more pass by the time the action is sent, the
+  API's 422 (`bulk-selection-too-large`) says the same. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
   they were selected in, and unselecting one leaves the others loaded selected one by one.
 - **Bulk actions** (spec TXN-7; see the glossary). `BulkActions` acts on what is selected through
   `POST /transactions/bulk` (`useBulkEdit`): set the category, add or remove a tag, move to another account, or
   delete (once confirmed). Selected one by one, it sends their `transactionIds`; all of them, the view's filters as
   `filter`, and the API finds them. All take it or none does: the API decides, never the screen, and when it refuses
   (a 409) the screen names each transaction it refused with why, translated from its `reason`, and keeps the selection.
+  Each refused one comes with the transaction as it is (`transaction`), so it is named by its title, date and amount
+  whether it is loaded on the screen or not; one the API no longer has is named as the list had it.
   Done, the selection is cleared and the lists, balances, budgets and reports are loaded again, as after any change.
 - **Marking as a transfer** (spec IMP-7; see the glossary). Once one or two income and expenses are selected
   (`canBePicked`: not a refund, not a leg), `MarkAsTransfer` is offered; with one expense and one income it sends them to
@@ -209,6 +213,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   and its period (`net-worth-2026-01-01-2026-03-31.csv`). Columns take the API's names, amounts stay as the API
   answers them, plain decimals beside a `currency` column, and dates are `YYYY-MM-DD`; a report that compares adds
   the period before. No report asks the API for a file.
+- **A CSV file is the same in every language.** Nothing in it is translated: a report whose rows are of more than one
+  kind starts each with a `row` column, a fixed code in English saying what the row is, and its other columns hold only
+  numbers, codes, dates and what the user named. Income vs expenses: `month`, `total`, `previousMonth`,
+  `previousTotal`. Budget vs actual: `budget`, `total`, `unbudgeted` (spent in a category with no budget) and
+  `unbudgetedTotal`. Spending by category: `category`, and `directly` for what the category drilled into spent in
+  none of its subcategories. A total names no category; its `category` is empty.
 - **The transaction list downloads as CSV** from the API (`useExportTransactions`, `GET /api/v1/export/transactions.csv`)
   with the filters and sort order in the address: every transaction that passes, not only the pages loaded. A
   failure says so in a toast with a way to try again.

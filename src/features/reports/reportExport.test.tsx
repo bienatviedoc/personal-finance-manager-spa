@@ -39,10 +39,10 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-/** Opens the report at the address, clicks its export, and gives back the file the browser was handed. */
-const exportReport = async (address: string) => {
-  const { user } = renderApp(address)
-  await user.click(await screen.findByRole('button', { name: 'Export CSV' }, { timeout: 5000 }))
+/** Opens the report at the address, in English unless asked, clicks its export, and gives back the file the browser was handed. */
+const exportReport = async (address: string, language: 'en' | 'vi' = 'en') => {
+  const { user } = renderApp(address, { language })
+  await user.click(await screen.findByRole('button', { name: language === 'vi' ? 'Xuất CSV' : 'Export CSV' }, { timeout: 5000 }))
   await waitFor(() => expect(saved).toHaveLength(1))
   return { name: saved[0]!.name, ...(await textOf(saved[0]!.file)) }
 }
@@ -55,9 +55,9 @@ describe('exporting the spending by category report', () => {
       name: 'spending-by-category-2026-03-01-2026-03-31.csv',
       hasByteOrderMark: true,
       text: [
-        'category,spent,share,notConverted,currency',
-        'Food & drink,800000.00,80,0,VND',
-        'Transport,200000.00,20,1,VND',
+        'row,category,spent,share,notConverted,currency',
+        'category,Food & drink,800000.00,80,0,VND',
+        'category,Transport,200000.00,20,1,VND',
         '',
       ].join('\r\n'),
     })
@@ -67,21 +67,28 @@ describe('exporting the spending by category report', () => {
     setUp()
 
     expect((await exportReport(`${report}?${march}&compare=true`)).text).toBe(
-      ['category,spent,share,previousSpent,notConverted,currency', 'Food & drink,800000.00,80,0.00,0,VND', 'Transport,200000.00,20,300000.00,1,VND', ''].join('\r\n'),
+      ['row,category,spent,share,previousSpent,notConverted,currency', 'category,Food & drink,800000.00,80,0.00,0,VND', 'category,Transport,200000.00,20,300000.00,1,VND', ''].join('\r\n'),
     )
   })
 
-  it('downloads a category drilled into as its subcategories, named as the table names them', async () => {
+  it('downloads a category drilled into as its subcategories, and what it spent directly as a row of its own', async () => {
+    setUp()
+    const drilled = [
+      'row,category,spent,share,notConverted,currency',
+      'category,Groceries,500000.00,62.5,0,VND',
+      'directly,Food & drink,200000.00,25,0,VND',
+      'category,Eating out,100000.00,12.5,0,VND',
+      '',
+    ].join('\r\n')
+
+    expect((await exportReport(`${report}?${march}&view=table&parentId=c-food`)).text).toBe(drilled)
+  })
+
+  it('downloads the same file in Vietnamese as in English', async () => {
     setUp()
 
-    expect((await exportReport(`${report}?${march}&view=table&parentId=c-food`)).text).toBe(
-      [
-        'category,spent,share,notConverted,currency',
-        'Groceries,500000.00,62.5,0,VND',
-        'Food & drink (no subcategory),200000.00,25,0,VND',
-        'Eating out,100000.00,12.5,0,VND',
-        '',
-      ].join('\r\n'),
+    expect((await exportReport(`${report}?${march}&view=table&parentId=c-food`, 'vi')).text).toBe(
+      ['row,category,spent,share,notConverted,currency', 'category,Groceries,500000.00,62.5,0,VND', 'directly,Food & drink,200000.00,25,0,VND', 'category,Eating out,100000.00,12.5,0,VND', ''].join('\r\n'),
     )
   })
 
@@ -217,7 +224,7 @@ describe('exporting the trends report', () => {
 })
 
 describe('exporting the budget vs actual report', () => {
-  it('downloads each budget against what was spent, with the totals, then what was spent with no budget', async () => {
+  it.each(['en', 'vi'] as const)('downloads each budget against what was spent, with the totals, then what was spent with no budget, the same in %s', async (language) => {
     fakeCategoriesApi()
     fakeAccountsApi([{ id: 'a-everyday', name: 'Everyday' }])
     const budgets: FakeBudget[] = [
@@ -233,17 +240,17 @@ describe('exporting the budget vs actual report', () => {
       ],
     })
 
-    expect(await exportReport('/reports/budget-vs-actual?period=custom&from=2026-02-01&to=2026-03-31')).toEqual({
+    expect(await exportReport('/reports/budget-vs-actual?period=custom&from=2026-02-01&to=2026-03-31', language)).toEqual({
       name: 'budget-vs-actual-2026-02-01-2026-03-31.csv',
       hasByteOrderMark: true,
       text: [
-        'category,budgeted,spent,remaining,percentSpent,state,budgetedMonths,notConverted,currency',
-        'Groceries,2000000.00,800000.00,1200000.00,40,onTrack,1,0,VND',
-        'Transport,500000.00,0.00,500000.00,0,onTrack,1,0,VND',
-        'Total,2500000.00,800000.00,1700000.00,,,,0,VND',
-        'Transport,,200000.00,,,unbudgeted,,0,VND',
-        'Eating out,,150000.00,,,unbudgeted,,0,VND',
-        'Spent with no budget,,350000.00,,,unbudgeted,,0,VND',
+        'row,category,budgeted,spent,remaining,percentSpent,state,budgetedMonths,notConverted,currency',
+        'budget,Groceries,2000000.00,800000.00,1200000.00,40,onTrack,1,0,VND',
+        'budget,Transport,500000.00,0.00,500000.00,0,onTrack,1,0,VND',
+        'total,,2500000.00,800000.00,1700000.00,,,,0,VND',
+        'unbudgeted,Transport,,200000.00,,,,,0,VND',
+        'unbudgeted,Eating out,,150000.00,,,,,0,VND',
+        'unbudgetedTotal,,,350000.00,,,,,0,VND',
         '',
       ].join('\r\n'),
     })

@@ -382,10 +382,18 @@
         "otherCurrency": "giao dịch chỉ chuyển được sang tài khoản cùng loại tiền.",
         "tooManyTags": "giao dịch đã có 20 thẻ."
       },
-      "invalid": "Không thể chọn danh mục hoặc tài khoản đó nữa. Hãy chọn lại.",
       "failed": "Các giao dịch đã chọn chưa được thay đổi.",
       "selectAll_one": "Chọn {{count}} giao dịch",
-      "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày."
+      "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày.",
+      "tooManyToSelect_other": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
+      "tooMany": "Hiện có hơn {{max}} giao dịch khớp với bộ lọc này. Hãy thu hẹp bộ lọc hoặc chọn ít hơn, rồi thử lại.",
+      "tooManyToSelect_one": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
+      "refusedTransaction": "{{title}}, {{date}}, {{amount}}",
+      "fieldRefused": {
+        "categoryId": "Không thể chọn danh mục đó nữa. Hãy chọn danh mục khác.",
+        "accountId": "Không thể chọn tài khoản đó nữa. Hãy chọn tài khoản khác.",
+        "tag": "Nhập một thẻ từ 1 đến 50 ký tự."
+      }
     },
     "export": {
       "start": "Xuất CSV",

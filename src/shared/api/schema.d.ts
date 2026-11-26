@@ -477,7 +477,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description One action on many transactions at once: setCategory, addTag, removeTag, moveToAccount or delete. Select them by transactionIds, or every one that passes filter, which takes the list's filters; never both, and at most 1000. All of them take the action in one save, or none does: when any cannot, it answers 409 with the problem type urn:pfm:problem:bulk-action-refused, listing each transaction refused and why, and nothing changes. Income takes only an income category and an expense only an expense one; a split keeps its lines and a leg of a transfer has no category; a transaction moves only to an account in its currency, and not while it is reconciled; a reconciled transaction, or a transfer with a reconciled leg, is not deleted. Deleting a leg of a transfer deletes the whole transfer. The balances of the accounts involved follow at once. */
+        /** @description One action on many transactions at once: setCategory, addTag, removeTag, moveToAccount or delete. Select them by transactionIds, or every one that passes filter, which takes the list's filters; never both, and at most 1000: a filter that more pass answers 422 with the problem type urn:pfm:problem:bulk-selection-too-large and its max, and nothing changes. All of them take the action in one save, or none does: when any cannot, it answers 409 with the problem type urn:pfm:problem:bulk-action-refused, listing each transaction refused and why, and nothing changes. Income takes only an income category and an expense only an expense one; a split keeps its lines and a leg of a transfer has no category; a transaction moves only to an account in its currency, and not while it is reconciled; a reconciled transaction, or a transfer with a reconciled leg, is not deleted. Deleting a leg of a transfer deletes the whole transfer. The balances of the accounts involved follow at once. */
         post: operations["BulkEditTransactions"];
         delete?: never;
         options?: never;
@@ -1252,6 +1252,14 @@ export interface components {
         };
         /** @enum {unknown} */
         BulkRefusal: "notFound" | "transferLeg" | "split" | "categoryKind" | "reconciled" | "otherCurrency" | "tooManyTags";
+        BulkSelectionTooLargeProblem: {
+            type: string;
+            title: string;
+            /** Format: int32 */
+            status: number | string;
+            /** Format: int32 */
+            max: number | string;
+        };
         CategoryChangeRequest: {
             name: string;
             kind: components["schemas"]["CategoryKind"];
@@ -1714,6 +1722,7 @@ export interface components {
             transactionId: string;
             reason: components["schemas"]["BulkRefusal"];
             message: string;
+            transaction: null | components["schemas"]["TransactionResponse"];
         };
         RegisterRequest: {
             email: string;
@@ -3712,6 +3721,15 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["BulkActionRefusedProblem"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["BulkSelectionTooLargeProblem"];
                 };
             };
         };

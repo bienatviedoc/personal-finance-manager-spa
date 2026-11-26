@@ -139,11 +139,13 @@ describe('the dashboard', () => {
     expect(await card('Total balance')).toHaveTextContent('Not included: $250.00')
   })
 
-  it('shows skeletons while it loads', async () => {
+  it('shows a skeleton for each card while it loads, laid out as the cards are', async () => {
     const api = fakeDashboardApi({ hasAccounts: true }, { held: true })
     renderApp('/')
 
-    expect(await screen.findByRole('status', { name: 'Loading the dashboard' })).toBeInTheDocument()
+    const loading = await screen.findByRole('status', { name: 'Loading the dashboard' })
+    // Six cards, the latest transactions and what is coming up each across the whole width.
+    expect([...loading.children].map((skeleton) => skeleton.classList.contains('md:col-span-2'))).toEqual([false, false, false, false, true, true])
     api.release()
     expect(await card('Total balance')).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading the dashboard' })).not.toBeInTheDocument()

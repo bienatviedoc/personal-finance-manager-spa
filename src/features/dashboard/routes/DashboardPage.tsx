@@ -47,13 +47,16 @@ export function DashboardPage() {
   )
 }
 
-/** Cards standing in for the dashboard while it loads. */
+/** Whether each card is as wide as the dashboard, in the order they are shown: the latest transactions and what is coming up are. */
+const wideCards = [false, false, false, false, true, true]
+
+/** A card standing in for each of the dashboard's while it loads, laid out as they are. */
 function DashboardSkeleton() {
   const { t } = useTranslation()
   return (
     <div role="status" aria-busy aria-label={t('dashboard.loading')} className="grid gap-4 md:grid-cols-2">
-      {[0, 1, 2, 3].map((card) => (
-        <div key={card} className="space-y-3 rounded-lg border p-4">
+      {wideCards.map((wide, card) => (
+        <div key={card} className={cn('space-y-3 rounded-lg border p-4', wide && 'md:col-span-2')}>
           <span className="block h-4 w-24 animate-pulse rounded bg-muted" />
           <span className="block h-8 w-40 animate-pulse rounded bg-muted" />
           <span className="block h-4 w-full animate-pulse rounded bg-muted" />

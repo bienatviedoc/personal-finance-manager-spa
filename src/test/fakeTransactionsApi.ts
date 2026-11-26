@@ -67,7 +67,7 @@ type Options = {
  * same way, and is neither marked from a reconciled transaction nor unmarked.
  *
  * A bulk action (see the API's BulkEditTests) acts on the `transactionIds` sent or on every transaction that passes
- * `filter`, never both, all or none: when any cannot take it, it answers 409 `bulk-action-refused` listing each one
+ * `filter`, never both, at most 1000 (a filter more pass answers 422 `bulk-selection-too-large`), all or none: when any cannot take it, it answers 409 `bulk-action-refused` listing each one
  * and why, and changes nothing. A category takes only transactions of its kind, and not a split or a leg; a
  * transaction moves only to an account in its currency, and not while reconciled or a leg; a reconciled one is not
  * deleted, and deleting a leg deletes its transfer; a transaction takes at most 20 tags.
@@ -416,7 +416,9 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if ((ids === null) === !body.filter || (ids !== null && (ids.length === 0 || ids.length > 1000)))
       return invalid('transactionIds', 'Select 1 to 1000 transactions by their ids, or by a filter.')
     const refused: RefusedTransaction[] = []
-    const refuse = (transactionId: string, reason: RefusedTransaction['reason']) => refused.push({ transactionId, reason, message: reason })
+    // Each refused one comes as it is, unchanged, so the screen can name it; one not found, as nothing.
+    const refuse = (transactionId: string, reason: RefusedTransaction['reason']) =>
+      refused.push({ transactionId, reason, message: reason, transaction: find(transactionId) ?? null })
     let selected: Transaction[]
     if (ids) {
       for (const id of ids.filter((id) => !find(id))) refuse(id, 'notFound')
@@ -424,6 +426,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     } else {
       const query = new URLSearchParams(Object.entries(body.filter!).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
       selected = state.transactions.filter(passes(query))
+      if (selected.length > 1000)
+        return problem(422, { type: 'urn:pfm:problem:bulk-selection-too-large', title: 'More than 1000 transactions pass this filter.', max: 1000 })
     }
     const tag = body.tag?.trim().toLowerCase() ?? ''
     if ((body.action === 'addTag' || body.action === 'removeTag') && (tag === '' || tag.length > 50)) return invalid('tag', 'Enter a tag of 1 to 50 characters.')

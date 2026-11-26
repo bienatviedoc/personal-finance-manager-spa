@@ -16,6 +16,7 @@ function fakeApis(transactions: Parameters<typeof fakeTransactionsApi>[0]) {
   const categoriesApi = fakeCategoriesApi({ categories: defaultTestCategories })
   return Object.assign(fakeTransactionsApi(transactions, { accounts: accountsApi.accounts, categories: categoriesApi.categories }), {
     accounts: accountsApi.accounts,
+    categories: categoriesApi.categories,
   })
 }
 
@@ -71,12 +72,56 @@ describe('bulk actions', () => {
 
     const refused = await bar().findByRole('list', { name: 'Not changed' })
     expect(within(refused).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      'Payroll: income takes an income category, and an expense an expense one.',
+      'Payroll, Nov 1, 2026, +₫9,000,000: income takes an income category, and an expense an expense one.',
     ])
     expect(bar().getByText('Nothing was changed: these transactions cannot take it.')).toBeInTheDocument()
     expect(transactionsApi.transactions[0]?.categoryId).toBe('c-groceries')
     // The selection stays, for the user to change it and try again.
     expect(screen.getByRole('checkbox', { name: 'Select Co.op Mart' })).toBeChecked()
+  })
+
+  it('name each transaction refused by its payee, date and amount, loaded on the screen or not', async () => {
+    fakeApis([
+      ...Array.from({ length: 60 }, (_, index) => ({
+        type: 'expense' as const,
+        accountId: everyday,
+        amount: '1000.00',
+        date: '2026-11-02',
+        categoryId: 'c-groceries',
+        payee: `Shop ${index}`,
+      })),
+      { type: 'income', accountId: everyday, amount: '9000000.00', date: '2026-10-01', categoryId: 'c-salary', payee: 'Payroll' },
+    ])
+    window.innerHeight = 768
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select all 61 transactions' }))
+    // The oldest is on a page not loaded yet.
+    expect(screen.queryByRole('checkbox', { name: 'Select Payroll' })).not.toBeInTheDocument()
+    await user.selectOptions(bar().getByLabelText('Category'), 'Transport')
+    await user.click(bar().getByRole('button', { name: 'Set category' }))
+
+    const refused = await bar().findByRole('list', { name: 'Not changed' })
+    expect(within(refused).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Payroll, Oct 1, 2026, +₫9,000,000: income takes an income category, and an expense an expense one.',
+    ])
+  })
+
+  it('say which of the category and the account named can no longer be chosen, field by field', async () => {
+    const transactionsApi = fakeApis(shopping)
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select Grab' }))
+    await user.selectOptions(bar().getByLabelText('Category'), 'Eating out')
+    transactionsApi.categories.find((category) => category.id === 'c-eating-out')!.isArchived = true
+    await user.click(bar().getByRole('button', { name: 'Set category' }))
+    expect(await bar().findByText('That category can no longer be chosen. Choose another.')).toBeInTheDocument()
+
+    await user.selectOptions(bar().getByLabelText('Account'), 'Savings')
+    transactionsApi.accounts.find((account) => account.id === savings)!.isArchived = true
+    await user.click(bar().getByRole('button', { name: 'Move' }))
+    expect(await bar().findByText('That account can no longer be chosen. Choose another.')).toBeInTheDocument()
+    expect(bar().queryByText('That category can no longer be chosen. Choose another.')).not.toBeInTheDocument()
   })
 
   it('add a tag to and remove one from the selected transactions', async () => {
@@ -123,7 +168,7 @@ describe('bulk actions', () => {
     await user.click(bar().getByRole('button', { name: 'Move' }))
 
     const refused = await bar().findByRole('list', { name: 'Not changed' })
-    expect(within(refused).getByRole('listitem')).toHaveTextContent('Grab: a transaction moves only to an account in its own currency.')
+    expect(within(refused).getByRole('listitem')).toHaveTextContent('Grab, Nov 2, 2026, -₫200,000: a transaction moves only to an account in its own currency.')
     expect(listed()[1]).toEqual(['Grab', 'Transport · Everyday · Nov 2, 2026'])
   })
 
@@ -166,6 +211,32 @@ describe('bulk actions', () => {
     await waitFor(() => expect(transactionsApi.bulkRequests).toEqual([{ action: 'addTag', filter: { accountId: everyday }, tag: 'weekly' }]))
     await waitFor(() => expect(transactionsApi.transactions.filter((transaction) => transaction.tags.includes('weekly'))).toHaveLength(60))
     expect(transactionsApi.transactions.find((transaction) => transaction.payee === 'Elsewhere')?.tags).toEqual([])
+  })
+
+  it('do not offer to select all of a view that more transactions pass than one action takes, and say to narrow the filters', async () => {
+    fakeApis(Array.from({ length: 1001 }, (_, index) => ({ ...shopping[0]!, payee: `Shop ${index}` })))
+    window.innerHeight = 768
+    renderApp('/transactions')
+
+    expect(await screen.findByText('1,001 transactions pass these filters, and a bulk action takes at most 1,000. Narrow the filters to select them all.')).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: /Select all/ })).not.toBeInTheDocument()
+    // Each can still be selected one by one.
+    expect(screen.getAllByRole('checkbox', { name: /^Select Shop/ }).length).toBeGreaterThan(0)
+  })
+
+  it('say to narrow the filters when more transactions pass them by the time the action is sent than one action takes', async () => {
+    const transactionsApi = fakeApis(Array.from({ length: 1000 }, (_, index) => ({ ...shopping[0]!, payee: `Shop ${index}` })))
+    window.innerHeight = 768
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select all 1000 transactions' }))
+    transactionsApi.transactions.push({ ...transactionsApi.transactions[0]!, id: 'one-more' })
+    await user.type(bar().getByLabelText('Tag'), 'weekly')
+    await user.click(bar().getByRole('button', { name: 'Add tag' }))
+
+    expect(await bar().findByText('More than 1,000 transactions pass these filters now. Narrow the filters, or select fewer, and try again.')).toBeInTheDocument()
+    expect(bar().queryByText(/can no longer be chosen/)).not.toBeInTheDocument()
+    expect(transactionsApi.transactions.filter((transaction) => transaction.tags.includes('weekly'))).toHaveLength(0)
   })
 
   it('unselecting one row of all of them keeps the others that are loaded', async () => {
