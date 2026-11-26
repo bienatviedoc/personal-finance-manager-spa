@@ -4413,12 +4413,155 @@
         }
       }
     },
+    "/api/v1/budgets/{month}/overall": {
+      "put": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Sets the overall budget of a month: a cap on all of its spending in the user's base currency, whether or not a category has a budget of its own, and independent of the category budgets. Setting a new one answers 201 and sends no If-Match; changing the amount of one that exists answers 200 and must send the row version last read as If-Match: a stale one answers 412, none answers 428.",
+        "operationId": "SetOverallBudget",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverallBudgetResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverallBudgetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Removes the overall budget of a month. Its category budgets stay.",
+        "operationId": "RemoveOverallBudget",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/budgets/{month}/copy-from/{sourceMonth}": {
       "post": {
         "tags": [
           "Budgets"
         ],
-        "description": "Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount.",
+        "description": "Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount. Its overall budget is copied too when the month has none.",
         "operationId": "CopyBudgets",
         "parameters": [
           {
@@ -5390,7 +5533,9 @@
           "currency",
           "warningPercent",
           "items",
-          "totals"
+          "totals",
+          "overall",
+          "percentOfMonthElapsed"
         ],
         "type": "object",
         "properties": {
@@ -5416,8 +5561,34 @@
           },
           "totals": {
             "$ref": "#/components/schemas/BudgetTotalsResponse"
+          },
+          "overall": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OverallBudgetResponse"
+              }
+            ]
+          },
+          "percentOfMonthElapsed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
+      },
+      "BudgetPace": {
+        "enum": [
+          "onPace",
+          "aheadOfPace",
+          null
+        ]
       },
       "BudgetRequest": {
         "required": [
@@ -5440,7 +5611,8 @@
           "percentSpent",
           "state",
           "notConverted",
-          "rowVersion"
+          "rowVersion",
+          "pace"
         ],
         "type": "object",
         "properties": {
@@ -5482,6 +5654,16 @@
           },
           "rowVersion": {
             "type": "string"
+          },
+          "pace": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BudgetPace"
+              }
+            ]
           }
         }
       },
@@ -7035,6 +7217,63 @@
           },
           "mode": {
             "$ref": "#/components/schemas/RecurringMode"
+          }
+        }
+      },
+      "OverallBudgetResponse": {
+        "required": [
+          "budgeted",
+          "spent",
+          "remaining",
+          "percentSpent",
+          "state",
+          "pace",
+          "notConverted",
+          "rowVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetState"
+          },
+          "pace": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BudgetPace"
+              }
+            ]
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rowVersion": {
+            "type": "string"
           }
         }
       },
