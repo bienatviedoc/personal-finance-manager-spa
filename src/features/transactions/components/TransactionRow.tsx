@@ -91,6 +91,15 @@ export function TransactionRow({ transaction, account, category, categories, onE
             </ul>
           )}
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
+          {transaction.tags.length > 0 && (
+            <ul aria-label={t('transactions.tags.of', { name: title })} className="flex flex-wrap gap-1 pt-1">
+              {transaction.tags.map((tag) => (
+                <li key={tag} data-testid="tag" className="rounded-full border bg-muted px-2 text-xs text-muted-foreground">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          )}
           {transaction.recurringRuleId && <RecurringRuleLink ruleId={transaction.recurringRuleId} />}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">

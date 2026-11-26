@@ -236,6 +236,8 @@
       "allAccounts": "All accounts",
       "allCategories": "All categories",
       "allTypes": "All types",
+      "tag": "Tag",
+      "allTags": "All tags",
       "sortBy": "Sort by",
       "sort": {
         "dateDesc": "Newest first",
@@ -275,6 +277,13 @@
     "chooseCategory": "Type to find a category",
     "noCategoryMatches": "No category matches.",
     "categorySuggested": "Suggested from your earlier transactions with this payee.",
+    "tags": {
+      "label": "Tags",
+      "hint": "Labels across categories, such as tet-2027 or japan-trip. Type one and press Enter, or pick one you have used.",
+      "chosen": "Chosen tags",
+      "remove": "Remove tag {{name}}",
+      "of": "Tags of {{name}}"
+    },
     "payee": "Payee",
     "note": "Note",
     "save": "Save",
@@ -316,6 +325,7 @@
       "category": "Choose a category.",
       "payeeTooLong": "Use at most 200 characters.",
       "noteTooLong": "Use at most 1000 characters.",
+      "tags": "Use at most 20 tags, each of at most 50 characters.",
       "linesLeft": "The lines must add up to the amount: {{amount}} left to split.",
       "linesOver": "The lines must add up to the amount: they come to {{amount}} more.",
       "lines": "Check the lines: each needs one of your categories that is not archived and an amount, and together they must add up to the amount.",

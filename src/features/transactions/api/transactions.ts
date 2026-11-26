@@ -25,7 +25,7 @@ type MissingType = Exclude<TransactionType, (typeof transactionTypes)[number] | 
 export const everyTransactionTypeListed: MissingType extends never ? true : MissingType = true
 
 /** Fields the API can refuse, which the form shows its own translated message for. `lines` stands for anything about a split's lines. */
-const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note', 'isRefund', 'lines'] as const
+const transactionFields = ['type', 'accountId', 'amount', 'date', 'categoryId', 'payee', 'note', 'isRefund', 'lines', 'tags'] as const
 export type TransactionField = (typeof transactionFields)[number]
 
 export type SaveOutcome = VersionedSaveOutcome<'transaction', Transaction, TransactionField>
@@ -197,6 +197,8 @@ function useSaveTransaction<Draft extends TransactionDraft>(
         currency,
         payee: fields.payee?.trim() || null,
         note: fields.note?.trim() || null,
+        // The form sends them as the API keeps them.
+        tags: fields.tags ?? [],
       }
       queryClient.setQueryData<LoadedPages>(list.queryKey, (data) => data && withTransaction(data, shown))
       return { before }
