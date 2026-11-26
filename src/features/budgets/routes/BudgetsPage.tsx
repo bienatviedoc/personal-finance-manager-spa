@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
-import { ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Copy, List, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, List } from 'lucide-react'
 import { useId, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -15,6 +15,7 @@ import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { amountExample, AmountInput, Money, type AmountValue, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
+import { budgetStates } from '../components/budgetStates'
 import { budgetsQuery, useCopyBudgets, useRemoveBudget, useSetBudget, type Budget, type BudgetState, type BudgetTotals } from '../api/budgets'
 import type { BudgetMonth } from '../budgetMonth'
 
@@ -364,15 +365,9 @@ function TransactionsBehind({ to, name, month }: { to: string; name: string; mon
 }
 
 /** How each state looks. The words and the icon's shape say it; colour only adds to them (spec section 8). */
-const states: Record<BudgetState, { label: ParseKeys; icon: LucideIcon; badge: string; bar: string }> = {
-  onTrack: { label: 'budgets.states.onTrack', icon: CircleCheck, badge: 'text-success', bar: 'bg-success' },
-  warning: { label: 'budgets.states.warning', icon: TriangleAlert, badge: 'text-warning', bar: 'bg-warning' },
-  over: { label: 'budgets.states.over', icon: CircleAlert, badge: 'text-destructive', bar: 'bg-destructive' },
-}
-
 function StateBadge({ state }: { state: BudgetState }): ReactNode {
   const { t } = useTranslation()
-  const { label, icon: Icon, badge } = states[state]
+  const { label, icon: Icon, text: badge } = budgetStates[state]
 
   return (
     <span className={cn('inline-flex items-center gap-1 text-sm font-medium', badge)}>
@@ -400,7 +395,7 @@ function Progress({ budget, name, currency }: { budget: Budget; name: string; cu
           aria-valuenow={filled}
           className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
         >
-          <div className={cn('h-full rounded-full', states[budget.state].bar)} style={{ width: `${filled}%` }} />
+          <div className={cn('h-full rounded-full', budgetStates[budget.state].bar)} style={{ width: `${filled}%` }} />
         </div>
         {percent !== null && <span className="w-12 text-right text-sm tabular-nums text-muted-foreground">{t('budgets.percent', { percent })}</span>}
       </div>

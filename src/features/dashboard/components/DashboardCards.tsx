@@ -1,12 +1,13 @@
 import type { ParseKeys } from 'i18next'
-import { CircleAlert, CircleCheck, TriangleAlert, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { budgetStates } from '@/features/budgets'
+import { takesFromBalance, titleOf } from '@/features/transactions'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { joinDetails } from '@/shared/lib/details'
 import { cn } from '@/shared/lib/utils'
 import { formatMoney, Money, signedAmount, type Currency } from '@/shared/money'
-import { takesFromBalance, type Dashboard, type DashboardBudgets, type DashboardOccurrence, type DashboardTransaction } from '../api/dashboard'
+import type { Dashboard, DashboardOccurrence } from '../api/dashboard'
 import { Card } from './Card'
 
 /** Where the screens and reports behind the cards are. A report is of this month: a preset the reports screen works out again on the day it is opened. */
@@ -71,12 +72,6 @@ export function ThisMonthCard({ dashboard }: { dashboard: Dashboard }) {
   )
 }
 
-const states: Record<DashboardBudgets['needingAttention'][number]['state'], { label: ParseKeys; icon: LucideIcon; text: string; bar: string }> = {
-  onTrack: { label: 'budgets.states.onTrack', icon: CircleCheck, text: 'text-success', bar: 'bg-success' },
-  warning: { label: 'budgets.states.warning', icon: TriangleAlert, text: 'text-warning', bar: 'bg-warning' },
-  over: { label: 'budgets.states.over', icon: CircleAlert, text: 'text-destructive', bar: 'bg-destructive' },
-}
-
 /**
  * This month's budgets added up, how many are in each state, and the ones over or at warning. A state is said in
  * words beside an icon of its own shape, never by colour alone.
@@ -97,7 +92,7 @@ export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
   const percent = budgets.percentSpent === null ? null : Number(budgets.percentSpent)
   const [over, warning, onTrack, notConverted] = [budgets.over, budgets.warning, budgets.onTrack, budgets.notConverted].map(Number) as [number, number, number, number]
   const filled = percent === null ? 0 : Math.min(100, Math.max(0, percent))
-  const worst = over > 0 ? states.over : warning > 0 ? states.warning : states.onTrack
+  const worst = over > 0 ? budgetStates.over : warning > 0 ? budgetStates.warning : budgetStates.onTrack
   return (
     <Card title={t('dashboard.budgets.title')} to={screens.budgets} linkLabel={t('dashboard.budgets.link')}>
       <p className="tabular-nums">
@@ -124,7 +119,7 @@ export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
       {budgets.needingAttention.length > 0 && (
         <ul aria-label={t('dashboard.budgets.needingAttention')} className="space-y-1">
           {budgets.needingAttention.map((budget) => {
-            const { label, icon: Icon, text } = states[budget.state]
+            const { label, icon: Icon, text } = budgetStates[budget.state]
             return (
               <li key={budget.category.id} className="flex flex-wrap items-center gap-x-2 text-sm">
                 <span className="flex-1 font-medium">{budget.category.name}</span>
@@ -183,8 +178,6 @@ export function TopCategoriesCard({ dashboard }: { dashboard: Dashboard }) {
 export function RecentTransactionsCard({ dashboard }: { dashboard: Dashboard }) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const titleOf = (transaction: DashboardTransaction) =>
-    transaction.payee ?? (transaction.isSplit ? t('transactions.split.transaction') : transaction.category?.name) ?? t(`transactions.types.${transaction.type}`)
   return (
     <Card title={t('dashboard.recent.title')} to={screens.transactions} linkLabel={t('dashboard.recent.link')} className="md:col-span-2">
       {dashboard.recentTransactions.length === 0 ? (
@@ -194,7 +187,7 @@ export function RecentTransactionsCard({ dashboard }: { dashboard: Dashboard }) 
           {dashboard.recentTransactions.map((transaction) => (
             <Row
               key={transaction.id}
-              title={titleOf(transaction)}
+              title={titleOf({ ...transaction, categoryName: transaction.category?.name }, t)}
               details={joinDetails([
                 formatDate(transaction.date, locale),
                 transaction.account.name,

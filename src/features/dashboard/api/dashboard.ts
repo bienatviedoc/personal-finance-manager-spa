@@ -29,7 +29,3 @@ export const dashboardQuery = () =>
 export function refreshDashboard(queryClient: QueryClient) {
   return queryClient.invalidateQueries({ queryKey: dashboardKey })
 }
-
-/** Whether a transaction takes its amount from the balance, and so is shown with a minus: an expense that is not a refund, or a transfer out. */
-export const takesFromBalance = ({ type, isRefund }: Pick<DashboardTransaction, 'type' | 'isRefund'>) =>
-  (type === 'expense' && !isRefund) || type === 'transferOut'
