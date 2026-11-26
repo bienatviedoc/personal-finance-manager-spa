@@ -459,6 +459,13 @@
     "record": "Record",
     "dismiss": "Dismiss",
     "dismissNamed": "Dismiss {{name}}, due on {{date}}",
+    "upcoming": "Next {{days}} days",
+    "upcomingList": "Due in the next {{days}} days",
+    "upcomingEmpty": "Nothing is due in the next {{days}} days.",
+    "occurrenceModes": {
+      "autoPost": "Recorded for you",
+      "remind": "Reminder"
+    },
     "save": "Save",
     "cancel": "Cancel",
     "nextOn": "Next on {{date}}",

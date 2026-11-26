@@ -411,6 +411,47 @@ describe('the reminders of a rule that reminds', () => {
   })
 })
 
+describe('the upcoming list', () => {
+  /** Each occurrence listed: when it is due, what it is headed by, what happens on the day, and its amount. */
+  function upcoming() {
+    return within(screen.getByRole('list', { name: 'Due in the next 30 days' }))
+      .getAllByRole('listitem')
+      .map((item) => [
+        within(item).getByTestId('due').textContent,
+        within(item).getByRole('heading').textContent,
+        within(item).getByTestId('what').textContent,
+        within(item).getByTestId('amount').textContent,
+      ])
+  }
+
+  it('shows every occurrence due in the next 30 days across all rules, earliest first, saying which will be reminders', async () => {
+    const { rulesApi } = fakeApis([
+      { ...rent, payee: 'Cleaner', amount: '300000.00', frequency: 'weekly', startDate: daysFromToday(3) },
+      { ...rent, mode: 'remind', startDate: daysFromToday(5) },
+      { ...rent, payee: 'Gym', startDate: daysFromToday(4), isPaused: true },
+      { ...rent, payee: 'Later', startDate: daysFromToday(31) },
+    ])
+    renderApp('/recurring')
+
+    await screen.findByRole('list', { name: 'Due in the next 30 days' })
+    expect(upcoming()).toEqual([
+      [shown(daysFromToday(3)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+      [shown(daysFromToday(5)), 'Landlord', 'Reminder', '-₫9,000,000'],
+      [shown(daysFromToday(10)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+      [shown(daysFromToday(17)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+      [shown(daysFromToday(24)), 'Cleaner', 'Recorded for you', '-₫300,000'],
+    ])
+    expect(rulesApi.upcomingAsked).toEqual([30])
+  })
+
+  it('says so when nothing is due in the next 30 days', async () => {
+    fakeApis([{ ...rent, startDate: daysFromToday(40) }])
+    renderApp('/recurring')
+
+    expect(await screen.findByText('Nothing is due in the next 30 days.')).toBeInTheDocument()
+  })
+})
+
 describe('a transaction a recurring rule posted', () => {
   it('links back to its rule, which the recurring screen then points out', async () => {
     const { accountsApi, categoriesApi } = fakeApis([{ ...rent, payee: 'Gym' }, rent])

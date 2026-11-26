@@ -104,6 +104,8 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
     }),
     /** Every request that changes something, in the order they arrived; a body where one was sent. */
     requests: [] as { method: string; path: string; body?: Partial<RecurringRuleRequest> | Partial<ConfirmReminderRequest> }[],
+    /** The `days` of every upcoming list asked for, in the order they were. */
+    upcomingAsked: [] as number[],
     /** The `If-Match` header of every edit, in the order they arrived. */
     ifMatches: [] as (string | null)[],
     /** The next request that changes something fails with a 500, having saved nothing. */
@@ -221,6 +223,17 @@ export function fakeRecurringRulesApi(rules: Partial<RecurringRule>[] = [], { ac
       const items = state.rules
         .filter((rule) => rule.mode === 'remind')
         .flatMap((rule) => unsettledThrough(rule, today).map((dueDate) => occurrence(rule, dueDate)))
+      return HttpResponse.json({ items: items.sort(byDueDate) })
+    }),
+    http.get(apiUrl('/api/v1/recurring-rules/upcoming'), ({ request }) => {
+      const days = Number(new URL(request.url).searchParams.get('days') ?? 30)
+      state.upcomingAsked.push(days)
+      if (!Number.isInteger(days) || days < 1 || days > 90) return problem(400, { errors: { days: ['Look 1 to 90 days ahead.'] } })
+      const items = state.rules.flatMap((rule) =>
+        unsettledThrough(rule, addDays(today, days))
+          .filter((dueDate) => dueDate > today)
+          .map((dueDate) => occurrence(rule, dueDate)),
+      )
       return HttpResponse.json({ items: items.sort(byDueDate) })
     }),
     http.post(apiUrl('/api/v1/recurring-rules/:id/reminders/:dueDate/confirm'), answerReminder(true)),

@@ -75,6 +75,23 @@ export const remindersQuery = queryOptions({
   },
 })
 
+/** How many days ahead the upcoming list looks (spec REC-3). */
+export const upcomingDays = 30
+
+/**
+ * Every occurrence of the user's rules due after today and within `days` days, earliest first, whether it
+ * will be recorded or be a reminder. A paused rule has none.
+ */
+export const upcomingQuery = (days: number = upcomingDays) =>
+  queryOptions({
+    queryKey: [...recurringRulesKey, 'upcoming', days],
+    queryFn: async () => {
+      const { data, response } = await api.GET('/api/v1/recurring-rules/upcoming', { params: { query: { days } } })
+      if (!data) throw new Error(`Could not load the upcoming occurrences: ${response.status}`)
+      return data.items
+    },
+  })
+
 /** Fields answering a reminder can be refused on: the amount, or the due date when an earlier reminder of the rule is waiting. */
 const reminderFields = ['amount', 'dueDate'] as const
 export type ReminderField = (typeof reminderFields)[number]

@@ -459,6 +459,13 @@
     "record": "Ghi",
     "dismiss": "Bỏ qua",
     "dismissNamed": "Bỏ qua {{name}}, đến hạn vào {{date}}",
+    "upcoming": "{{days}} ngày tới",
+    "upcomingList": "Đến hạn trong {{days}} ngày tới",
+    "upcomingEmpty": "Không có khoản nào đến hạn trong {{days}} ngày tới.",
+    "occurrenceModes": {
+      "autoPost": "Được ghi tự động",
+      "remind": "Nhắc nhở"
+    },
     "save": "Lưu",
     "cancel": "Hủy",
     "nextOn": "Lần tới vào {{date}}",
