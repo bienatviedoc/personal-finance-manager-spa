@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { refreshTransactions } from '@/features/transactions'
 import { api } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
@@ -55,6 +56,47 @@ export function useArchiveCategory() {
       if (!response.ok) throw new Error(`Archiving a category failed: ${response.status}`)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: categoriesKey }),
+  })
+}
+
+/** What merging a category moves: its transactions (a split counts once) and its budgets, in every month. */
+export type CategoryMergeCounts = components['schemas']['CategoryMergeResponse']
+
+export type MergeOutcome = { merged: true; moved: CategoryMergeCounts } | { merged: false }
+
+/** What merging the category would move, for the user to see before they confirm. Changes nothing. */
+export const categoryMergePreviewQuery = (id: string) =>
+  queryOptions({
+    queryKey: [...categoriesKey, 'merge-preview', id],
+    queryFn: async () => {
+      const { data, response } = await api.GET('/api/v1/categories/{id}/merge-preview', { params: { path: { id } } })
+      if (!data) throw new Error(`Could not load what a merge moves: ${response.status}`)
+      return data
+    },
+    // What it moves changes whenever a transaction or budget does: always ask again.
+    staleTime: 0,
+    gcTime: 0,
+  })
+
+/**
+ * Merges a category into another of the same kind (spec CAT-3): its transactions, budgets, recurring rules and
+ * subcategories move there, and it is archived. `{ merged: false }` when the API refuses the target, which it
+ * does for a merge that would make three levels or budget a category and its parent in the same month.
+ */
+export function useMergeCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, targetId }: { id: string; targetId: string }): Promise<MergeOutcome> => {
+      const { data, error, response } = await api.POST('/api/v1/categories/{id}/merge', { params: { path: { id } }, body: { targetId } })
+      if (data) return { merged: true, moved: data }
+      if (refusedFields(response, error, ['targetId'] as const)) return { merged: false }
+      throw new Error(`Merging a category failed: ${response.status}`)
+    },
+    onSuccess: (outcome) => {
+      if (!outcome.merged) return
+      // Every transaction and budget on it now shows under the category merged into.
+      return Promise.all([queryClient.invalidateQueries({ queryKey: categoriesKey }), refreshTransactions(queryClient)])
+    },
   })
 }
 
