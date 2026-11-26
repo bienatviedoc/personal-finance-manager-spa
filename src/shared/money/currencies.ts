@@ -37,6 +37,12 @@ export function isZeroAmount(amount: DecimalString): boolean {
   return /^-?0+(\.0+)?$/.test(amount)
 }
 
+/** Whether two amounts are the same, read from their digits: `"100.00"` and `"100"` are. Neither becomes a number. */
+export function sameAmount(a: DecimalString, b: DecimalString): boolean {
+  const digitsOf = (amount: DecimalString) => (amount.includes('.') ? amount.replace(/\.?0+$/, '') : amount)
+  return digitsOf(a) === digitsOf(b)
+}
+
 /** Whether an amount is below zero, read from its sign: `"-0"` is not. */
 export function isNegativeAmount(amount: DecimalString): boolean {
   return amount.startsWith('-') && !isZeroAmount(amount)

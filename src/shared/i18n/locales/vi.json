@@ -252,7 +252,11 @@
       "count_other": "{{count}} giao dịch",
       "income": "Khoản thu",
       "expenses": "Khoản chi",
-      "net": "Chênh lệch"
+      "net": "Chênh lệch",
+      "spent": "Đã chi trong danh mục, như ngân sách tính",
+      "spentNotConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+      "spentNotConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+      "byCurrency": "Theo từng loại tiền, chưa quy đổi"
     },
     "type": "Loại",
     "types": {
@@ -338,6 +342,23 @@
     "save": "Lưu",
     "cancel": "Hủy",
     "deleteExplained": "Xóa chuyển khoản này? Cả hai vế sẽ không còn trong danh sách này, và số dư của hai tài khoản trở lại như trước.",
+    "markAs": "Đánh dấu là chuyển khoản",
+    "markTitle": "Đã chọn để đánh dấu là chuyển khoản",
+    "markExplained": "Chọn một khoản chi ở một tài khoản và khoản thu tương ứng ở tài khoản khác, như hai dòng sao kê nhập vào khi thanh toán thẻ. Sau khi đánh dấu, cả hai không còn được tính là chi tiêu hay thu nhập.",
+    "pick": "Chọn {{name}}",
+    "clearPicked": "Bỏ chọn",
+    "whyNot": {
+      "types": "Chọn một khoản chi và một khoản thu.",
+      "sameAccount": "Chuyển khoản phải giữa hai tài khoản khác nhau.",
+      "date": "Hai giao dịch phải cùng ngày.",
+      "amount": "Giữa hai tài khoản cùng loại tiền, hai giao dịch phải có cùng số tiền."
+    },
+    "unmark": "Bỏ đánh dấu chuyển khoản",
+    "unmarkExplained": "Chuyển chuyển khoản này trở lại thành một khoản chi và một khoản thu. Vế chuyển khoản không có danh mục, nên hãy chọn danh mục cho mỗi vế.",
+    "unmarkConfirm": "Bỏ đánh dấu",
+    "expenseCategory": "Danh mục của khoản chi ({{account}})",
+    "incomeCategory": "Danh mục của khoản thu ({{account}})",
+    "chooseCategory": "Chọn danh mục",
     "errors": {
       "account": "Chọn một tài khoản của bạn chưa bị lưu trữ.",
       "sameAccount": "Chọn một tài khoản khác với tài khoản chuyển tiền đi.",
@@ -351,7 +372,11 @@
       "stale": "Chuyển khoản này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "notLoaded": "Chưa tải được chuyển khoản. Hãy thử lại.",
       "notSaved": "Chưa lưu được chuyển khoản.",
-      "notDeleted": "Chưa xóa được chuyển khoản."
+      "notDeleted": "Chưa xóa được chuyển khoản.",
+      "markRefused": "Không thể đánh dấu hai giao dịch này là chuyển khoản: một trong hai đã được thay đổi ở nơi khác. Hãy kiểm tra và thử lại.",
+      "notMarked": "Chưa đánh dấu được hai giao dịch là chuyển khoản.",
+      "categoryArchived": "Chọn một danh mục của bạn chưa bị lưu trữ.",
+      "notUnmarked": "Chưa bỏ đánh dấu được chuyển khoản."
     }
   },
   "attachments": {
@@ -480,6 +505,8 @@
     "percent": "{{percent}}%",
     "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+    "transactions": "Xem giao dịch",
+    "transactionsBehind": "Các giao dịch của {{name}} trong {{month}}",
     "copy": {
       "action": "Sao chép ngân sách từ {{month}}",
       "done_zero": "Không sao chép ngân sách nào từ {{month}}: mọi danh mục có ngân sách ở tháng đó đều đã có ngân sách tháng này hoặc không thể có.",
@@ -539,6 +566,7 @@
       "chart": "Biểu đồ",
       "table": "Bảng"
     },
+    "days": "{{from}} đến {{to}}",
     "previousPeriod": "Kỳ trước, {{from}} đến {{to}}",
     "notConverted_one": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
     "notConverted_other": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
@@ -570,6 +598,75 @@
       "amount": "Số tiền",
       "refund": "Hoàn tiền",
       "split": "Giao dịch chia nhiều danh mục"
+    },
+    "trends": {
+      "title": "Xu hướng",
+      "chooseWhat": "Chọn một danh mục hoặc nhập một bên nhận để theo dõi theo từng tháng.",
+      "payee": "Bên nhận / bên trả",
+      "payeeHint": "Theo dõi một bên nhận, chỉ trong danh mục đã chọn nếu có.",
+      "categoryAndPayee": "{{category}}, {{payee}}",
+      "totalSpent": "Tổng chi",
+      "totalReceived": "Tổng thu",
+      "changeFromPrevious": "Thay đổi so với kỳ trước",
+      "chart": "Xu hướng của {{name}}",
+      "table": "Xu hướng của {{name}}",
+      "month": "Tháng",
+      "total": "Tổng",
+      "change": "Thay đổi",
+      "changePercent": "Thay đổi %",
+      "previousTotal": "Kỳ trước",
+      "followBy": "Theo dõi",
+      "followByHint": "Theo dõi bên nhận theo khoản nào khi chưa chọn danh mục.",
+      "spentWith": "Đã chi cho họ",
+      "receivedFrom": "Đã nhận từ họ"
+    },
+    "income": {
+      "title": "Thu nhập và chi tiêu",
+      "wholePeriod": "Cả kỳ",
+      "income": "Thu nhập",
+      "expenses": "Chi tiêu",
+      "net": "Chênh lệch",
+      "savingsRate": "Tỷ lệ tiết kiệm",
+      "month": "Tháng",
+      "chart": "Thu nhập và chi tiêu theo tháng, kèm chênh lệch",
+      "table": "Thu nhập và chi tiêu",
+      "previousNet": "Chênh lệch, kỳ trước",
+      "previousTable": "Thu nhập và chi tiêu, kỳ trước"
+    },
+    "budgetVsActual": {
+      "title": "Ngân sách so với thực tế",
+      "table": "Ngân sách so với thực tế",
+      "category": "Danh mục",
+      "budgeted": "Ngân sách",
+      "spent": "Đã chi",
+      "remaining": "Còn lại",
+      "percentSpent": "% đã chi",
+      "percent": "{{percent}}%",
+      "state": "Trạng thái",
+      "total": "Tổng",
+      "states": {
+        "onTrack": "Đúng kế hoạch",
+        "warning": "Cảnh báo",
+        "over": "Vượt ngân sách"
+      },
+      "chart": "Ngân sách so với đã chi theo danh mục",
+      "oneMonth": "Tháng ngân sách {{month}}",
+      "months": "Các tháng ngân sách từ {{first}} đến {{last}}, cộng dồn",
+      "budgetedMonths_one": "{{count}} trên {{total}} tháng",
+      "budgetedMonths_other": "{{count}} trên {{total}} tháng",
+      "noBudgets": "Chưa đặt ngân sách nào trong các tháng này.",
+      "unbudgeted": "Đã chi không có ngân sách",
+      "unbudgetedHint": "Đã chi trong tháng mà cả danh mục lẫn danh mục cha đều không có ngân sách."
+    },
+    "netWorth": {
+      "title": "Giá trị tài sản ròng",
+      "on": "Giá trị tài sản ròng ngày {{date}}",
+      "chart": "Giá trị tài sản ròng: tài sản và nợ phải trả vào cuối mỗi tháng",
+      "table": "Giá trị tài sản ròng vào cuối mỗi tháng",
+      "date": "Cuối tháng",
+      "assets": "Tài sản",
+      "liabilities": "Nợ phải trả",
+      "netWorth": "Giá trị tài sản ròng"
     }
   },
   "institutions": {

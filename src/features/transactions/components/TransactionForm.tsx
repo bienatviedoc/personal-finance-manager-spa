@@ -14,7 +14,7 @@ import { TextField } from '@/shared/components/TextField'
 import { ToggleField } from '@/shared/components/ToggleField'
 import { calendarDate, todayIn, type CalendarDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { useDebounced } from '@/shared/lib/useDebounced'
+import { typingSettles, useDebounced } from '@/shared/lib/useDebounced'
 import { cn } from '@/shared/lib/utils'
 import {
   AmountField,
@@ -29,6 +29,7 @@ import {
   type Currency,
 } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
+import { maxPayeeLength } from '@/shared/api/limits'
 import { isStale } from '@/shared/api/versionedSave'
 import { isSplit, suggestedCategoryQuery, transactionTypes, type SaveOutcome, type Transaction, type TransactionDraft, type TransactionField } from '../api/transactions'
 
@@ -54,7 +55,7 @@ const schemaFor = (today: CalendarDate, split: boolean) =>
     // Calendar dates as YYYY-MM-DD sort as text.
     date: calendarDate('transactions.errors.date').refine((date) => date <= today, { error: 'transactions.errors.dateInFuture' }),
     categoryId: z.string().refine((categoryId) => split || categoryId !== '', { error: 'transactions.errors.category' }),
-    payee: z.string().trim().max(200, { error: 'transactions.errors.payeeTooLong' }),
+    payee: z.string().trim().max(maxPayeeLength, { error: 'transactions.errors.payeeTooLong' }),
     note: z.string().trim().max(1000, { error: 'transactions.errors.noteTooLong' }),
     lines: z.array(
       z.object({
@@ -111,8 +112,6 @@ type Props = {
   onCancel: () => void
 }
 
-/** How long the payee is left alone, in milliseconds, before the API is asked which category it usually takes. */
-const payeeSettles = 250
 
 /**
  * Records or edits income or an expense. The type toggle at the top decides which categories are offered;
@@ -166,7 +165,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
     .map(({ category, label }) => ({ value: category.id, label }))
 
   // Only a new transaction is suggested a category: an edited one already has the one the user gave it.
-  const settledPayee = useDebounced(payee, payeeSettles)
+  const settledPayee = useDebounced(payee, typingSettles)
   const suggestion = useQuery(suggestedCategoryQuery({ type, payee: transaction ? '' : settledPayee }))
   // What the payee typed now suggests, among the categories offered: '' when nothing, undefined while it is not
   // known, which it is not while the payee is still being typed or has just been emptied by a save.

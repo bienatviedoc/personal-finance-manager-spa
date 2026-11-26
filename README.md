@@ -60,7 +60,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   what the API could not read) and changes them; the list is a query per view. The filter bar applies a choice
   at once and something typed once the typing pauses. Never keep a filter in component state alone.
 - **The total of a filtered list is the API's** (`total` on every page: a count, and income, expenses and net in
-  each currency; the legs of a transfer are counted and are in neither). `TransactionTotal` shows it; the SPA never adds up the rows it has loaded.
+  each currency; the legs of a transfer are counted and are in neither). `TransactionTotal` shows it; the SPA never adds up the rows it has loaded. Filtered by a category, `total.spent`
+  comes first, as the one figure that is the category's budget's spent; the totals in each currency follow under
+  their own caption, as they are not converted and need not match it.
 - **The transaction list is virtualised** (spec section 8): `VirtualRows` keeps only the rows near the screen in
   the page, over [TanStack Virtual](https://tanstack.com/virtual), with the page itself scrolling. The next page
   is loaded as the last loaded row comes near the screen; skeletons stand in for a view, or a next page, that
@@ -100,6 +102,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the transfer by that id (`transferQuery`) and saves both legs through `/transfers` (`features/transactions/api/transfers.ts`).
   Between accounts in different currencies the form asks for both amounts; nothing converts one into the other.
   Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
+- **Marking as a transfer** (spec IMP-7; see the glossary). Income and expenses in the list can be picked
+  (`canBePicked`: not a refund, not a leg); once one expense and one income are, `MarkAsTransfer` sends them to
+  `POST /transfers/mark` and both become the legs of one transfer. The screen says why it cannot before asking
+  (one account, two dates, two amounts in one currency), and the API checks again; a refusal means one of them
+  changed, so the list is loaded again. Nothing is matched automatically. The transfer drawer unmarks any transfer
+  (`useUnmarkTransfer`): the user chooses an expense category and an income category, as a leg has none.
 - **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
   `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
   the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change
@@ -141,14 +149,22 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   out again on the day the view is opened (`periodOf`, in whole calendar months), so a bookmark of "this month"
   always shows the month it is. A report draws what the filters ask for and keeps its own state in the address
   beside them (how far spending by category is drilled down: `parentId`, `transactionsOf`, where Back goes up a
-  step). A new report is an entry in the list in `ReportsPage`. Every figure, share and the period compared with
+  step; the payee trends follows: `payee`, and `type` when it is followed by what was received from it). A new report is an entry in the list in `ReportsPage`. Every figure, share and the period compared with
   are the API's; the screen adds nothing up. What is not converted is flagged next to the figure it is left out of
-  (`NotConverted`). A change to a transaction loads the reports again (`refreshReports`).
-- **Charts are drawn through wrappers** in `src/shared/charts` (`DonutChart`), over
+  (`NotConverted`). A change to a transaction loads the reports again (`refreshReports`). Income vs expenses
+  (`income/IncomeVsExpensesReport`) shows each month's income, expenses, net and savings rate as grouped bars with a
+  net line or a table, the whole period beside them, and the period before when compared: its totals, its months
+  in a table of their own, and its net as a dashed line in the chart, month by month by place. Net worth
+  (`netWorth/NetWorthReport`) shows the assets, the liabilities below zero and net worth as a line over them at each
+  month end, and on the period's last day when it ends inside a month, as stacked areas or a table, with the latest
+  net worth above; it takes no category filter and is not compared. Budget vs actual
+  (`budgetVsActual/BudgetVsActualReport`) sets each category's budget against what was spent as horizontal bars or a
+  table with the totals, and lists apart what was spent with no budget.
+- **Charts are drawn through wrappers** in `src/shared/charts` (`DonutChart`, `LineChart`, `BarsWithLineChart`, `BarChart`, `StackedAreaChart`), over
   [Recharts](https://recharts.org), so the library can be swapped without touching a feature; ESLint refuses an
   import of `recharts` anywhere else. A chart is a picture of numbers a table or legend beside it also gives, which
   a keyboard can use: a chart's slice is chosen with a pointer only. Amounts become JavaScript numbers there for
-  drawing alone.
+  drawing alone, and an axis writes its ticks with `formatAxisAmount` from `@/shared/money` (`1.2M`).
 - **Signing in** uses an HttpOnly session cookie the SPA never sees. The client adds the anti-forgery token to
   every request that changes something, and forgets it after signing in or out.
 - **Two-factor sign-in.** The API answers the email and password of a user with two-factor sign-in by asking
@@ -231,11 +247,11 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
-| `fakeTransactionsApi` | `/api/v1/transactions`; it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeTransactionsApi` | `/api/v1/transactions`, and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
-| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`; it groups, ranks, compares and drills down the expenses a test gives it as the API does, and can fail an answer |
+| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual` and `/api/v1/reports/net-worth` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, …), and can fail an answer |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 

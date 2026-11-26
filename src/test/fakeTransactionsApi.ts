@@ -10,6 +10,8 @@ type TransactionRequest = components['schemas']['TransactionRequest']
 type Transfer = components['schemas']['TransferResponse']
 type TransferRequest = components['schemas']['TransferRequest']
 type Account = components['schemas']['AccountResponse']
+type MarkRequest = components['schemas']['MarkAsTransferRequest']
+type UnmarkRequest = components['schemas']['UnmarkTransferRequest']
 
 const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
 
@@ -40,13 +42,21 @@ type Options = {
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
  * account a transaction is on follows it. Quick add answers the account, not archived, recorded on last, and the
  * category, not archived, on the most lines of a payee's transactions that are not refunds (see the API's QuickAddTests).
- * Search finds a line's note too, and filtered by a category the total adds only the lines in it.
+ * Search finds a line's note too, and filtered by a category the total adds only the lines in it, and says what
+ * they spent there in the base currency, VND, as a budget counts it: an expense in another currency has no rate
+ * here, so it is not converted and left out.
  *
  * It answers the transfer endpoints too (see the API's TransferTests), since a transfer is two of these
  * transactions: a `transferOut` leg and a `transferIn` leg sharing a `transferId`, with no category. A transfer
  * is between two different accounts that are not archived; between accounts in one currency the two amounts
  * are the same, between currencies `toAmount` must be sent; its row version is its `transferOut` leg's; both
  * legs are edited and deleted together, and deleting a leg as a transaction deletes the other one too.
+ *
+ * Marking as a transfer (see the API's MarkAsTransferTests) makes an expense that is not a refund the
+ * `transferOut` leg and income on another account the `transferIn` leg, on the same date and, in one currency, of
+ * the same amount; either is refused on its id (`expenseId`, `incomeId`) when it is not one, is a leg already, or
+ * breaks a rule of the pair (then on `incomeId`). Unmarking turns a transfer's legs back into an expense and
+ * income on the categories sent, each of its kind and not archived.
  */
 export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
   let recorded = 0
@@ -95,6 +105,10 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     requests: [] as { method: string; body: Partial<TransactionRequest> }[],
     /** Every POST and PUT body sent to the transfer endpoints, in the order they arrived. */
     transferRequests: [] as { method: string; body: Partial<TransferRequest> }[],
+    /** Every body sent to mark two transactions as a transfer, in the order they arrived. */
+    markRequests: [] as Partial<MarkRequest>[],
+    /** Every body sent to unmark a transfer, with the transfer's id, in the order they arrived. */
+    unmarkRequests: [] as { id: string; body: Partial<UnmarkRequest> }[],
     /**
      * Holds every answer to a request that changes something until the returned function is called, so a
      * test can look at the screen while the API has not answered yet.
@@ -191,6 +205,17 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
           expenses: text(inCurrency.filter((transaction) => transaction.type === 'expense').reduce((total, transaction) => total - signed(transaction), 0)),
           net: text(inCurrency.reduce((total, transaction) => total + signed(transaction), 0)),
         })),
+      spent: categoryId === null ? null : spentOf(passing.filter((transaction) => transaction.type === 'expense')),
+    }
+  }
+
+  /** What expenses, already cut to their lines in a category, spent in the base currency: refunds take away. */
+  function spentOf(expenses: Transaction[]): NonNullable<TransactionList['total']['spent']> {
+    const converted = expenses.filter((expense) => expense.currency === 'VND')
+    return {
+      currency: 'VND',
+      amount: text(converted.reduce((total, expense) => total - signed(expense), 0)),
+      notConverted: expenses.length - converted.length,
     }
   }
 
@@ -477,6 +502,60 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       }
       if (key !== null) byKey.set(key, { recorded: legs[0]!, body })
       return answerTransfer(transferOf(transferId)!, 201)
+    }),
+    // Before the handlers for one transfer, which would take "mark" for an id.
+    http.post(apiUrl('/api/v1/transfers/mark'), async ({ request }) => {
+      const stopped = await refusedOrFailed(request)
+      if (stopped) return stopped
+      const body = (await request.json()) as Partial<MarkRequest>
+      state.markRequests.push(body)
+      const invalid = (field: string, message: string) => problem(400, { errors: { [field]: [message] } })
+      const expense = find(body.expenseId)
+      const income = find(body.incomeId)
+      if (!expense) return invalid('expenseId', 'Choose one of your transactions.')
+      if (!income) return invalid('incomeId', 'Choose one of your transactions.')
+      if (expense.transferId) return invalid('expenseId', 'This is a leg of a transfer already.')
+      if (expense.type !== 'expense' || expense.isRefund) return invalid('expenseId', 'Choose an expense that is not a refund: the money that left one account.')
+      if (income.transferId) return invalid('incomeId', 'This is a leg of a transfer already.')
+      if (income.type !== 'income') return invalid('incomeId', 'Choose income: the money that arrived on the other account.')
+      if (expense.accountId === income.accountId) return invalid('incomeId', 'A transfer is between two different accounts.')
+      if (expense.currency === income.currency && Number(expense.amount) !== Number(income.amount)) {
+        return invalid('incomeId', 'Accounts in the same currency move the same amount.')
+      }
+      if (expense.date !== income.date) return invalid('incomeId', 'The two legs of a transfer are on the same date.')
+
+      // Each keeps its id, account, amount, date and note; the balances do not move.
+      const transferId = `01970000-0000-7000-8000-5${String(recorded++).padStart(11, '0')}`
+      for (const [leg, type] of [[expense, 'transferOut'], [income, 'transferIn']] as const) {
+        Object.assign(leg, { type, transferId, categoryId: null, payee: null, recurringRuleId: null, lines: [], rowVersion: String(Number(leg.rowVersion) + 1) })
+      }
+      return answerTransfer(transferOf(transferId)!, 201)
+    }),
+    http.post(apiUrl('/api/v1/transfers/:id/unmark'), async ({ request, params }) => {
+      const stopped = await refusedOrFailed(request)
+      if (stopped) return stopped
+      const body = (await request.json()) as Partial<UnmarkRequest>
+      state.unmarkRequests.push({ id: String(params.id), body })
+      const transfer = transferOf(params.id)
+      if (!transfer) return problem(404)
+      const categoryOf = (id: unknown, kind: FakeCategory['kind']) =>
+        categories.find((category) => category.id === id && category.kind === kind && !category.isArchived)
+      const spentOn = categoryOf(body.expenseCategoryId, 'expense')
+      if (!spentOn) return problem(400, { errors: { expenseCategoryId: ['Choose one of your categories that is not archived.'] } })
+      const earnedOn = categoryOf(body.incomeCategoryId, 'income')
+      if (!earnedOn) return problem(400, { errors: { incomeCategoryId: ['Choose one of your categories that is not archived.'] } })
+
+      const [out, into] = [find(transfer.outTransactionId)!, find(transfer.inTransactionId)!]
+      for (const [leg, type, category] of [[out, 'expense', spentOn], [into, 'income', earnedOn]] as const) {
+        Object.assign(leg, {
+          type,
+          transferId: null,
+          categoryId: category.id,
+          lines: [{ categoryId: category.id, amount: leg.amount, note: null }],
+          rowVersion: String(Number(leg.rowVersion) + 1),
+        })
+      }
+      return HttpResponse.json({ expense: out, income: into })
     }),
     http.get(apiUrl('/api/v1/transfers/:id'), ({ params }) => {
       const transfer = transferOf(params.id)
