@@ -8,7 +8,7 @@ import { AccountBalance } from '@/features/reports'
 import { useUserSettings } from '@/features/settings'
 import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { todayIn, type CalendarDate } from '@/shared/dates'
+import { shiftDate, todayIn } from '@/shared/dates'
 import { detailSeparator } from '@/shared/lib/details'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Money } from '@/shared/money'
@@ -42,7 +42,7 @@ export function AccountDetailPage() {
   const account = accounts.data ? findAccount(accounts.data.accounts, accountId) : undefined
   useDocumentTitle(account?.name ?? t('screens.accountDetail'))
   const to = todayIn(timeZone)
-  const from = daysBefore(to, chartedDays - 1)
+  const from = shiftDate(to, -(chartedDays - 1))
 
   return (
     <section className="max-w-2xl space-y-6">
@@ -169,9 +169,4 @@ function AccountTransactions({ accountId, name, categories, accounts }: Transact
       </Drawer>
     </section>
   )
-}
-
-/** The calendar date some days before another. */
-function daysBefore(date: CalendarDate, days: number): CalendarDate {
-  return new Date(Date.parse(`${date}T00:00:00Z`) - days * 86_400_000).toISOString().slice(0, 10)
 }

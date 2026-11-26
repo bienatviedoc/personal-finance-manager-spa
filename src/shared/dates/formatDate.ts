@@ -16,6 +16,14 @@ export function formatDate(date: CalendarDate, locale: Language, style: 'short' 
   return new Intl.DateTimeFormat(locale, { dateStyle: style, timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
 }
 
+/** The calendar date a number of days after this one, or before it when negative. */
+export function shiftDate(date: CalendarDate, days: number): CalendarDate {
+  // Worked out in UTC, where every day is as long as any other, so no time zone or clock change moves it.
+  const shifted = new Date(`${date}T00:00:00Z`)
+  shifted.setUTCDate(shifted.getUTCDate() + days)
+  return shifted.toISOString().slice(0, 10)
+}
+
 /** Today's calendar date in a time zone (an IANA id such as `Asia/Ho_Chi_Minh`), such as the user's. */
 export function todayIn(timeZone: string, now: Date = new Date()): CalendarDate {
   // en-CA writes dates as YYYY-MM-DD.
