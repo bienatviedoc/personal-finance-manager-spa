@@ -259,8 +259,9 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
           note: values.note || null,
           // Only an expense can be a refund.
           isRefund: values.type === 'expense' && values.isRefund,
-          // In the order the API answers them, so the list shows them so before it has.
-          tags: values.tags.toSorted(),
+          // In the order the API answers them, so the list shows them so before it has. None is left out: to the
+          // API, an edit without tags takes every tag off.
+          ...(values.tags.length > 0 ? { tags: values.tags.toSorted() } : {}),
         },
         currency: account.currency,
       })
