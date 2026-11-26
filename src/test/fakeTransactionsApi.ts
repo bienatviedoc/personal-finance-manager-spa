@@ -12,6 +12,7 @@ type TransferRequest = components['schemas']['TransferRequest']
 type Account = components['schemas']['AccountResponse']
 type MarkRequest = components['schemas']['MarkAsTransferRequest']
 type UnmarkRequest = components['schemas']['UnmarkTransferRequest']
+type DeletedTransaction = components['schemas']['DeletedTransactionResponse']
 
 const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
 
@@ -62,6 +63,10 @@ type Options = {
  * ReconciliationTests): an edit of its amount, date, account, type or refund flag is refused on that field, and
  * deleting it answers 409 `transaction-reconciled`. A transfer either of whose legs is reconciled is locked the
  * same way, and is neither marked from a reconciled transaction nor unmarked.
+ *
+ * A deleted transaction is recently deleted (see the API's RecentlyDeletedTests) for 30 days, listed the last deleted
+ * first, each leg of a transfer on its own; restoring one puts it back in the list and its account's balance, and
+ * restoring a leg restores the whole transfer. One not deleted, or deleted longer ago, is not found.
  */
 export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
   let recorded = 0
@@ -124,6 +129,8 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       held = new Promise<void>((resolve) => (release = resolve))
       return release
     },
+    /** The transactions deleted, each with when, the last deleted last: `deletedAt` can be set back to make one older. */
+    deleted: [] as (Transaction & { deletedAt: string })[],
     /** The next request that changes something fails with a 500, having saved nothing. */
     failNext() {
       failing = true
@@ -355,11 +362,19 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   const answerTransfer = (transfer: Transfer, status = 200) => HttpResponse.json(transfer, { status, headers: { ETag: `"${transfer.rowVersion}"` } })
 
   function removeTransfer(transferId: unknown) {
-    for (const leg of legsOf(transferId)) {
-      move(leg, -1)
-      state.transactions.splice(state.transactions.indexOf(leg), 1)
-    }
+    for (const leg of legsOf(transferId)) remove(leg)
   }
+
+  /** Deletes a transaction: it leaves the list and its account's balance, and is recently deleted. */
+  function remove(transaction: Transaction) {
+    move(transaction, -1)
+    state.transactions.splice(state.transactions.indexOf(transaction), 1)
+    state.deleted.push({ ...transaction, deletedAt: new Date().toISOString() })
+  }
+
+  const recoveryPeriod = 30 * 24 * 60 * 60 * 1000
+  const restorableUntil = (deleted: { deletedAt: string }) => new Date(Date.parse(deleted.deletedAt) + recoveryPeriod)
+  const recentlyDeleted = () => state.deleted.filter((deleted) => restorableUntil(deleted).getTime() > Date.now())
 
   /** What every request that changes something goes through first: the token, a held answer, a planned failure. */
   async function refusedOrFailed(request: Request) {
@@ -396,6 +411,40 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
       return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null, total: totalOf(passing, query.get('categoryId')) })
+    }),
+    // Before the handler for one transaction, which would take "deleted" for an id.
+    http.get(apiUrl('/api/v1/transactions/deleted'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const limit = Number(query.get('limit') ?? 50)
+      // The last deleted first; the real cursor is opaque, this one is the id of the page's last transaction.
+      const lastFirst = recentlyDeleted().toReversed()
+      const cursor = query.get('cursor')
+      const start = cursor === null ? 0 : lastFirst.findIndex((deleted) => deleted.id === cursor) + 1
+      if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
+      const items = lastFirst.slice(start, start + limit).map(
+        ({ id, type, accountId, amount, currency, date, categoryId, payee, note, transferId, isRefund, lines, deletedAt }): DeletedTransaction => ({
+          ...{ id, type, accountId, amount, currency, date, categoryId, payee, note, transferId, isRefund, lines, deletedAt },
+          restorableUntil: restorableUntil({ deletedAt }).toISOString(),
+        }),
+      )
+      return HttpResponse.json({ items, nextCursor: start + limit < lastFirst.length ? items.at(-1)!.id : null })
+    }),
+    http.post(apiUrl('/api/v1/transactions/:id/restore'), async ({ request, params }) => {
+      const stopped = await refusedOrFailed(request)
+      if (stopped) return stopped
+      const found = recentlyDeleted().find((deleted) => deleted.id === params.id)
+      if (!found) return problem(404)
+      // A leg restores the whole transfer.
+      const restoring = found.transferId ? state.deleted.filter((deleted) => deleted.transferId === found.transferId) : [found]
+      for (const deleted of restoring) {
+        state.deleted.splice(state.deleted.indexOf(deleted), 1)
+        const restored: Transaction = { ...deleted, rowVersion: String(Number(deleted.rowVersion) + 1) }
+        delete (restored as Partial<typeof deleted>).deletedAt
+        state.transactions.push(restored)
+        move(restored, 1)
+      }
+      const restored = find(found.id)!
+      return HttpResponse.json(restored, { headers: { ETag: `"${restored.rowVersion}"` } })
     }),
     // Before the handler for one transaction, which would take "quick-add" for an id.
     http.get(apiUrl('/api/v1/transactions/quick-add'), ({ request }) => {
@@ -488,8 +537,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         removeTransfer(found.transferId)
         return new HttpResponse(null, { status: 204 })
       }
-      move(found, -1)
-      state.transactions.splice(state.transactions.indexOf(found), 1)
+      remove(found)
       return new HttpResponse(null, { status: 204 })
     }),
     http.post(apiUrl('/api/v1/transfers'), async ({ request }) => {

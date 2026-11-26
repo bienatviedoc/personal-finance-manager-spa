@@ -216,6 +216,19 @@
   },
   "transactions": {
     "intro": "Các khoản thu và chi của bạn. Lọc, tìm và sắp xếp để tìm bất kỳ giao dịch nào.",
+    "recentlyDeleted": {
+      "title": "Đã xóa gần đây",
+      "intro": "Các giao dịch bạn đã xóa trong 30 ngày qua. Khôi phục một giao dịch để đưa nó trở lại danh sách và số dư; sau 30 ngày giao dịch sẽ bị xóa vĩnh viễn.",
+      "back": "Quay lại giao dịch",
+      "loading": "Đang tải các giao dịch đã xóa gần đây",
+      "notLoaded": "Không tải được các giao dịch đã xóa gần đây. Hãy thử lại sau giây lát.",
+      "empty": "Không có gì bị xóa trong 30 ngày qua.",
+      "restorableUntil": "Có thể khôi phục đến {{date}}",
+      "wholeTransfer": "Khôi phục giao dịch này sẽ khôi phục toàn bộ khoản chuyển tiền.",
+      "restore": "Khôi phục",
+      "restoreNamed": "Khôi phục {{name}}",
+      "notRestored": "Giao dịch chưa được khôi phục."
+    },
     "add": "Thêm giao dịch",
     "new": "Giao dịch mới",
     "editTitle": "Sửa giao dịch",

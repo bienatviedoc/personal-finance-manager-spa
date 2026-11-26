@@ -108,6 +108,11 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   (one account, two dates, two amounts in one currency), and the API checks again; a refusal means one of them
   changed, so the list is loaded again. Nothing is matched automatically. The transfer drawer unmarks any transfer
   (`useUnmarkTransfer`): the user chooses an expense category and an income category, as a leg has none.
+- **Recently deleted** (spec section 3, rule 10). A deleted transaction can be restored for 30 days at
+  `/transactions/deleted`, linked from the transactions screen (`RecentlyDeletedPage`, `recentlyDeletedQuery`,
+  `useRestoreTransaction`). Each shows when it can be restored until, the date the API answers, on the user's calendar.
+  Restoring a leg of a transfer restores the whole transfer; the API decides what can still be restored, and its
+  worker removes the rest for good. Restoring loads the lists, balances, budgets and reports again, like any change.
 - **A change that fails says so in a toast with "Try again"** (spec section 12): `<FailureToast>` from
   `@/shared/components`, rendered next to what failed, for a failure no field explains (the request failed, or
   the API answered an error). Trying again submits the form again (`retry={{ form: id }}`) or makes the change
