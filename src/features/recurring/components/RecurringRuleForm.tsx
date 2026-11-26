@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { currencyOf, findAccount, useAccountChoices, type Account } from '@/features/accounts'
 import { kindTakenBy, useCategoryChoices, type Category } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
+import { maxPayeeLength } from '@/shared/api/limits'
 import { isStale } from '@/shared/api/versionedSave'
 import { ComboboxField } from '@/shared/components/ComboboxField'
 import { SelectField } from '@/shared/components/SelectField'
@@ -17,6 +18,7 @@ import { AmountField, amountExample, fitsCurrency, isZeroAmount, requiredAmount 
 import { Button } from '@/shared/ui/button'
 import {
   recurringFrequencies,
+  recurringModes,
   recurringRuleTypes,
   type RecurringRule,
   type RecurringRuleField,
@@ -48,8 +50,9 @@ const schema = z
     startDate: calendarDate('recurring.errors.startDate'),
     /** Empty for a rule that goes on. */
     endDate: calendarDate('recurring.errors.endDate').or(z.literal('')),
-    payee: z.string().trim().max(200, { error: 'recurring.errors.payeeTooLong' }),
+    payee: z.string().trim().max(maxPayeeLength, { error: 'recurring.errors.payeeTooLong' }),
     note: z.string().trim().max(1000, { error: 'recurring.errors.noteTooLong' }),
+    mode: z.enum(recurringModes),
   })
   .superRefine((values, context) => {
     if (values.frequency === 'everyNDays' && !(/^\d{1,3}$/.test(values.interval) && Number(values.interval) >= 1 && Number(values.interval) <= maxInterval)) {
@@ -76,6 +79,7 @@ const serverErrors: Record<RecurringRuleField, ParseKeys> = {
   interval: 'recurring.errors.interval',
   startDate: 'recurring.errors.startDate',
   endDate: 'recurring.errors.endBeforeStart',
+  mode: 'recurring.errors.mode',
 }
 
 // Named outside JSX, where lint would take a field name for user-facing text.
@@ -123,6 +127,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
           endDate: rule.endDate ?? '',
           payee: rule.payee ?? '',
           note: rule.note ?? '',
+          mode: rule.mode,
         }
       : {
           type: 'expense',
@@ -135,6 +140,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
           endDate: '',
           payee: '',
           note: '',
+          mode: 'autoPost',
         },
   })
   const { errors, isSubmitting } = form.formState
@@ -172,6 +178,7 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
         endDate: values.endDate || null,
         payee: values.payee || null,
         note: values.note || null,
+        mode: values.mode,
       })
     } catch {
       // Whoever saves says that it failed; the form keeps what was entered, to be saved again.
@@ -244,6 +251,12 @@ export function RecurringRuleForm({ id, rule, accounts, categories, onSave, onSa
           {...form.register('interval')}
         />
       )}
+      <SelectField
+        label={t('recurring.mode')}
+        error={errors.mode?.message && t(errors.mode.message as ParseKeys)}
+        options={recurringModes.map((value) => ({ value, label: t(`recurring.modes.${value}`) }))}
+        {...form.register('mode')}
+      />
       {frequency === 'monthly' && <p className="text-sm text-muted-foreground">{t('recurring.monthEndHint')}</p>}
       <TextField
         type="date"

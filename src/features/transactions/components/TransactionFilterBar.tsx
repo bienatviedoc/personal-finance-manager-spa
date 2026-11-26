@@ -19,6 +19,8 @@ type Props = {
   /** Archived ones too: transactions on them are still there to find. */
   accounts: Account[]
   categories: Category[]
+  /** The names of the user's tags. */
+  tags: string[]
   /** The currency amounts are typed in while no account is chosen. */
   fallbackCurrency: Currency
 }
@@ -38,7 +40,7 @@ type SortOrder = keyof typeof sortOrders
  * Each control shows what the user last did with it straight away: the address follows a moment later, and
  * a control drawn from the address alone would jump back to the old value until it had.
  */
-export function TransactionFilterBar({ view, isFiltered, onChange, onClear, accounts, categories, fallbackCurrency }: Props) {
+export function TransactionFilterBar({ view, isFiltered, onChange, onClear, accounts, categories, tags, fallbackCurrency }: Props) {
   const { t } = useTranslation()
   const categoryChoices = useCategoryChoices(categories)
   // An account's amounts are in its currency, so that decides the decimals a range can be typed with.
@@ -49,6 +51,9 @@ export function TransactionFilterBar({ view, isFiltered, onChange, onClear, acco
   const [accountId, setAccountId] = useChosen(view.accountId, (chosen) => onChange({ accountId: chosen }))
   const [categoryId, setCategoryId] = useChosen(view.categoryId, (chosen) => onChange({ categoryId: chosen }))
   const [type, setType] = useChosen(view.type, (chosen) => onChange({ type: chosen }))
+  const [tag, setTag] = useChosen(view.tag, (chosen) => onChange({ tag: chosen }))
+  // A tag in an address opened again is offered while the user's tags load, or if they have none of that name.
+  const tagChoices = view.tag && !tags.includes(view.tag) ? [view.tag, ...tags] : tags
   const sortOrderOf = ({ sort, order }: Pick<TransactionFilters, 'sort' | 'order'>) =>
     (Object.keys(sortOrders) as SortOrder[]).find((name) => sortOrders[name].sort === sort && sortOrders[name].order === order)
   const [sortOrder, setSortOrder] = useChosen(sortOrderOf(view), (chosen) => onChange(sortOrders[chosen as SortOrder]))
@@ -88,6 +93,12 @@ export function TransactionFilterBar({ view, isFiltered, onChange, onClear, acco
         value={type}
         onChange={(event) => setType(event.target.value)}
         options={[{ value: '', label: t('transactions.filters.allTypes') }, ...[...transactionTypes, ...transferLegTypes].map((type) => ({ value: type, label: t(`transactions.types.${type}`) }))]}
+      />
+      <SelectField
+        label={t('transactions.filters.tag')}
+        value={tag}
+        onChange={(event) => setTag(event.target.value)}
+        options={[{ value: '', label: t('transactions.filters.allTags') }, ...tagChoices.map((name) => ({ value: name, label: name }))]}
       />
       <SelectField
         label={t('transactions.filters.sortBy')}

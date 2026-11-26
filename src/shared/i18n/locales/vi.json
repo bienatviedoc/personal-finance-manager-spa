@@ -37,7 +37,8 @@
     "forgotPassword": "Quên mật khẩu?",
     "resetPassword": "Đặt mật khẩu mới",
     "checkEmail": "Kiểm tra email",
-    "verifyEmail": "Xác nhận địa chỉ email"
+    "verifyEmail": "Xác nhận địa chỉ email",
+    "reconcile": "Đối soát"
   },
   "placeholder": {
     "notBuilt": "Màn hình này chưa được xây dựng."
@@ -212,10 +213,25 @@
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được tài khoản.",
       "notArchived": "Chưa lưu trữ được tài khoản."
-    }
+    },
+    "reconcile": "Đối soát",
+    "reconcileNamed": "Đối soát {{name}}"
   },
   "transactions": {
     "intro": "Các khoản thu và chi của bạn. Lọc, tìm và sắp xếp để tìm bất kỳ giao dịch nào.",
+    "recentlyDeleted": {
+      "title": "Đã xóa gần đây",
+      "intro": "Các giao dịch bạn đã xóa trong 30 ngày qua. Khôi phục một giao dịch để đưa nó trở lại danh sách và số dư; sau 30 ngày giao dịch sẽ bị xóa vĩnh viễn.",
+      "back": "Quay lại giao dịch",
+      "loading": "Đang tải các giao dịch đã xóa gần đây",
+      "notLoaded": "Không tải được các giao dịch đã xóa gần đây. Hãy thử lại sau giây lát.",
+      "empty": "Không có gì bị xóa trong 30 ngày qua.",
+      "restorableUntil": "Có thể khôi phục đến {{date}}",
+      "wholeTransfer": "Khôi phục giao dịch này sẽ khôi phục toàn bộ khoản chuyển tiền.",
+      "restore": "Khôi phục",
+      "restoreNamed": "Khôi phục {{name}}",
+      "notRestored": "Giao dịch chưa được khôi phục."
+    },
     "add": "Thêm giao dịch",
     "new": "Giao dịch mới",
     "editTitle": "Sửa giao dịch",
@@ -236,6 +252,8 @@
       "allAccounts": "Tất cả tài khoản",
       "allCategories": "Tất cả danh mục",
       "allTypes": "Tất cả loại",
+      "tag": "Nhãn",
+      "allTags": "Tất cả nhãn",
       "sortBy": "Sắp xếp theo",
       "sort": {
         "dateDesc": "Mới nhất trước",
@@ -252,7 +270,11 @@
       "count_other": "{{count}} giao dịch",
       "income": "Khoản thu",
       "expenses": "Khoản chi",
-      "net": "Chênh lệch"
+      "net": "Chênh lệch",
+      "spent": "Đã chi trong danh mục, như ngân sách tính",
+      "spentNotConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+      "spentNotConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+      "byCurrency": "Theo từng loại tiền, chưa quy đổi"
     },
     "type": "Loại",
     "types": {
@@ -271,6 +293,13 @@
     "chooseCategory": "Gõ để tìm danh mục",
     "noCategoryMatches": "Không có danh mục nào khớp.",
     "categorySuggested": "Gợi ý từ các giao dịch trước đây của bạn với bên này.",
+    "tags": {
+      "label": "Nhãn",
+      "hint": "Nhãn dùng chung cho nhiều danh mục, như tet-2027 hay japan-trip. Gõ một nhãn rồi nhấn Enter, hoặc chọn một nhãn bạn đã dùng.",
+      "chosen": "Các nhãn đã chọn",
+      "remove": "Bỏ nhãn {{name}}",
+      "of": "Nhãn của {{name}}"
+    },
     "payee": "Bên nhận / bên trả",
     "note": "Ghi chú",
     "save": "Lưu",
@@ -312,6 +341,7 @@
       "category": "Chọn danh mục.",
       "payeeTooLong": "Dùng tối đa 200 ký tự.",
       "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "tags": "Dùng tối đa 20 nhãn, mỗi nhãn tối đa 50 ký tự.",
       "linesLeft": "Tổng các dòng phải bằng số tiền: còn {{amount}} chưa chia.",
       "linesOver": "Tổng các dòng phải bằng số tiền: đang vượt {{amount}}.",
       "lines": "Kiểm tra các dòng: mỗi dòng cần một danh mục của bạn chưa lưu trữ và một số tiền, và tổng các dòng phải bằng số tiền.",
@@ -319,8 +349,11 @@
       "stale": "Giao dịch này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được giao dịch.",
-      "notDeleted": "Chưa xóa được giao dịch."
+      "notDeleted": "Chưa xóa được giao dịch.",
+      "reconciled": "Giao dịch này đã được đối soát, nên không thể thay đổi mục này."
     },
+    "reconciled": "Đã đối soát",
+    "reconciledLocked": "Giao dịch này đã được đối soát: số tiền, ngày, tài khoản và loại bị khóa cho đến khi lần đối soát được mở lại.",
     "export": {
       "start": "Xuất CSV",
       "failed": "Không tải được tệp CSV. Hãy thử lại sau ít phút."
@@ -342,6 +375,23 @@
     "save": "Lưu",
     "cancel": "Hủy",
     "deleteExplained": "Xóa chuyển khoản này? Cả hai vế sẽ không còn trong danh sách này, và số dư của hai tài khoản trở lại như trước.",
+    "markAs": "Đánh dấu là chuyển khoản",
+    "markTitle": "Đã chọn để đánh dấu là chuyển khoản",
+    "markExplained": "Chọn một khoản chi ở một tài khoản và khoản thu tương ứng ở tài khoản khác, như hai dòng sao kê nhập vào khi thanh toán thẻ. Sau khi đánh dấu, cả hai không còn được tính là chi tiêu hay thu nhập.",
+    "pick": "Chọn {{name}}",
+    "clearPicked": "Bỏ chọn",
+    "whyNot": {
+      "types": "Chọn một khoản chi và một khoản thu.",
+      "sameAccount": "Chuyển khoản phải giữa hai tài khoản khác nhau.",
+      "date": "Hai giao dịch phải cùng ngày.",
+      "amount": "Giữa hai tài khoản cùng loại tiền, hai giao dịch phải có cùng số tiền."
+    },
+    "unmark": "Bỏ đánh dấu chuyển khoản",
+    "unmarkExplained": "Chuyển chuyển khoản này trở lại thành một khoản chi và một khoản thu. Vế chuyển khoản không có danh mục, nên hãy chọn danh mục cho mỗi vế.",
+    "unmarkConfirm": "Bỏ đánh dấu",
+    "expenseCategory": "Danh mục của khoản chi ({{account}})",
+    "incomeCategory": "Danh mục của khoản thu ({{account}})",
+    "chooseCategory": "Chọn danh mục",
     "errors": {
       "account": "Chọn một tài khoản của bạn chưa bị lưu trữ.",
       "sameAccount": "Chọn một tài khoản khác với tài khoản chuyển tiền đi.",
@@ -355,8 +405,15 @@
       "stale": "Chuyển khoản này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "notLoaded": "Chưa tải được chuyển khoản. Hãy thử lại.",
       "notSaved": "Chưa lưu được chuyển khoản.",
-      "notDeleted": "Chưa xóa được chuyển khoản."
-    }
+      "notDeleted": "Chưa xóa được chuyển khoản.",
+      "deleteReconciled": "Khoản chuyển tiền này đã được đối soát, nên không thể xóa cho đến khi lần đối soát được mở lại.",
+      "markRefused": "Không thể đánh dấu hai giao dịch này là chuyển khoản: một trong hai đã được thay đổi ở nơi khác. Hãy kiểm tra và thử lại.",
+      "notMarked": "Chưa đánh dấu được hai giao dịch là chuyển khoản.",
+      "categoryArchived": "Chọn một danh mục của bạn chưa bị lưu trữ.",
+      "notUnmarked": "Chưa bỏ đánh dấu được chuyển khoản.",
+      "reconciled": "Khoản chuyển tiền này đã được đối soát, nên không thể thay đổi mục này."
+    },
+    "reconciledLocked": "Khoản chuyển tiền này đã được đối soát: tài khoản, số tiền và ngày bị khóa cho đến khi lần đối soát được mở lại."
   },
   "attachments": {
     "title": "Tệp đính kèm",
@@ -423,6 +480,28 @@
     "endDate": "Kết thúc vào (không bắt buộc)",
     "payee": "Bên nhận / bên trả",
     "note": "Ghi chú",
+    "mode": "Vào mỗi ngày đến hạn",
+    "modes": {
+      "autoPost": "Tự động ghi cho tôi",
+      "remind": "Nhắc tôi xác nhận"
+    },
+    "remindsYou": "Nhắc bạn",
+    "reminders": "Nhắc nhở",
+    "remindersIntro": "Đã đến hạn và đang chờ bạn: xác nhận để ghi từng khoản, hoặc bỏ qua.",
+    "dueOn": "Đến hạn vào {{date}}",
+    "confirm": "Xác nhận",
+    "confirmNamed": "Xác nhận {{name}}, đến hạn vào {{date}}",
+    "confirmTitle": "Xác nhận {{name}}",
+    "record": "Ghi",
+    "dismiss": "Bỏ qua",
+    "dismissNamed": "Bỏ qua {{name}}, đến hạn vào {{date}}",
+    "upcoming": "{{days}} ngày tới",
+    "upcomingList": "Đến hạn trong {{days}} ngày tới",
+    "upcomingEmpty": "Không có khoản nào đến hạn trong {{days}} ngày tới.",
+    "occurrenceModes": {
+      "autoPost": "Được ghi tự động",
+      "remind": "Nhắc nhở"
+    },
     "save": "Lưu",
     "cancel": "Hủy",
     "nextOn": "Lần tới vào {{date}}",
@@ -454,6 +533,9 @@
       "endBeforeStart": "Ngày kết thúc không thể trước ngày bắt đầu.",
       "payeeTooLong": "Dùng tối đa 200 ký tự.",
       "noteTooLong": "Dùng tối đa 1000 ký tự.",
+      "mode": "Chọn việc cần làm vào mỗi ngày đến hạn.",
+      "answerEarlierFirst": "Hãy xác nhận hoặc bỏ qua lời nhắc sớm hơn của quy tắc này trước.",
+      "notAnswered": "Lời nhắc chưa được trả lời.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "stale": "Quy tắc định kỳ này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "notSaved": "Quy tắc định kỳ chưa được lưu.",
@@ -484,6 +566,8 @@
     "percent": "{{percent}}%",
     "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
+    "transactions": "Xem giao dịch",
+    "transactionsBehind": "Các giao dịch của {{name}} trong {{month}}",
     "copy": {
       "action": "Sao chép ngân sách từ {{month}}",
       "done_zero": "Không sao chép ngân sách nào từ {{month}}: mọi danh mục có ngân sách ở tháng đó đều đã có ngân sách tháng này hoặc không thể có.",
@@ -543,6 +627,7 @@
       "chart": "Biểu đồ",
       "table": "Bảng"
     },
+    "days": "{{from}} đến {{to}}",
     "previousPeriod": "Kỳ trước, {{from}} đến {{to}}",
     "notConverted_one": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
     "notConverted_other": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
@@ -575,7 +660,84 @@
       "refund": "Hoàn tiền",
       "split": "Giao dịch chia nhiều danh mục"
     },
-    "export": "Xuất CSV"
+    "export": "Xuất CSV",
+    "trends": {
+      "title": "Xu hướng",
+      "chooseWhat": "Chọn một danh mục hoặc nhập một bên nhận để theo dõi theo từng tháng.",
+      "payee": "Bên nhận / bên trả",
+      "payeeHint": "Theo dõi một bên nhận, chỉ trong danh mục đã chọn nếu có.",
+      "categoryAndPayee": "{{category}}, {{payee}}",
+      "totalSpent": "Tổng chi",
+      "totalReceived": "Tổng thu",
+      "changeFromPrevious": "Thay đổi so với kỳ trước",
+      "chart": "Xu hướng của {{name}}",
+      "table": "Xu hướng của {{name}}",
+      "month": "Tháng",
+      "total": "Tổng",
+      "change": "Thay đổi",
+      "changePercent": "Thay đổi %",
+      "previousTotal": "Kỳ trước",
+      "followBy": "Theo dõi",
+      "followByHint": "Theo dõi bên nhận theo khoản nào khi chưa chọn danh mục.",
+      "spentWith": "Đã chi cho họ",
+      "receivedFrom": "Đã nhận từ họ"
+    },
+    "income": {
+      "title": "Thu nhập và chi tiêu",
+      "wholePeriod": "Cả kỳ",
+      "income": "Thu nhập",
+      "expenses": "Chi tiêu",
+      "net": "Chênh lệch",
+      "savingsRate": "Tỷ lệ tiết kiệm",
+      "month": "Tháng",
+      "chart": "Thu nhập và chi tiêu theo tháng, kèm chênh lệch",
+      "table": "Thu nhập và chi tiêu",
+      "previousNet": "Chênh lệch, kỳ trước",
+      "previousTable": "Thu nhập và chi tiêu, kỳ trước"
+    },
+    "budgetVsActual": {
+      "title": "Ngân sách so với thực tế",
+      "table": "Ngân sách so với thực tế",
+      "category": "Danh mục",
+      "budgeted": "Ngân sách",
+      "spent": "Đã chi",
+      "remaining": "Còn lại",
+      "percentSpent": "% đã chi",
+      "percent": "{{percent}}%",
+      "state": "Trạng thái",
+      "total": "Tổng",
+      "states": {
+        "onTrack": "Đúng kế hoạch",
+        "warning": "Cảnh báo",
+        "over": "Vượt ngân sách"
+      },
+      "chart": "Ngân sách so với đã chi theo danh mục",
+      "oneMonth": "Tháng ngân sách {{month}}",
+      "months": "Các tháng ngân sách từ {{first}} đến {{last}}, cộng dồn",
+      "budgetedMonths_one": "{{count}} trên {{total}} tháng",
+      "budgetedMonths_other": "{{count}} trên {{total}} tháng",
+      "noBudgets": "Chưa đặt ngân sách nào trong các tháng này.",
+      "unbudgeted": "Đã chi không có ngân sách",
+      "unbudgetedHint": "Đã chi trong tháng mà cả danh mục lẫn danh mục cha đều không có ngân sách."
+    },
+    "netWorth": {
+      "title": "Giá trị tài sản ròng",
+      "on": "Giá trị tài sản ròng ngày {{date}}",
+      "chart": "Giá trị tài sản ròng: tài sản và nợ phải trả vào cuối mỗi tháng",
+      "table": "Giá trị tài sản ròng vào cuối mỗi tháng",
+      "date": "Cuối tháng",
+      "assets": "Tài sản",
+      "liabilities": "Nợ phải trả",
+      "netWorth": "Giá trị tài sản ròng"
+    },
+    "monthlySummary": {
+      "title": "Tổng kết tháng",
+      "body": "Tải về thu nhập, chi tiêu, tỷ lệ tiết kiệm, chi tiêu theo danh mục và ngân sách của một tháng dưới dạng tệp PDF.",
+      "month": "Tháng",
+      "download": "Tải PDF",
+      "downloaded": "Đã tải bản tổng kết tháng.",
+      "failed": "Không thể tải bản tổng kết tháng."
+    }
   },
   "institutions": {
     "backToAccounts": "Quay lại tài khoản",
@@ -833,5 +995,43 @@
     "rose": "Hồng đỏ",
     "slate": "Xám đá",
     "current": "Màu hiện tại"
+  },
+  "reconciliations": {
+    "title": "Đối soát {{name}}",
+    "intro": "Đối chiếu tài khoản với sao kê ngân hàng: nhập ngày và số dư cuối kỳ, đánh dấu từng giao dịch có trên sao kê, rồi hoàn tất khi chênh lệch bằng 0.",
+    "toAccounts": "Quay lại tài khoản",
+    "loading": "Đang tải đối soát",
+    "start": "Bắt đầu đối soát",
+    "newStatement": "Sao kê mới",
+    "statementDate": "Ngày sao kê",
+    "closingBalance": "Số dư cuối kỳ",
+    "closingBalanceIn": "Số dư cuối kỳ ({{currency}})",
+    "closingBalanceHint": "Như trên sao kê. Với khoản đang nợ, thêm dấu trừ phía trước.",
+    "reconciledBalance": "Đã đối soát trước đó",
+    "tickedTotal": "Đã đánh dấu",
+    "difference": "Chênh lệch",
+    "toTick": "Giao dịch cần đánh dấu",
+    "tick": "Đánh dấu {{name}}",
+    "nothingToTick": "Không còn giao dịch nào của tài khoản này đến ngày {{date}} cần đánh dấu.",
+    "completeWhenZero": "Chỉ hoàn tất được khi chênh lệch đúng bằng 0.",
+    "complete": "Hoàn tất đối soát",
+    "cancel": "Hủy đối soát",
+    "completed": "Đã đối soát đến ngày {{date}}. Các giao dịch của lần này đã bị khóa.",
+    "reopen": "Mở lại",
+    "errors": {
+      "statementDate": "Nhập ngày sao kê.",
+      "statementDateInFuture": "Ngày sao kê không được ở tương lai.",
+      "statementDateRefused": "Nhập ngày sao kê không ở tương lai và không trước lần đối soát gần nhất.",
+      "balanceRequired": "Nhập số dư cuối kỳ.",
+      "balanceInvalid": "Nhập số dư, ví dụ {{example}}.",
+      "inProgress": "Tài khoản này đang có một lần đối soát chưa xong. Lần đó đang được hiển thị.",
+      "noAccount": "Không tìm thấy tài khoản này.",
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "notStarted": "Chưa bắt đầu được đối soát.",
+      "notTicked": "Chưa đánh dấu được giao dịch.",
+      "notCompleted": "Chưa hoàn tất được đối soát.",
+      "notCancelled": "Chưa hủy được đối soát.",
+      "notReopened": "Chưa mở lại được đối soát."
+    }
   }
 }

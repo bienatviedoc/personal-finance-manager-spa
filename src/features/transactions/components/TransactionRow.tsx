@@ -1,4 +1,4 @@
-import { ArrowRightLeft } from 'lucide-react'
+import { ArrowRightLeft, Lock } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Account } from '@/features/accounts'
@@ -12,7 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { Money, signedAmount } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { isPending, isSplit, isTransferLeg, takesFromBalance, useDeleteTransaction, type ListedTransaction, type Transaction } from '../api/transactions'
-import { useDeleteTransfer } from '../api/transfers'
+import { TransferReconciled, useDeleteTransfer } from '../api/transfers'
 import type { VirtualRow } from './VirtualRows'
 
 type RowProps = {
@@ -23,6 +23,8 @@ type RowProps = {
   /** The user's category tree, to name the category of each line of a split. */
   categories: Category[]
   onEdit: (transaction: Transaction) => void
+  /** Whether it is picked to mark as a transfer, and how to pick it or not; none when it cannot be. */
+  pick?: { picked: boolean; onToggle: () => void }
   /** Where the list has the row, and how it measures it. */
   row: VirtualRow
 }
@@ -30,8 +32,9 @@ type RowProps = {
 /**
  * One transaction in the list: what it was for, on which account and when, its amount with its sign, a split's
  * lines, and editing and deleting it. A leg of a transfer is marked as one, and edits and deletes the transfer.
+ * Income or an expense can be picked, to mark it and another as a transfer.
  */
-export function TransactionRow({ transaction, account, category, categories, onEdit, row }: RowProps) {
+export function TransactionRow({ transaction, account, category, categories, onEdit, pick, row }: RowProps) {
   const { t } = useTranslation()
   const locale = useLocale()
   const removeTransaction = useDeleteTransaction()
@@ -47,14 +50,20 @@ export function TransactionRow({ transaction, account, category, categories, onE
   const split = isSplit(transaction)
   // A transaction is known by who was paid; without a payee, by what it was for. A split is for several things.
   const title = transaction.payee ?? (split ? t('transactions.split.transaction') : category?.name) ?? t(`transactions.types.${transaction.type}`)
-  // What deleting it says: a leg speaks of its transfer.
+  // What deleting it says: a leg speaks of its transfer, which is locked when its other leg is reconciled.
   const deleting = leg
-    ? { explained: t('transfers.deleteExplained'), failed: t('transfers.errors.notDeleted') }
+    ? {
+        explained: t('transfers.deleteExplained'),
+        failed: removeTransfer.error instanceof TransferReconciled ? t('transfers.errors.deleteReconciled') : t('transfers.errors.notDeleted'),
+      }
     : { explained: t('transactions.deleteExplained', { name: title }), failed: t('transactions.errors.notDeleted') }
 
   return (
     <li {...row} className="space-y-2 border-b p-3 last:border-b-0" aria-busy={pending || undefined}>
       <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', pending && 'opacity-60')}>
+        {pick && (
+          <input type="checkbox" className="size-4" aria-label={t('transfers.pick', { name: title })} checked={pick.picked} onChange={pick.onToggle} />
+        )}
         {category && !split && <CategoryBadge icon={category.icon} color={category.color} />}
         {leg && (
           <span aria-hidden data-testid="transfer-mark" className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
@@ -84,7 +93,22 @@ export function TransactionRow({ transaction, account, category, categories, onE
               ))}
             </ul>
           )}
+          {transaction.isReconciled && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Lock aria-hidden className="size-3" />
+              {t('transactions.reconciled')}
+            </span>
+          )}
           {transaction.note && <p className="text-sm break-words text-muted-foreground">{transaction.note}</p>}
+          {transaction.tags.length > 0 && (
+            <ul aria-label={t('transactions.tags.of', { name: title })} className="flex flex-wrap gap-1 pt-1">
+              {transaction.tags.map((tag) => (
+                <li key={tag} data-testid="tag" className="rounded-full border bg-muted px-2 text-xs text-muted-foreground">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          )}
           {transaction.recurringRuleId && <RecurringRuleLink ruleId={transaction.recurringRuleId} />}
         </div>
         <span data-testid="amount" className="font-medium tabular-nums">
@@ -97,9 +121,12 @@ export function TransactionRow({ transaction, account, category, categories, onE
             <Button variant="outline" size="sm" aria-label={t('transactions.editNamed', { name: title })} onClick={() => onEdit(saved)}>
               {t('transactions.edit')}
             </Button>
-            <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
-              {t('transactions.delete')}
-            </Button>
+            {/* A reconciled transaction cannot be deleted until its reconciliation is reopened. */}
+            {!transaction.isReconciled && (
+              <Button variant="ghost" size="sm" aria-label={t('transactions.deleteNamed', { name: title })} onClick={() => setConfirming(true)}>
+                {t('transactions.delete')}
+              </Button>
+            )}
           </>
         )}
       </div>

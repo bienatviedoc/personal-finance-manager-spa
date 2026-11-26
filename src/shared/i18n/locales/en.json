@@ -37,7 +37,8 @@
     "forgotPassword": "Forgot your password?",
     "resetPassword": "Set a new password",
     "checkEmail": "Check your email",
-    "verifyEmail": "Confirm your email address"
+    "verifyEmail": "Confirm your email address",
+    "reconcile": "Reconcile"
   },
   "placeholder": {
     "notBuilt": "This screen is not built yet."
@@ -212,10 +213,25 @@
       "generic": "Something went wrong. Try again.",
       "notSaved": "The account was not saved.",
       "notArchived": "The account was not archived."
-    }
+    },
+    "reconcile": "Reconcile",
+    "reconcileNamed": "Reconcile {{name}}"
   },
   "transactions": {
     "intro": "Your income and expenses. Filter, search and sort them to find any one.",
+    "recentlyDeleted": {
+      "title": "Recently deleted",
+      "intro": "Transactions you deleted in the last 30 days. Restore one to return it to your lists and balances; after 30 days it is removed for good.",
+      "back": "Back to transactions",
+      "loading": "Loading recently deleted transactions",
+      "notLoaded": "Recently deleted transactions could not be loaded. Try again in a moment.",
+      "empty": "Nothing was deleted in the last 30 days.",
+      "restorableUntil": "Can be restored until {{date}}",
+      "wholeTransfer": "Restoring it restores the whole transfer.",
+      "restore": "Restore",
+      "restoreNamed": "Restore {{name}}",
+      "notRestored": "The transaction was not restored."
+    },
     "add": "Add transaction",
     "new": "New transaction",
     "editTitle": "Edit transaction",
@@ -236,6 +252,8 @@
       "allAccounts": "All accounts",
       "allCategories": "All categories",
       "allTypes": "All types",
+      "tag": "Tag",
+      "allTags": "All tags",
       "sortBy": "Sort by",
       "sort": {
         "dateDesc": "Newest first",
@@ -252,7 +270,11 @@
       "count_other": "{{count}} transactions",
       "income": "Income",
       "expenses": "Expenses",
-      "net": "Net"
+      "net": "Net",
+      "spent": "Spent in the category, as its budget counts it",
+      "spentNotConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
+      "spentNotConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
+      "byCurrency": "By currency, before conversion"
     },
     "type": "Type",
     "types": {
@@ -271,6 +293,13 @@
     "chooseCategory": "Type to find a category",
     "noCategoryMatches": "No category matches.",
     "categorySuggested": "Suggested from your earlier transactions with this payee.",
+    "tags": {
+      "label": "Tags",
+      "hint": "Labels across categories, such as tet-2027 or japan-trip. Type one and press Enter, or pick one you have used.",
+      "chosen": "Chosen tags",
+      "remove": "Remove tag {{name}}",
+      "of": "Tags of {{name}}"
+    },
     "payee": "Payee",
     "note": "Note",
     "save": "Save",
@@ -312,6 +341,7 @@
       "category": "Choose a category.",
       "payeeTooLong": "Use at most 200 characters.",
       "noteTooLong": "Use at most 1000 characters.",
+      "tags": "Use at most 20 tags, each of at most 50 characters.",
       "linesLeft": "The lines must add up to the amount: {{amount}} left to split.",
       "linesOver": "The lines must add up to the amount: they come to {{amount}} more.",
       "lines": "Check the lines: each needs one of your categories that is not archived and an amount, and together they must add up to the amount.",
@@ -319,8 +349,11 @@
       "stale": "This transaction was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "generic": "Something went wrong. Try again.",
       "notSaved": "The transaction was not saved.",
-      "notDeleted": "The transaction was not deleted."
+      "notDeleted": "The transaction was not deleted.",
+      "reconciled": "This transaction is reconciled, so this cannot change."
     },
+    "reconciled": "Reconciled",
+    "reconciledLocked": "This transaction is reconciled: its amount, date, account and type are locked until its reconciliation is reopened.",
     "export": {
       "start": "Export CSV",
       "failed": "The CSV file could not be downloaded. Try again in a moment."
@@ -342,6 +375,23 @@
     "save": "Save",
     "cancel": "Cancel",
     "deleteExplained": "Delete this transfer? Both of its legs leave this list, and both accounts get their balance back.",
+    "markAs": "Mark as transfer",
+    "markTitle": "Picked to mark as a transfer",
+    "markExplained": "Pick an expense on one account and the income it became on another, such as the two rows imported statements show for paying a card. Once marked, neither counts as spending or income.",
+    "pick": "Pick {{name}}",
+    "clearPicked": "Clear",
+    "whyNot": {
+      "types": "Pick one expense and one income.",
+      "sameAccount": "A transfer is between two different accounts.",
+      "date": "The two must be on the same date.",
+      "amount": "Between accounts in one currency, the two must be of the same amount."
+    },
+    "unmark": "Unmark transfer",
+    "unmarkExplained": "Turn this transfer back into an expense and income. A leg of a transfer has no category, so choose one for each.",
+    "unmarkConfirm": "Unmark",
+    "expenseCategory": "Category of the expense ({{account}})",
+    "incomeCategory": "Category of the income ({{account}})",
+    "chooseCategory": "Choose a category",
     "errors": {
       "account": "Choose one of your accounts that is not archived.",
       "sameAccount": "Choose a different account from the one the money leaves.",
@@ -355,8 +405,15 @@
       "stale": "This transfer was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "notLoaded": "The transfer could not be loaded. Try again.",
       "notSaved": "The transfer was not saved.",
-      "notDeleted": "The transfer was not deleted."
-    }
+      "notDeleted": "The transfer was not deleted.",
+      "deleteReconciled": "This transfer is reconciled, so it cannot be deleted until its reconciliation is reopened.",
+      "markRefused": "These two could not be marked as a transfer: one of them changed somewhere else. Check them and try again.",
+      "notMarked": "The two were not marked as a transfer.",
+      "categoryArchived": "Choose one of your categories that is not archived.",
+      "notUnmarked": "The transfer was not unmarked.",
+      "reconciled": "This transfer is reconciled, so this cannot change."
+    },
+    "reconciledLocked": "This transfer is reconciled: its accounts, amounts and date are locked until its reconciliation is reopened."
   },
   "attachments": {
     "title": "Attachments",
@@ -423,6 +480,28 @@
     "endDate": "Ends on (optional)",
     "payee": "Payee",
     "note": "Note",
+    "mode": "On each due date",
+    "modes": {
+      "autoPost": "Record it for me",
+      "remind": "Remind me to confirm it"
+    },
+    "remindsYou": "Reminds you",
+    "reminders": "Reminders",
+    "remindersIntro": "Due by today and waiting for you: confirm to record each one, or dismiss it.",
+    "dueOn": "Due on {{date}}",
+    "confirm": "Confirm",
+    "confirmNamed": "Confirm {{name}}, due on {{date}}",
+    "confirmTitle": "Confirm {{name}}",
+    "record": "Record",
+    "dismiss": "Dismiss",
+    "dismissNamed": "Dismiss {{name}}, due on {{date}}",
+    "upcoming": "Next {{days}} days",
+    "upcomingList": "Due in the next {{days}} days",
+    "upcomingEmpty": "Nothing is due in the next {{days}} days.",
+    "occurrenceModes": {
+      "autoPost": "Recorded for you",
+      "remind": "Reminder"
+    },
     "save": "Save",
     "cancel": "Cancel",
     "nextOn": "Next on {{date}}",
@@ -454,6 +533,9 @@
       "endBeforeStart": "The end date cannot be before the start date.",
       "payeeTooLong": "Use at most 200 characters.",
       "noteTooLong": "Use at most 1000 characters.",
+      "mode": "Choose what happens on each due date.",
+      "answerEarlierFirst": "Confirm or dismiss the earlier reminder of this rule first.",
+      "notAnswered": "The reminder was not answered.",
       "generic": "Something went wrong. Try again.",
       "stale": "This recurring rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
       "notSaved": "The recurring rule was not saved.",
@@ -484,6 +566,8 @@
     "percent": "{{percent}}%",
     "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
     "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
+    "transactions": "See transactions",
+    "transactionsBehind": "Transactions behind {{name}} in {{month}}",
     "copy": {
       "action": "Copy budgets from {{month}}",
       "done_zero": "No budgets copied from {{month}}: every category with a budget there already has one this month or takes none.",
@@ -543,6 +627,7 @@
       "chart": "Chart",
       "table": "Table"
     },
+    "days": "{{from}} to {{to}}",
     "previousPeriod": "Previous period, {{from}} to {{to}}",
     "notConverted_one": "{{count}} amount is not converted into your base currency yet and is left out.",
     "notConverted_other": "{{count}} amounts are not converted into your base currency yet and are left out.",
@@ -575,7 +660,84 @@
       "refund": "Refund",
       "split": "Split transaction"
     },
-    "export": "Export CSV"
+    "export": "Export CSV",
+    "trends": {
+      "title": "Trends",
+      "chooseWhat": "Choose a category or type a payee to follow it month by month.",
+      "payee": "Payee",
+      "payeeHint": "Follow one payee, only in the category chosen when there is one.",
+      "categoryAndPayee": "{{category}}, {{payee}}",
+      "totalSpent": "Total spent",
+      "totalReceived": "Total received",
+      "changeFromPrevious": "Change from the previous period",
+      "chart": "Trend of {{name}}",
+      "table": "Trend of {{name}}",
+      "month": "Month",
+      "total": "Total",
+      "change": "Change",
+      "changePercent": "Change %",
+      "previousTotal": "Previous period",
+      "followBy": "Follow",
+      "followByHint": "What a payee is followed by when no category is chosen.",
+      "spentWith": "Spent with them",
+      "receivedFrom": "Received from them"
+    },
+    "income": {
+      "title": "Income vs expenses",
+      "wholePeriod": "Whole period",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net",
+      "savingsRate": "Savings rate",
+      "month": "Month",
+      "chart": "Income and expenses per month, with net",
+      "table": "Income vs expenses",
+      "previousNet": "Net, previous period",
+      "previousTable": "Income vs expenses, previous period"
+    },
+    "budgetVsActual": {
+      "title": "Budget vs actual",
+      "table": "Budget vs actual",
+      "category": "Category",
+      "budgeted": "Budgeted",
+      "spent": "Spent",
+      "remaining": "Remaining",
+      "percentSpent": "Spent %",
+      "percent": "{{percent}}%",
+      "state": "State",
+      "total": "Total",
+      "states": {
+        "onTrack": "On track",
+        "warning": "Warning",
+        "over": "Over budget"
+      },
+      "chart": "Budgeted against spent per category",
+      "oneMonth": "Budget month {{month}}",
+      "months": "Budget months {{first}} to {{last}}, summed",
+      "budgetedMonths_one": "{{count}} of {{total}} months",
+      "budgetedMonths_other": "{{count}} of {{total}} months",
+      "noBudgets": "No budget was set in these months.",
+      "unbudgeted": "Spent with no budget",
+      "unbudgetedHint": "Spent in a month when neither the category nor its parent had a budget."
+    },
+    "netWorth": {
+      "title": "Net worth",
+      "on": "Net worth on {{date}}",
+      "chart": "Net worth: assets and liabilities at each month end",
+      "table": "Net worth at each month end",
+      "date": "Month end",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "netWorth": "Net worth"
+    },
+    "monthlySummary": {
+      "title": "Monthly summary",
+      "body": "Download one month's income, expenses, savings rate, spending by category and budgets as a PDF.",
+      "month": "Month",
+      "download": "Download PDF",
+      "downloaded": "The monthly summary is downloaded.",
+      "failed": "The monthly summary could not be downloaded."
+    }
   },
   "institutions": {
     "backToAccounts": "Back to accounts",
@@ -833,5 +995,43 @@
     "rose": "Rose",
     "slate": "Slate",
     "current": "Current colour"
+  },
+  "reconciliations": {
+    "title": "Reconcile {{name}}",
+    "intro": "Check the account against a bank statement: enter its closing date and balance, tick each transaction the statement shows, and complete it once the difference is zero.",
+    "toAccounts": "Back to accounts",
+    "loading": "Loading the reconciliation",
+    "start": "Start reconciliation",
+    "newStatement": "New statement",
+    "statementDate": "Statement date",
+    "closingBalance": "Closing balance",
+    "closingBalanceIn": "Closing balance ({{currency}})",
+    "closingBalanceHint": "As the statement shows it. For an amount owed, put a minus sign in front.",
+    "reconciledBalance": "Reconciled before",
+    "tickedTotal": "Ticked",
+    "difference": "Difference",
+    "toTick": "Transactions to tick",
+    "tick": "Tick {{name}}",
+    "nothingToTick": "No transactions on this account up to {{date}} are left to tick.",
+    "completeWhenZero": "It can be completed once the difference is exactly zero.",
+    "complete": "Complete reconciliation",
+    "cancel": "Cancel reconciliation",
+    "completed": "Reconciled to {{date}}. Its transactions are locked.",
+    "reopen": "Reopen",
+    "errors": {
+      "statementDate": "Enter the statement date.",
+      "statementDateInFuture": "A statement date cannot be in the future.",
+      "statementDateRefused": "Enter a statement date that is not in the future, nor before the last reconciliation.",
+      "balanceRequired": "Enter the closing balance.",
+      "balanceInvalid": "Enter a balance, such as {{example}}.",
+      "inProgress": "This account already has a reconciliation in progress. It is shown now.",
+      "noAccount": "This account was not found.",
+      "generic": "Something went wrong. Try again.",
+      "notStarted": "The reconciliation was not started.",
+      "notTicked": "The transaction was not ticked.",
+      "notCompleted": "The reconciliation was not completed.",
+      "notCancelled": "The reconciliation was not cancelled.",
+      "notReopened": "The reconciliation was not reopened."
+    }
   }
 }

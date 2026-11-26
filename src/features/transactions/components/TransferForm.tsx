@@ -133,12 +133,18 @@ export function TransferForm({ id, transfer, accounts, onSave, onSaved, onCancel
     }
     if (isStale(outcome)) return
     for (const refused of outcome.fields) {
-      form.setError(refused, { message: serverErrors[refused] }, { shouldFocus: true })
+      // A reconciled transfer refuses a change to its accounts, amounts or date, named as the field at fault.
+      form.setError(refused, { message: transfer?.isReconciled && refused !== 'note' ? 'transfers.errors.reconciled' : serverErrors[refused] }, { shouldFocus: true })
     }
   })
 
   return (
     <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
+      {transfer?.isReconciled && (
+        <p role="note" className="rounded-md bg-muted p-3 text-sm">
+          {t('transfers.reconciledLocked')}
+        </p>
+      )}
       <SelectField
         label={t('transfers.from')}
         error={errors.fromAccountId?.message && t(errors.fromAccountId.message as ParseKeys)}

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router'
 import { decimalPattern } from '@/shared/money'
+import { maxTagLength, tagName } from '../api/tags'
 import { transactionTypes, transferLegTypes, type TransactionFilters } from '../api/transactions'
 
 /** The filters, as the address and the API both name them. The sort order is not one: clearing the filters leaves it. */
-const filterNames = ['from', 'to', 'accountId', 'categoryId', 'type', 'min', 'max', 'q'] as const
+const filterNames = ['from', 'to', 'accountId', 'categoryId', 'type', 'min', 'max', 'q', 'tag'] as const
 
 /** What a filter or the sort order is changed to; undefined or empty takes it out of the address. */
 export type ViewChanges = Partial<Record<(typeof filterNames)[number] | 'sort' | 'order', string>>
@@ -67,6 +68,8 @@ function read(params: URLSearchParams): TransactionFilters {
     min: amount('min'),
     max: amount('max'),
     q: text('q')?.trim().slice(0, maxSearchLength) || undefined,
+    // As the API keeps a tag's name, so one typed into the address in another case is the same view.
+    tag: [tagName(text('tag') ?? '')].find((name) => name !== '' && name.length <= maxTagLength),
     // The API's own order, newest date first, is the one the address leaves out.
     sort: oneOf('sort', ['amount']),
     order: oneOf('order', ['asc']),

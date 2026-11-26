@@ -10,6 +10,9 @@ type TransactionRequest = components['schemas']['TransactionRequest']
 type Transfer = components['schemas']['TransferResponse']
 type TransferRequest = components['schemas']['TransferRequest']
 type Account = components['schemas']['AccountResponse']
+type MarkRequest = components['schemas']['MarkAsTransferRequest']
+type UnmarkRequest = components['schemas']['UnmarkTransferRequest']
+type DeletedTransaction = components['schemas']['DeletedTransactionResponse']
 
 const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
 
@@ -40,13 +43,35 @@ type Options = {
  * (412 when stale, 428 when missing); deleting takes the transaction out of the list. The balance of the
  * account a transaction is on follows it. Quick add answers the account, not archived, recorded on last, and the
  * category, not archived, on the most lines of a payee's transactions that are not refunds (see the API's QuickAddTests).
- * Search finds a line's note too, and filtered by a category the total adds only the lines in it.
+ * Search finds a line's note too, and filtered by a category the total adds only the lines in it, and says what
+ * they spent there in the base currency, VND, as a budget counts it: an expense in another currency has no rate
+ * here, so it is not converted and left out.
  *
  * It answers the transfer endpoints too (see the API's TransferTests), since a transfer is two of these
  * transactions: a `transferOut` leg and a `transferIn` leg sharing a `transferId`, with no category. A transfer
  * is between two different accounts that are not archived; between accounts in one currency the two amounts
  * are the same, between currencies `toAmount` must be sent; its row version is its `transferOut` leg's; both
  * legs are edited and deleted together, and deleting a leg as a transaction deletes the other one too.
+ *
+ * Marking as a transfer (see the API's MarkAsTransferTests) makes an expense that is not a refund the
+ * `transferOut` leg and income on another account the `transferIn` leg, on the same date and, in one currency, of
+ * the same amount; either is refused on its id (`expenseId`, `incomeId`) when it is not one, is a leg already, or
+ * breaks a rule of the pair (then on `incomeId`). Unmarking turns a transfer's legs back into an expense and
+ * income on the categories sent, each of its kind and not archived.
+ *
+ * A reconciled transaction (`isReconciled`, which `fakeReconciliationsApi` sets) is locked (see the API's
+ * ReconciliationTests): an edit of its amount, date, account, type or refund flag is refused on that field, and
+ * deleting it answers 409 `transaction-reconciled`. A transfer either of whose legs is reconciled is locked the
+ * same way, and is neither marked from a reconciled transaction nor unmarked.
+ *
+ * A deleted transaction is recently deleted (see the API's RecentlyDeletedTests) for 30 days, listed the last deleted
+ * first, each leg of a transfer on its own; restoring one puts it back in the list and its account's balance, and
+ * restoring a leg restores the whole transfer. One not deleted, or deleted longer ago, is not found.
+ *
+ * Tags (see the API's TagTests) are names kept trimmed and in lower case, each once and in order; a transaction
+ * takes at most 20, each of 1 to 50 characters, refused as `tags`. A name the user has no tag with creates one,
+ * which stays once no transaction has it. `tag` narrows the list to the transactions with it, in any case, and
+ * `/api/v1/tags` lists the user's tags by name, those containing `q`, a page at a time.
  */
 export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
   let recorded = 0
@@ -72,10 +97,14 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         // One line with the whole amount, unless the test seeds a split.
         lines: categoryId === null ? [] : [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
         isRefund: false,
+        tags: [],
+        isReconciled: false,
         ...transaction,
         categoryId,
       }
     }),
+    /** The user's tags, by name: those of the seeded transactions and every one created since. */
+    tags: [] as string[],
     /** The `Idempotency-Key` header of every POST, in the order they arrived. */
     idempotencyKeys: [] as (string | null)[],
     /** The `If-Match` header of every edit, in the order they arrived. */
@@ -95,6 +124,10 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     requests: [] as { method: string; body: Partial<TransactionRequest> }[],
     /** Every POST and PUT body sent to the transfer endpoints, in the order they arrived. */
     transferRequests: [] as { method: string; body: Partial<TransferRequest> }[],
+    /** Every body sent to mark two transactions as a transfer, in the order they arrived. */
+    markRequests: [] as Partial<MarkRequest>[],
+    /** Every body sent to unmark a transfer, with the transfer's id, in the order they arrived. */
+    unmarkRequests: [] as { id: string; body: Partial<UnmarkRequest> }[],
     /**
      * Holds every answer to a request that changes something until the returned function is called, so a
      * test can look at the screen while the API has not answered yet.
@@ -104,11 +137,14 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       held = new Promise<void>((resolve) => (release = resolve))
       return release
     },
+    /** The transactions deleted, each with when, the last deleted last: `deletedAt` can be set back to make one older. */
+    deleted: [] as (Transaction & { deletedAt: string })[],
     /** The next request that changes something fails with a 500, having saved nothing. */
     failNext() {
       failing = true
     },
   }
+  state.transactions.forEach(keepTags)
   let held: Promise<void> | undefined
   let heldLists: Promise<void> | undefined
   let failing = false
@@ -141,6 +177,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     check('min', isAmount, 'Enter an amount that is not negative, such as 125000.00.')
     check('max', isAmount, 'Enter an amount that is not negative, such as 125000.00.')
     check('q', (value) => value.trim().length <= 200, 'Search for at most 200 characters.')
+    check('tag', (value) => value.trim().length <= 50, 'Send a tag of at most 50 characters.')
     check('sort', (value) => value === 'date' || value === 'amount', 'Choose one of: date, amount.')
     check('order', (value) => value === 'asc' || value === 'desc', 'Choose one of: asc, desc.')
     return errors
@@ -163,6 +200,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       (filter('type') === undefined || transaction.type === filter('type')) &&
       (filter('min') === undefined || Number(transaction.amount) >= Number(filter('min'))) &&
       (filter('max') === undefined || Number(transaction.amount) <= Number(filter('max'))) &&
+      (!filter('tag')?.trim() || transaction.tags.includes(filter('tag')!.trim().toLowerCase())) &&
       (!search || [transaction.payee, transaction.note, ...transaction.lines.map((line) => line.note)].some((field) => field?.toLowerCase().includes(search)))
   }
 
@@ -191,6 +229,17 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
           expenses: text(inCurrency.filter((transaction) => transaction.type === 'expense').reduce((total, transaction) => total - signed(transaction), 0)),
           net: text(inCurrency.reduce((total, transaction) => total + signed(transaction), 0)),
         })),
+      spent: categoryId === null ? null : spentOf(passing.filter((transaction) => transaction.type === 'expense')),
+    }
+  }
+
+  /** What expenses, already cut to their lines in a category, spent in the base currency: refunds take away. */
+  function spentOf(expenses: Transaction[]): NonNullable<TransactionList['total']['spent']> {
+    const converted = expenses.filter((expense) => expense.currency === 'VND')
+    return {
+      currency: 'VND',
+      amount: text(converted.reduce((total, expense) => total - signed(expense), 0)),
+      notConverted: expenses.length - converted.length,
     }
   }
 
@@ -212,6 +261,9 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     })
     if ((body.payee?.trim().length ?? 0) > 200) errors.payee = ['Enter a payee of at most 200 characters.']
     if ((body.note?.trim().length ?? 0) > 1000) errors.note = ['Enter a note of at most 1000 characters.']
+    const tags = tagNames(body.tags)
+    if (body.tags?.some((tag) => !tag?.trim() || tag.trim().length > 50)) errors.tags = ['Enter tags of 1 to 50 characters.']
+    else if (tags.length > 20) errors.tags = ['Give a transaction at most 20 tags.']
     if (Object.keys(errors).length > 0) return { refused: problem(400, { errors }) }
 
     const invalid = (field: string, message: string) => ({ refused: problem(400, { errors: { [field]: [message] } }) })
@@ -253,9 +305,24 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         transferId: null,
         lines: entered.map((line) => ({ categoryId: line.categoryId, amount: text(Number(line.amount)), note: line.note?.trim() || null })),
         isRefund: body.isRefund ?? false,
+        tags,
       },
     }
   }
+
+  /** Tag names as they are kept: trimmed, in lower case, each once, in order. */
+  function tagNames(names: (string | null)[] | null | undefined) {
+    return [...new Set((names ?? []).flatMap((name) => (name?.trim() ? [name.trim().toLowerCase()] : [])))].toSorted()
+  }
+
+  /** Creates the tags a saved transaction has that the user had none of yet. */
+  function keepTags(transaction: Transaction) {
+    state.tags = [...new Set([...state.tags, ...transaction.tags])].toSorted()
+  }
+
+  /** What a reconciled transaction keeps as it is; the API names the first one changed. */
+  const lockedFields = ['amount', 'date', 'accountId', 'type', 'isRefund'] as const
+  const reconciled = () => problem(409, { type: 'urn:pfm:problem:transaction-reconciled' })
 
   const legsOf = (transferId: unknown) => state.transactions.filter((transaction) => transaction.transferId === transferId)
 
@@ -278,6 +345,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       outTransactionId: out.id,
       inTransactionId: into.id,
       rowVersion: out.rowVersion,
+      isReconciled: out.isReconciled || into.isReconciled,
     }
   }
 
@@ -309,7 +377,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if (!fits(toAmount, to.currency)) return invalid('toAmount', 'The amount has more decimals than its currency.')
     if (body.date! > today) return invalid('date', "A transfer's date cannot be in the future.")
 
-    const shared = { date: body.date!, categoryId: null, payee: null, note: body.note?.trim() || null, isRefund: false, lines: [], recurringRuleId: null }
+    const shared = { date: body.date!, categoryId: null, payee: null, note: body.note?.trim() || null, isRefund: false, lines: [], recurringRuleId: null, tags: [] }
     return {
       out: { ...shared, accountId: from.id, amount: text(Number(body.amount)), currency: from.currency },
       into: { ...shared, accountId: to.id, amount: text(Number(toAmount)), currency: to.currency },
@@ -319,11 +387,19 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
   const answerTransfer = (transfer: Transfer, status = 200) => HttpResponse.json(transfer, { status, headers: { ETag: `"${transfer.rowVersion}"` } })
 
   function removeTransfer(transferId: unknown) {
-    for (const leg of legsOf(transferId)) {
-      move(leg, -1)
-      state.transactions.splice(state.transactions.indexOf(leg), 1)
-    }
+    for (const leg of legsOf(transferId)) remove(leg)
   }
+
+  /** Deletes a transaction: it leaves the list and its account's balance, and is recently deleted. */
+  function remove(transaction: Transaction) {
+    move(transaction, -1)
+    state.transactions.splice(state.transactions.indexOf(transaction), 1)
+    state.deleted.push({ ...transaction, deletedAt: new Date().toISOString() })
+  }
+
+  const recoveryPeriod = 30 * 24 * 60 * 60 * 1000
+  const restorableUntil = (deleted: { deletedAt: string }) => new Date(Date.parse(deleted.deletedAt) + recoveryPeriod)
+  const recentlyDeleted = () => state.deleted.filter((deleted) => restorableUntil(deleted).getTime() > Date.now())
 
   /** What every request that changes something goes through first: the token, a held answer, a planned failure. */
   async function refusedOrFailed(request: Request) {
@@ -360,6 +436,54 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
       const items = sorted.slice(start, start + limit)
       return HttpResponse.json({ items, nextCursor: start + limit < sorted.length ? items.at(-1)!.id : null, total: totalOf(passing, query.get('categoryId')) })
+    }),
+    // Before the handler for one transaction, which would take "deleted" for an id.
+    http.get(apiUrl('/api/v1/transactions/deleted'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const limit = Number(query.get('limit') ?? 50)
+      // The last deleted first; the real cursor is opaque, this one is the id of the page's last transaction.
+      const lastFirst = recentlyDeleted().toReversed()
+      const cursor = query.get('cursor')
+      const start = cursor === null ? 0 : lastFirst.findIndex((deleted) => deleted.id === cursor) + 1
+      if (cursor !== null && start === 0) return problem(400, { errors: { cursor: ['Use the nextCursor of the page before.'] } })
+      const items = lastFirst.slice(start, start + limit).map(
+        ({ id, type, accountId, amount, currency, date, categoryId, payee, note, transferId, isRefund, lines, deletedAt }): DeletedTransaction => ({
+          ...{ id, type, accountId, amount, currency, date, categoryId, payee, note, transferId, isRefund, lines, deletedAt },
+          restorableUntil: restorableUntil({ deletedAt }).toISOString(),
+        }),
+      )
+      return HttpResponse.json({ items, nextCursor: start + limit < lastFirst.length ? items.at(-1)!.id : null })
+    }),
+    http.post(apiUrl('/api/v1/transactions/:id/restore'), async ({ request, params }) => {
+      const stopped = await refusedOrFailed(request)
+      if (stopped) return stopped
+      const found = recentlyDeleted().find((deleted) => deleted.id === params.id)
+      if (!found) return problem(404)
+      // A leg restores the whole transfer.
+      const restoring = found.transferId ? state.deleted.filter((deleted) => deleted.transferId === found.transferId) : [found]
+      for (const deleted of restoring) {
+        state.deleted.splice(state.deleted.indexOf(deleted), 1)
+        const restored: Transaction = { ...deleted, rowVersion: String(Number(deleted.rowVersion) + 1) }
+        delete (restored as Partial<typeof deleted>).deletedAt
+        state.transactions.push(restored)
+        move(restored, 1)
+      }
+      const restored = find(found.id)!
+      return HttpResponse.json(restored, { headers: { ETag: `"${restored.rowVersion}"` } })
+    }),
+    http.get(apiUrl('/api/v1/tags'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const search = query.get('q')?.trim().toLowerCase() ?? ''
+      const limit = Number(query.get('limit') ?? 50)
+      const matching = state.tags.filter((name) => name.includes(search))
+      // The real cursor is opaque; this one is the name of the page's last tag.
+      const cursor = query.get('cursor')
+      const start = cursor === null ? 0 : matching.indexOf(cursor) + 1
+      const items = matching.slice(start, start + limit)
+      return HttpResponse.json({
+        items: items.map((name) => ({ id: `tag-${name}`, name })),
+        nextCursor: start + limit < matching.length ? items.at(-1)! : null,
+      })
     }),
     // Before the handler for one transaction, which would take "quick-add" for an id.
     http.get(apiUrl('/api/v1/transactions/quick-add'), ({ request }) => {
@@ -409,9 +533,11 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         rowVersion: '1',
         // Only the worker posts for a rule; what a user records is linked to none.
         recurringRuleId: null,
+        isReconciled: false,
         ...result.fields,
       }
       state.transactions.push(created)
+      keepTags(created)
       order.set(created.id, recorded)
       if (key !== null) byKey.set(key, { recorded: created, body })
       move(created, 1)
@@ -427,10 +553,18 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (!found) return problem(404)
       if (found.transferId) return problem(400, { errors: { type: ['This transaction is a leg of a transfer. Edit the transfer.'] } })
       if (ifMatch !== `"${found.rowVersion}"`) return problem(412)
+      if (found.isReconciled) {
+        const asked = (await request.clone().json()) as Partial<TransactionRequest>
+        const changed = lockedFields.find((field) =>
+          field === 'amount' ? Number(asked.amount) !== Number(found.amount) : field === 'isRefund' ? (asked.isRefund ?? false) !== found.isRefund : asked[field] !== found[field],
+        )
+        if (changed) return problem(400, { errors: { [changed]: ['This transaction is reconciled.'] } })
+      }
       const result = await validated(request, found)
       if (result.refused) return result.refused
       move(found, -1)
       Object.assign(found, result.fields, { rowVersion: String(Number(found.rowVersion) + 1) })
+      keepTags(found)
       move(found, 1)
       return HttpResponse.json(found, { headers: { ETag: `"${found.rowVersion}"` } })
     }),
@@ -439,12 +573,12 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       if (stopped) return stopped
       const found = find(params.id)
       if (!found) return problem(404)
+      if (found.transferId ? legsOf(found.transferId).some((leg) => leg.isReconciled) : found.isReconciled) return reconciled()
       if (found.transferId) {
         removeTransfer(found.transferId)
         return new HttpResponse(null, { status: 204 })
       }
-      move(found, -1)
-      state.transactions.splice(state.transactions.indexOf(found), 1)
+      remove(found)
       return new HttpResponse(null, { status: 204 })
     }),
     http.post(apiUrl('/api/v1/transfers'), async ({ request }) => {
@@ -468,6 +602,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         rowVersion: '1',
         type,
         transferId,
+        isReconciled: false,
         ...(type === 'transferOut' ? result.out : result.into),
       }))
       for (const leg of legs) {
@@ -477,6 +612,63 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       }
       if (key !== null) byKey.set(key, { recorded: legs[0]!, body })
       return answerTransfer(transferOf(transferId)!, 201)
+    }),
+    // Before the handlers for one transfer, which would take "mark" for an id.
+    http.post(apiUrl('/api/v1/transfers/mark'), async ({ request }) => {
+      const stopped = await refusedOrFailed(request)
+      if (stopped) return stopped
+      const body = (await request.json()) as Partial<MarkRequest>
+      state.markRequests.push(body)
+      const invalid = (field: string, message: string) => problem(400, { errors: { [field]: [message] } })
+      const expense = find(body.expenseId)
+      const income = find(body.incomeId)
+      if (!expense) return invalid('expenseId', 'Choose one of your transactions.')
+      if (!income) return invalid('incomeId', 'Choose one of your transactions.')
+      if (expense.transferId) return invalid('expenseId', 'This is a leg of a transfer already.')
+      if (expense.type !== 'expense' || expense.isRefund) return invalid('expenseId', 'Choose an expense that is not a refund: the money that left one account.')
+      if (expense.isReconciled) return invalid('expenseId', 'This transaction is reconciled.')
+      if (income.transferId) return invalid('incomeId', 'This is a leg of a transfer already.')
+      if (income.isReconciled) return invalid('incomeId', 'This transaction is reconciled.')
+      if (income.type !== 'income') return invalid('incomeId', 'Choose income: the money that arrived on the other account.')
+      if (expense.accountId === income.accountId) return invalid('incomeId', 'A transfer is between two different accounts.')
+      if (expense.currency === income.currency && Number(expense.amount) !== Number(income.amount)) {
+        return invalid('incomeId', 'Accounts in the same currency move the same amount.')
+      }
+      if (expense.date !== income.date) return invalid('incomeId', 'The two legs of a transfer are on the same date.')
+
+      // Each keeps its id, account, amount, date and note; the balances do not move.
+      const transferId = `01970000-0000-7000-8000-5${String(recorded++).padStart(11, '0')}`
+      for (const [leg, type] of [[expense, 'transferOut'], [income, 'transferIn']] as const) {
+        Object.assign(leg, { type, transferId, categoryId: null, payee: null, recurringRuleId: null, lines: [], rowVersion: String(Number(leg.rowVersion) + 1) })
+      }
+      return answerTransfer(transferOf(transferId)!, 201)
+    }),
+    http.post(apiUrl('/api/v1/transfers/:id/unmark'), async ({ request, params }) => {
+      const stopped = await refusedOrFailed(request)
+      if (stopped) return stopped
+      const body = (await request.json()) as Partial<UnmarkRequest>
+      state.unmarkRequests.push({ id: String(params.id), body })
+      const transfer = transferOf(params.id)
+      if (!transfer) return problem(404)
+      if (transfer.isReconciled) return problem(400, { errors: { id: ['This transfer is reconciled.'] } })
+      const categoryOf = (id: unknown, kind: FakeCategory['kind']) =>
+        categories.find((category) => category.id === id && category.kind === kind && !category.isArchived)
+      const spentOn = categoryOf(body.expenseCategoryId, 'expense')
+      if (!spentOn) return problem(400, { errors: { expenseCategoryId: ['Choose one of your categories that is not archived.'] } })
+      const earnedOn = categoryOf(body.incomeCategoryId, 'income')
+      if (!earnedOn) return problem(400, { errors: { incomeCategoryId: ['Choose one of your categories that is not archived.'] } })
+
+      const [out, into] = [find(transfer.outTransactionId)!, find(transfer.inTransactionId)!]
+      for (const [leg, type, category] of [[out, 'expense', spentOn], [into, 'income', earnedOn]] as const) {
+        Object.assign(leg, {
+          type,
+          transferId: null,
+          categoryId: category.id,
+          lines: [{ categoryId: category.id, amount: leg.amount, note: null }],
+          rowVersion: String(Number(leg.rowVersion) + 1),
+        })
+      }
+      return HttpResponse.json({ expense: out, income: into })
     }),
     http.get(apiUrl('/api/v1/transfers/:id'), ({ params }) => {
       const transfer = transferOf(params.id)
@@ -504,6 +696,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       const stopped = await refusedOrFailed(request)
       if (stopped) return stopped
       if (legsOf(params.id).length === 0) return problem(404)
+      if (legsOf(params.id).some((leg) => leg.isReconciled)) return reconciled()
       removeTransfer(params.id)
       return new HttpResponse(null, { status: 204 })
     }),
