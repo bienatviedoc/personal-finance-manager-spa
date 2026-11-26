@@ -566,6 +566,7 @@
       "chart": "Biểu đồ",
       "table": "Bảng"
     },
+    "days": "{{from}} đến {{to}}",
     "previousPeriod": "Kỳ trước, {{from}} đến {{to}}",
     "notConverted_one": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
     "notConverted_other": "{{count}} khoản chưa được quy đổi sang tiền tệ cơ sở và không được tính.",
@@ -614,7 +615,6 @@
       "change": "Thay đổi",
       "changePercent": "Thay đổi %",
       "previousTotal": "Kỳ trước",
-      "days": "{{from}} đến {{to}}",
       "followBy": "Theo dõi",
       "followByHint": "Theo dõi bên nhận theo khoản nào khi chưa chọn danh mục.",
       "spentWith": "Đã chi cho họ",

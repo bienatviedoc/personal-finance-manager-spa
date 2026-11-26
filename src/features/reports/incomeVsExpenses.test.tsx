@@ -118,6 +118,20 @@ describe('the income vs expenses report', () => {
     ])
   })
 
+  it('names each month of the period before one that is not whole months by its days, set against the month at the same place', async () => {
+    setUp({
+      income: [{ id: 't-february-pay', date: '2026-02-18', categoryId: 'c-salary', accountId: 'a-everyday', amount: '5000000' }],
+      expenses: [{ id: 't-january-shop', date: '2026-01-27', categoryId: 'c-groceries', accountId: 'a-everyday', spent: '1000000' }],
+    })
+    renderApp(`${report}?period=custom&from=2026-03-10&to=2026-04-20&compare=true&view=table`)
+
+    expect(await rowsOf('Income vs expenses, previous period')).toEqual([
+      ['Jan 27, 2026 to Feb 17, 2026', '₫0', '₫1,000,000', '-₫1,000,000', '–'],
+      ['Feb 18, 2026 to Mar 9, 2026', '₫5,000,000', '₫0', '₫5,000,000', '100%'],
+      ['Whole period', '₫5,000,000', '₫1,000,000', '₫4,000,000', '80%'],
+    ])
+  })
+
   it('offers income and expense categories alike to filter by', async () => {
     setUp()
     renderApp(report)

@@ -566,6 +566,7 @@
       "chart": "Chart",
       "table": "Table"
     },
+    "days": "{{from}} to {{to}}",
     "previousPeriod": "Previous period, {{from}} to {{to}}",
     "notConverted_one": "{{count}} amount is not converted into your base currency yet and is left out.",
     "notConverted_other": "{{count}} amounts are not converted into your base currency yet and are left out.",
@@ -614,7 +615,6 @@
       "change": "Change",
       "changePercent": "Change %",
       "previousTotal": "Previous period",
-      "days": "{{from}} to {{to}}",
       "followBy": "Follow",
       "followByHint": "What a payee is followed by when no category is chosen.",
       "spentWith": "Spent with them",

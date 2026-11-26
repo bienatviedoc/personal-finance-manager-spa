@@ -226,7 +226,11 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         currency: baseCurrency,
         total: flowOf(from, to),
         months: monthsOf(from, to),
-        previous: before && { ...before, total: flowOf(before.from, before.to), months: monthsOf(before.from, before.to) },
+        previous: before && {
+          ...before,
+          total: flowOf(before.from, before.to),
+          months: previousMonths(from, to).map((month) => ({ month: `${month.from.slice(0, 7)}-01`, ...month, ...flowOf(month.from, month.to) })),
+        },
       }
       return HttpResponse.json(response)
     }),

@@ -10,6 +10,7 @@ import { formatAxisAmount, formatMoney, Money, type Currency } from '@/shared/mo
 import { incomeVsExpensesQuery, type IncomeAndExpenses, type MonthIncomeAndExpenses } from '../api/incomeVsExpenses'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
+import { monthName } from '../frame/monthName'
 import { Share } from '../frame/Share'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
 
@@ -170,9 +171,9 @@ function MonthsTable({ caption, months, total, currency }: MonthsTableProps) {
         </thead>
         <tbody className="divide-y">
           {months.map((month) => (
-            <tr key={month.month}>
+            <tr key={month.from}>
               <th scope="row" className={cn(cell, 'text-left font-normal')}>
-                {formatMonth(monthOf(month.month), locale)}
+                {monthName(month, locale, t)}
                 <NotConverted count={Number(month.notConverted)} short />
               </th>
               {figures(month)}
