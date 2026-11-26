@@ -183,6 +183,15 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   net worth above; it takes no category filter and is not compared. Budget vs actual
   (`budgetVsActual/BudgetVsActualReport`) sets each category's budget against what was spent as horizontal bars or a
   table with the totals, and lists apart what was spent with no budget.
+- **Every report downloads as CSV** (spec section 7, export), from the answer already on screen, in either view:
+  `ExportCsv` in `features/reports/frame` saves the numbers of the report's table view (`saveCsv` from
+  `@/shared/lib/csv`, RFC 4180 and UTF-8 with a byte order mark, as the API writes its own), named for the report
+  and its period (`net-worth-2026-01-01-2026-03-31.csv`). Columns take the API's names, amounts stay as the API
+  answers them, plain decimals beside a `currency` column, and dates are `YYYY-MM-DD`; a report that compares adds
+  the period before. No report asks the API for a file.
+- **The transaction list downloads as CSV** from the API (`useExportTransactions`, `GET /api/v1/export/transactions.csv`)
+  with the filters and sort order in the address: every transaction that passes, not only the pages loaded. A
+  failure says so in a toast with a way to try again.
 - **The monthly summary** (spec section 7, export) sits under every report on the reports screen
   (`monthlySummary/MonthlySummaryDownload`): a month to choose, this one first and two years back, and a button that
   downloads its PDF from `GET /api/v1/reports/monthly-summary.pdf` (`useDownloadMonthlySummary`) in the language the
@@ -274,7 +283,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
-| `fakeTransactionsApi` | `/api/v1/transactions`, and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeTransactionsApi` | `/api/v1/transactions` (a test stands in for `/api/v1/export/transactions.csv` itself, in `transactionExport.test.tsx`), and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming, reminders to confirm or dismiss and the upcoming list (worked out from each rule's dates as the API does, from `today`, the test user's by default); nothing posts there, so a rule's next run date stays its start date until a reminder is answered |
 | `fakeReconciliationsApi` | `/api/v1/accounts/{accountId}/reconciliations` and `/api/v1/reconciliations`: starting, ticking, completing, reopening and cancelling, over the accounts and transactions the other fakes hold; completing sets `isReconciled` on what is ticked, which `fakeTransactionsApi` then locks |
