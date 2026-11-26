@@ -667,6 +667,14 @@
       "assets": "Tài sản",
       "liabilities": "Nợ phải trả",
       "netWorth": "Giá trị tài sản ròng"
+    },
+    "monthlySummary": {
+      "title": "Tổng kết tháng",
+      "body": "Tải về thu nhập, chi tiêu, tỷ lệ tiết kiệm, chi tiêu theo danh mục và ngân sách của một tháng dưới dạng tệp PDF.",
+      "month": "Tháng",
+      "download": "Tải PDF",
+      "downloaded": "Đã tải bản tổng kết tháng.",
+      "failed": "Không thể tải bản tổng kết tháng."
     }
   },
   "institutions": {

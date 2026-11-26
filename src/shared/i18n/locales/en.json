@@ -667,6 +667,14 @@
       "assets": "Assets",
       "liabilities": "Liabilities",
       "netWorth": "Net worth"
+    },
+    "monthlySummary": {
+      "title": "Monthly summary",
+      "body": "Download one month's income, expenses, savings rate, spending by category and budgets as a PDF.",
+      "month": "Month",
+      "download": "Download PDF",
+      "downloaded": "The monthly summary is downloaded.",
+      "failed": "The monthly summary could not be downloaded."
     }
   },
   "institutions": {

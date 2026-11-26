@@ -160,6 +160,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   net worth above; it takes no category filter and is not compared. Budget vs actual
   (`budgetVsActual/BudgetVsActualReport`) sets each category's budget against what was spent as horizontal bars or a
   table with the totals, and lists apart what was spent with no budget.
+- **The monthly summary** (spec section 7, export) sits under every report on the reports screen
+  (`monthlySummary/MonthlySummaryDownload`): a month to choose, this one first and two years back, and a button that
+  downloads its PDF from `GET /api/v1/reports/monthly-summary.pdf` (`useDownloadMonthlySummary`) in the language the
+  interface is in, saved under the name the API gives it. The API writes the document; the SPA only hands it over.
 - **Charts are drawn through wrappers** in `src/shared/charts` (`DonutChart`, `LineChart`, `BarsWithLineChart`, `BarChart`, `StackedAreaChart`), over
   [Recharts](https://recharts.org), so the library can be swapped without touching a feature; ESLint refuses an
   import of `recharts` anywhere else. A chart is a picture of numbers a table or legend beside it also gives, which
@@ -252,6 +256,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming; nothing posts there, so a rule's next run date stays its start date |
 | `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual` and `/api/v1/reports/net-worth` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, …), and can fail an answer |
+| `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
 
