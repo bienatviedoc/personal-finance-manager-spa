@@ -320,6 +320,10 @@
       "generic": "Something went wrong. Try again.",
       "notSaved": "The transaction was not saved.",
       "notDeleted": "The transaction was not deleted."
+    },
+    "export": {
+      "start": "Export CSV",
+      "failed": "The CSV file could not be downloaded. Try again in a moment."
     }
   },
   "transfers": {
@@ -570,7 +574,8 @@
       "amount": "Amount",
       "refund": "Refund",
       "split": "Split transaction"
-    }
+    },
+    "export": "Export CSV"
   },
   "institutions": {
     "backToAccounts": "Back to accounts",

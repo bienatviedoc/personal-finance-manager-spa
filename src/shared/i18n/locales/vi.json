@@ -320,6 +320,10 @@
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được giao dịch.",
       "notDeleted": "Chưa xóa được giao dịch."
+    },
+    "export": {
+      "start": "Xuất CSV",
+      "failed": "Không tải được tệp CSV. Hãy thử lại sau ít phút."
     }
   },
   "transfers": {
@@ -570,7 +574,8 @@
       "amount": "Số tiền",
       "refund": "Hoàn tiền",
       "split": "Giao dịch chia nhiều danh mục"
-    }
+    },
+    "export": "Xuất CSV"
   },
   "institutions": {
     "backToAccounts": "Quay lại tài khoản",
