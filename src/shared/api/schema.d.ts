@@ -767,6 +767,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/monthly-summary.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A one-document summary of a calendar month, as a PDF file to download: its income, expenses, net and savings rate, spending by top-level category with each one's share, and each budget against what was spent, with what was spent where no budget covered it, all in the user's base currency, worked out as the income vs expenses, spending by category and budget vs actual reports work them out for that month. Written in the locale asked for, or the user's own, or English when they have none, with amounts written the locale's way. */
+        get: operations["GetMonthlySummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4412,6 +4429,45 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NetWorthResponse"];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMonthlySummary: {
+        parameters: {
+            query?: {
+                month?: string;
+                locale?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {
