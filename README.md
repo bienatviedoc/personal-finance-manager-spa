@@ -117,6 +117,8 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   delete (once confirmed). Selected one by one, it sends their `transactionIds`; all of them, the view's filters as
   `filter`, and the API finds them. All take it or none does: the API decides, never the screen, and when it refuses
   (a 409) the screen names each transaction it refused with why, translated from its `reason`, and keeps the selection.
+  Each refused one comes with the transaction as it is (`transaction`), so it is named by its title, date and amount
+  whether it is loaded on the screen or not; one the API no longer has is named as the list had it.
   Done, the selection is cleared and the lists, balances, budgets and reports are loaded again, as after any change.
 - **Marking as a transfer** (spec IMP-7; see the glossary). Once one or two income and expenses are selected
   (`canBePicked`: not a refund, not a leg), `MarkAsTransfer` is offered; with one expense and one income it sends them to

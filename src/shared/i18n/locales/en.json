@@ -388,7 +388,8 @@
       "failed": "The selected transactions were not changed.",
       "tooManyToSelect_one": "{{total}} transaction passes these filters, and a bulk action takes at most {{max}}. Narrow the filters to select them all.",
       "tooManyToSelect_other": "{{total}} transactions pass these filters, and a bulk action takes at most {{max}}. Narrow the filters to select them all.",
-      "tooMany": "More than {{max}} transactions pass these filters now. Narrow the filters, or select fewer, and try again."
+      "tooMany": "More than {{max}} transactions pass these filters now. Narrow the filters, or select fewer, and try again.",
+      "refusedTransaction": "{{title}}, {{date}}, {{amount}}"
     },
     "export": {
       "start": "Export CSV",

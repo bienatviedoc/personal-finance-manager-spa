@@ -71,12 +71,39 @@ describe('bulk actions', () => {
 
     const refused = await bar().findByRole('list', { name: 'Not changed' })
     expect(within(refused).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
-      'Payroll: income takes an income category, and an expense an expense one.',
+      'Payroll, Nov 1, 2026, +₫9,000,000: income takes an income category, and an expense an expense one.',
     ])
     expect(bar().getByText('Nothing was changed: these transactions cannot take it.')).toBeInTheDocument()
     expect(transactionsApi.transactions[0]?.categoryId).toBe('c-groceries')
     // The selection stays, for the user to change it and try again.
     expect(screen.getByRole('checkbox', { name: 'Select Co.op Mart' })).toBeChecked()
+  })
+
+  it('name each transaction refused by its payee, date and amount, loaded on the screen or not', async () => {
+    fakeApis([
+      ...Array.from({ length: 60 }, (_, index) => ({
+        type: 'expense' as const,
+        accountId: everyday,
+        amount: '1000.00',
+        date: '2026-11-02',
+        categoryId: 'c-groceries',
+        payee: `Shop ${index}`,
+      })),
+      { type: 'income', accountId: everyday, amount: '9000000.00', date: '2026-10-01', categoryId: 'c-salary', payee: 'Payroll' },
+    ])
+    window.innerHeight = 768
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select all 61 transactions' }))
+    // The oldest is on a page not loaded yet.
+    expect(screen.queryByRole('checkbox', { name: 'Select Payroll' })).not.toBeInTheDocument()
+    await user.selectOptions(bar().getByLabelText('Category'), 'Transport')
+    await user.click(bar().getByRole('button', { name: 'Set category' }))
+
+    const refused = await bar().findByRole('list', { name: 'Not changed' })
+    expect(within(refused).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Payroll, Oct 1, 2026, +₫9,000,000: income takes an income category, and an expense an expense one.',
+    ])
   })
 
   it('add a tag to and remove one from the selected transactions', async () => {
@@ -123,7 +150,7 @@ describe('bulk actions', () => {
     await user.click(bar().getByRole('button', { name: 'Move' }))
 
     const refused = await bar().findByRole('list', { name: 'Not changed' })
-    expect(within(refused).getByRole('listitem')).toHaveTextContent('Grab: a transaction moves only to an account in its own currency.')
+    expect(within(refused).getByRole('listitem')).toHaveTextContent('Grab, Nov 2, 2026, -₫200,000: a transaction moves only to an account in its own currency.')
     expect(listed()[1]).toEqual(['Grab', 'Transport · Everyday · Nov 2, 2026'])
   })
 

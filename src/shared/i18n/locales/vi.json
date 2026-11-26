@@ -388,7 +388,8 @@
       "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày.",
       "tooManyToSelect_other": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
       "tooMany": "Hiện có hơn {{max}} giao dịch khớp với bộ lọc này. Hãy thu hẹp bộ lọc hoặc chọn ít hơn, rồi thử lại.",
-      "tooManyToSelect_one": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả."
+      "tooManyToSelect_one": "{{total}} giao dịch khớp với bộ lọc này, nhưng một thao tác hàng loạt chỉ nhận tối đa {{max}}. Hãy thu hẹp bộ lọc để chọn tất cả.",
+      "refusedTransaction": "{{title}}, {{date}}, {{amount}}"
     },
     "export": {
       "start": "Xuất CSV",
