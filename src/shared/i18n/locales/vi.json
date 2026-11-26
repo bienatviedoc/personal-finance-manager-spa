@@ -1028,5 +1028,55 @@
       "notCancelled": "Chưa hủy được đối soát.",
       "notReopened": "Chưa mở lại được đối soát."
     }
+  },
+  "dashboard": {
+    "loading": "Đang tải bảng tổng quan",
+    "errors": {
+      "notLoaded": "Không tải được bảng tổng quan."
+    },
+    "start": {
+      "title": "Bắt đầu bằng cách thêm một tài khoản",
+      "body": "Thêm các tài khoản đang giữ tiền của bạn, như tài khoản ngân hàng, thẻ hoặc tiền mặt. Số dư, chi tiêu và ngân sách sẽ hiện ở đây.",
+      "action": "Thêm tài khoản"
+    },
+    "balance": {
+      "title": "Tổng số dư",
+      "link": "Xem tài khoản",
+      "notConverted": "Chưa tính: {{amounts}}, vì chưa có tỷ giá."
+    },
+    "thisMonth": {
+      "title": "Tháng này",
+      "income": "Thu nhập",
+      "expenses": "Chi tiêu",
+      "net": "Chênh lệch",
+      "savingsRate": "Tỷ lệ tiết kiệm {{rate}}%",
+      "link": "Xem thu nhập và chi tiêu"
+    },
+    "budgets": {
+      "title": "Ngân sách tháng này",
+      "none": "Chưa có ngân sách nào trong tháng này.",
+      "set": "Đặt ngân sách",
+      "link": "Xem ngân sách",
+      "spentOf": "Đã chi {{spent}} trên {{budgeted}}",
+      "progress": "Đã chi {{percent}}% ngân sách",
+      "counts": "{{onTrack}} đúng kế hoạch, {{warning}} cảnh báo, {{over}} vượt ngân sách",
+      "needingAttention": "Ngân sách cần chú ý"
+    },
+    "topCategories": {
+      "title": "Danh mục chi nhiều nhất",
+      "empty": "Tháng này chưa chi gì.",
+      "link": "Xem chi tiêu theo danh mục"
+    },
+    "recent": {
+      "title": "Giao dịch gần đây",
+      "empty": "Chưa có giao dịch nào.",
+      "refund": "Hoàn tiền",
+      "link": "Xem tất cả giao dịch"
+    },
+    "upcoming": {
+      "title": "Sắp tới",
+      "empty": "Không có gì đến hạn trong 30 ngày tới.",
+      "link": "Xem giao dịch định kỳ"
+    }
   }
 }
