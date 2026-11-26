@@ -435,6 +435,14 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   has a row with its amount edited in place (Enter or Save; an emptied amount removes the budget). A category
   whose parent or subcategory is budgeted that month offers no amount and says whose budget its spending counts
   toward. Expenses that are not converted are left out of spent and counted in a note, on the row and the totals.
+- **The overall budget** (BUD-5) caps all of a month's spending, independent of the category budgets. The budget
+  screen shows it above the category budgets (`overall` in `budgetsQuery(month)`, null when the month has none),
+  set, changed from its row version and removed like a category's (`useSetOverallBudget(month)`,
+  `useRemoveOverallBudget(month)`). Its spent counts every expense of the month, as the API works it out; it is
+  not in the totals of the category budgets.
+- **Pace** (BUD-6): in the current month each budget and the overall budget say whether they are on pace or ahead of
+  pace (`pace`), and the screen says how much of the month has passed (`percentOfMonthElapsed`), both the API's.
+  A past month shows its final result and no pace; the SPA never works out either.
 - **A budget's state is never colour alone** (spec section 8): on track, warning and over budget are each said
   in words beside an icon of their own shape, and the progress bar names its percentage; colour only adds to that.
   The warning threshold is the user's (`budgetWarningPercent`, Settings > Profile).

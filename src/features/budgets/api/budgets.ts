@@ -10,12 +10,17 @@ import type { BudgetMonth } from '../budgetMonth'
 export type Budget = components['schemas']['BudgetResponse']
 export type BudgetState = components['schemas']['BudgetState']
 export type BudgetTotals = components['schemas']['BudgetTotalsResponse']
+export type OverallBudget = components['schemas']['OverallBudgetResponse']
+/** Whether a budget of the current month is spent faster than the month is passing (spec BUD-6); a budget of any other month has none. */
+export type BudgetPace = NonNullable<components['schemas']['BudgetPace']>
 
 /** Fields the API can refuse, which the row shows its own translated message for. */
 const budgetFields = ['amount', 'categoryId'] as const
 export type BudgetField = (typeof budgetFields)[number]
 
 export type SaveOutcome = VersionedSaveOutcome<'budget', Budget, BudgetField>
+
+export type OverallSaveOutcome = VersionedSaveOutcome<'budget', OverallBudget, 'amount'>
 
 const budgetsKey = ['budgets']
 
@@ -86,9 +91,44 @@ export function useRemoveBudget(month: BudgetMonth) {
 }
 
 /**
+ * Sets the month's overall budget (spec BUD-5): a cap on all of its spending, whether or not a category has a
+ * budget of its own. A change to the one the month has names the row version it was read at; a new one has none.
+ */
+export function useSetOverallBudget(month: BudgetMonth) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ amount, rowVersion }: { amount: DecimalString; rowVersion?: string }): Promise<OverallSaveOutcome> =>
+      versionedSaveOutcome(
+        'budget',
+        await api.PUT('/api/v1/budgets/{month}/overall', {
+          params: { path: { month }, header: rowVersion === undefined ? {} : { 'If-Match': ifMatch(rowVersion) } },
+          body: { amount },
+        }),
+        ['amount'] as const,
+      ),
+    onSuccess: (outcome) => {
+      if (outcome.saved || isStale(outcome)) return refresh(queryClient)
+    },
+  })
+}
+
+/** Removes the month's overall budget; its category budgets stay. One already removed somewhere else is as gone as it was asked to be. */
+export function useRemoveOverallBudget(month: BudgetMonth) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { response } = await api.DELETE('/api/v1/budgets/{month}/overall', { params: { path: { month } } })
+      if (!response.ok && response.status !== 404) throw new Error(`Removing the overall budget failed: ${response.status}`)
+    },
+    onSuccess: () => refresh(queryClient),
+  })
+}
+
+/**
  * Copies the budgets of another month (last month's, on the budget screen) into the month in one action. The
  * API leaves alone every category that takes no new budget in the month (one already budgeted there, an
- * archived one, one whose parent or subcategory is budgeted there) and answers how many it copied.
+ * archived one, one whose parent or subcategory is budgeted there) and answers how many it copied. The overall
+ * budget is copied too when the month has none.
  */
 export function useCopyBudgets(month: BudgetMonth) {
   const queryClient = useQueryClient()

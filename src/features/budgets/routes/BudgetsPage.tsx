@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
-import { ChevronLeft, ChevronRight, Copy, List } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Gauge, List, type LucideIcon } from 'lucide-react'
 import { useId, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -16,7 +16,19 @@ import { cn, focusRing } from '@/shared/lib/utils'
 import { amountExample, AmountInput, Money, type AmountValue, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { budgetStates } from '../components/budgetStates'
-import { budgetsQuery, useCopyBudgets, useRemoveBudget, useSetBudget, type Budget, type BudgetState, type BudgetTotals } from '../api/budgets'
+import {
+  budgetsQuery,
+  useCopyBudgets,
+  useRemoveBudget,
+  useRemoveOverallBudget,
+  useSetBudget,
+  useSetOverallBudget,
+  type Budget,
+  type BudgetPace,
+  type BudgetState,
+  type BudgetTotals,
+  type OverallBudget,
+} from '../api/budgets'
 import type { BudgetMonth } from '../budgetMonth'
 
 /** What a row needs of the category it is for: one from the user's tree, or the one a budget carries when it is archived. */
@@ -26,6 +38,9 @@ type RowCategory = Pick<Category, 'id' | 'parentId' | 'name' | 'icon' | 'color' 
 type Blocked = { by: 'parent'; parentName: string } | { by: 'subcategories' }
 
 type Row = { category: RowCategory; budget: Budget | undefined; blocked: Blocked | undefined; subcategories: Row[] }
+
+/** What a budget, a category's or the overall one, has been spent against, as the API worked it out. */
+type Spending = Pick<Budget, 'percentSpent' | 'state' | 'spent' | 'remaining' | 'notConverted' | 'pace'>
 
 /**
  * The budget screen: the budgets of one budget month against what was spent, with totals, a month switcher,
@@ -54,6 +69,9 @@ export function BudgetsPage() {
       </div>
 
       <MonthSwitcher month={month} monthName={monthName} thisMonth={thisMonth} />
+      {budgets.data && budgets.data.percentOfMonthElapsed !== null && (
+        <p className="text-sm text-muted-foreground">{t('budgets.pace.elapsed', { percent: Number(budgets.data.percentOfMonthElapsed) })}</p>
+      )}
 
       {(budgets.isError || categories.isError) && <ErrorMessage>{t('budgets.errors.notLoaded')}</ErrorMessage>}
 
@@ -61,6 +79,9 @@ export function BudgetsPage() {
         <>
           {/* What a copy said belongs to the month it was made in. */}
           <CopyLastMonth key={month} month={month} />
+
+          {/* What was typed for one month is not a draft for another. */}
+          <OverallBudgetCard key={`overall/${month}`} budget={budgets.data.overall} month={month} monthName={monthName} currency={budgets.data.currency} />
 
           {budgets.data.items.length === 0 ? (
             <p className="text-muted-foreground">{t('budgets.empty')}</p>
@@ -203,6 +224,91 @@ function NotConverted({ count }: { count: number }) {
     <p role="note" className="text-sm font-medium">
       {t('budgets.notConverted', { count })}
     </p>
+  )
+}
+
+/**
+ * The month's overall budget (spec BUD-5): a cap on all of its spending, set, changed and removed like a category's
+ * budget, against every expense of the month as the API counts it. It is not one of the category budgets' totals.
+ */
+function OverallBudgetCard({ budget, month, monthName, currency }: { budget: OverallBudget | null; month: BudgetMonth; monthName: string; currency: Currency }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const formId = useId()
+  const errorId = useId()
+  const set = useSetOverallBudget(month)
+  const remove = useRemoveOverallBudget(month)
+  const name = t('budgets.overall.name')
+
+  const saved = budget?.budgeted ?? ''
+  const [value, setValue] = useState<AmountValue>(saved)
+  const [syncedWith, setSyncedWith] = useState(saved)
+  const [error, setError] = useState<'invalid' | 'stale' | null>(null)
+  if (syncedWith !== saved) {
+    setSyncedWith(saved)
+    setValue(saved)
+  }
+
+  const isDirty = value !== saved
+  const isBusy = set.isPending || remove.isPending
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    if (value === null) return setError('invalid')
+    setError(null)
+    if (value === '') {
+      if (budget) remove.mutate()
+      return
+    }
+
+    const outcome = await set.mutateAsync({ amount: value, rowVersion: budget?.rowVersion }).catch(() => undefined)
+    if (!outcome || outcome.saved) return
+    setError(isStale(outcome) ? 'stale' : 'invalid')
+  }
+
+  return (
+    <div role="group" aria-label={t('budgets.overall.for', { month: monthName })} className="space-y-2 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-24 flex-1">
+          <p className="font-medium">{name}</p>
+          <p className="text-sm text-muted-foreground">{t('budgets.overall.intro')}</p>
+        </div>
+        {budget && <StateBadge state={budget.state} />}
+        <form id={formId} noValidate onSubmit={save} className="flex flex-wrap items-center gap-2">
+          <AmountInput
+            className="w-36 text-right tabular-nums"
+            aria-label={name}
+            aria-invalid={error === 'invalid' ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            placeholder={t('budgets.noBudget')}
+            currency={currency}
+            value={value}
+            onChange={(next) => {
+              setValue(next)
+              setError(null)
+            }}
+          />
+          {isDirty && (
+            <Button type="submit" size="sm" disabled={isBusy} aria-label={t('budgets.overall.save')}>
+              {t('budgets.save')}
+            </Button>
+          )}
+          {budget && !isDirty && (
+            <Button type="button" variant="ghost" size="sm" disabled={isBusy} aria-label={t('budgets.overall.remove')} onClick={() => remove.mutate()}>
+              {t('budgets.remove')}
+            </Button>
+          )}
+        </form>
+      </div>
+      {error && (
+        <p id={errorId} role={error === 'stale' ? 'status' : 'alert'} className={cn('text-sm', error !== 'stale' && 'text-destructive')}>
+          {error === 'stale' ? t('budgets.overall.stale') : t('budgets.errors.amount', { example: amountExample(locale, currency) })}
+        </p>
+      )}
+      {budget && <Progress budget={budget} name={name} currency={currency} />}
+      <FailureToast failed={set.isError} message={t('budgets.errors.notSaved')} retry={{ form: formId }} onDismiss={set.reset} />
+      <FailureToast failed={remove.isError} message={t('budgets.errors.notRemoved')} retry={() => remove.mutate()} onDismiss={remove.reset} />
+    </div>
   )
 }
 
@@ -377,8 +483,33 @@ function StateBadge({ state }: { state: BudgetState }): ReactNode {
   )
 }
 
-/** Spent against the budget: a bar that fills up to the budget and no further, the percentage in figures, and what was spent and remains. */
-function Progress({ budget, name, currency }: { budget: Budget; name: string; currency: Currency }) {
+/**
+ * How a pace is shown (spec BUD-6): in words beside an icon, ahead of pace in the colour of a warning, which only
+ * adds to the words.
+ */
+const paces: Record<BudgetPace, { label: ParseKeys; icon: LucideIcon; text: string }> = {
+  onPace: { label: 'budgets.pace.onPace', icon: Gauge, text: 'text-muted-foreground' },
+  aheadOfPace: { label: 'budgets.pace.aheadOfPace', icon: Gauge, text: 'text-warning' },
+}
+
+/** Whether the budget is spent faster than the month is passing. Only the current month has a pace: a past month shows its final result. */
+function Pace({ pace }: { pace: BudgetPace }) {
+  const { t } = useTranslation()
+  const { label, icon: Icon, text } = paces[pace]
+
+  return (
+    <p className={cn('inline-flex items-center gap-1 text-sm font-medium', text)}>
+      <Icon aria-hidden className="size-4" />
+      {t(label)}
+    </p>
+  )
+}
+
+/**
+ * Spent against the budget: a bar that fills up to the budget and no further, the percentage in figures, what was
+ * spent and remains, and in the current month its pace.
+ */
+function Progress({ budget, name, currency }: { budget: Spending; name: string; currency: Currency }) {
   const { t } = useTranslation()
   // A percentage is a count, not money. A budget of zero has none: its bar is full once anything is spent.
   const percent = budget.percentSpent === null ? null : Number(budget.percentSpent)
@@ -403,6 +534,7 @@ function Progress({ budget, name, currency }: { budget: Budget; name: string; cu
         <Figure label={t('budgets.spent')} amount={budget.spent} currency={currency} />
         <Figure label={t('budgets.remaining')} amount={budget.remaining} currency={currency} />
       </dl>
+      {budget.pace && <Pace pace={budget.pace} />}
       <NotConverted count={Number(budget.notConverted)} />
     </div>
   )

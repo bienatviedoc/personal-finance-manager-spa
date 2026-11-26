@@ -609,6 +609,19 @@
     "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
     "transactions": "See transactions",
     "transactionsBehind": "Transactions behind {{name}} in {{month}}",
+    "overall": {
+      "name": "Overall budget",
+      "for": "Overall budget for {{month}}",
+      "intro": "A cap on everything you spend this month, whether or not its category has a budget.",
+      "save": "Save the overall budget",
+      "remove": "Remove the overall budget",
+      "stale": "The overall budget was changed somewhere else. The latest amount is shown; check it and save again."
+    },
+    "pace": {
+      "onPace": "On pace",
+      "aheadOfPace": "Ahead of pace",
+      "elapsed": "{{percent}}% of the month has passed."
+    },
     "copy": {
       "action": "Copy budgets from {{month}}",
       "done_zero": "No budgets copied from {{month}}: every category with a budget there already has one this month or takes none.",
