@@ -215,3 +215,37 @@ describe('exporting the trends report', () => {
     ])
   })
 })
+
+describe('exporting the budget vs actual report', () => {
+  it('downloads each budget against what was spent, with the totals, then what was spent with no budget', async () => {
+    fakeCategoriesApi()
+    fakeAccountsApi([{ id: 'a-everyday', name: 'Everyday' }])
+    const budgets: FakeBudget[] = [
+      { month: '2026-03', categoryId: 'c-groceries', amount: '2000000' },
+      { month: '2026-03', categoryId: 'c-transport', amount: '500000' },
+    ]
+    fakeReportsApi({
+      budgets,
+      expenses: [
+        { id: 't-market', date: '2026-03-02', categoryId: 'c-groceries', spent: '800000' },
+        { id: 't-coffee', date: '2026-03-03', categoryId: 'c-eating-out', spent: '150000' },
+        { id: 't-taxi', date: '2026-02-20', categoryId: 'c-transport', spent: '200000' },
+      ],
+    })
+
+    expect(await exportReport('/reports/budget-vs-actual?period=custom&from=2026-02-01&to=2026-03-31')).toEqual({
+      name: 'budget-vs-actual-2026-02-01-2026-03-31.csv',
+      hasByteOrderMark: true,
+      text: [
+        'category,budgeted,spent,remaining,percentSpent,state,budgetedMonths,notConverted,currency',
+        'Groceries,2000000.00,800000.00,1200000.00,40,onTrack,1,0,VND',
+        'Transport,500000.00,0.00,500000.00,0,onTrack,1,0,VND',
+        'Total,2500000.00,800000.00,1700000.00,,,,0,VND',
+        'Transport,,200000.00,,,unbudgeted,,0,VND',
+        'Eating out,,150000.00,,,unbudgeted,,0,VND',
+        'Spent with no budget,,350000.00,,,unbudgeted,,0,VND',
+        '',
+      ].join('\r\n'),
+    })
+  })
+})
