@@ -1,7 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
-import { refreshAccountBalances } from '@/features/accounts'
-import { refreshBudgets } from '@/features/budgets'
-import { refreshReports } from '@/features/reports'
+import { refreshTransactions } from '@/features/transactions'
 import { api } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
 import { ifMatch, versionedSaveOutcome, type VersionedSaveOutcome, type VersionedSaveResponse } from '@/shared/api/versionedSave'
@@ -112,14 +110,7 @@ export function useConfirmReminder() {
       body: amount === undefined ? {} : { amount },
     }),
   // A transaction was recorded: what shows transactions, balances, budgets and reports is out of date.
-  () =>
-    Promise.all([
-      // The transactions feature's key; it links to this one, so it is not imported from there.
-      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-      refreshAccountBalances(queryClient),
-      refreshBudgets(queryClient),
-      refreshReports(queryClient),
-    ]),
+  () => refreshTransactions(queryClient),
   )
 }
 
