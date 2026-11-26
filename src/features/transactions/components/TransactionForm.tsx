@@ -74,6 +74,9 @@ type Values = z.input<Schema>
 
 const emptyLine = { categoryId: '', amount: '', note: '' }
 
+/** What a reconciled transaction keeps as it is until its reconciliation is reopened (spec section 3, rule 11). */
+const lockedByReconciliation = new Set<string>(['type', 'accountId', 'amount', 'date', 'isRefund'])
+
 /** The message the form shows for each field the API refused. What it refuses about the lines is said once, for all of them. */
 const serverErrors: Record<Exclude<TransactionField, 'lines'>, ParseKeys> = {
   type: 'transactions.errors.type',
@@ -272,12 +275,18 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
     if (isStale(outcome)) return
     for (const refused of outcome.fields) {
       if (refused === 'lines') setLinesRefused(true)
-      else form.setError(refused, { message: serverErrors[refused] }, { shouldFocus: true })
+      // A reconciled transaction refuses a change to what its reconciliation locked, named as the field at fault.
+      else form.setError(refused, { message: transaction?.isReconciled && lockedByReconciliation.has(refused) ? 'transactions.errors.reconciled' : serverErrors[refused] }, { shouldFocus: true })
     }
   })
 
   return (
     <form id={id} noValidate onSubmit={onSubmit} className="space-y-4">
+      {transaction?.isReconciled && (
+        <p role="note" className="rounded-md bg-muted p-3 text-sm">
+          {t('transactions.reconciledLocked')}
+        </p>
+      )}
       <ToggleField
         legend={t('transactions.type')}
         options={transactionTypes.map((value) => ({ value, label: t(`transactions.types.${value}`) }))}

@@ -339,8 +339,11 @@
       "stale": "Giao dịch này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được giao dịch.",
-      "notDeleted": "Chưa xóa được giao dịch."
-    }
+      "notDeleted": "Chưa xóa được giao dịch.",
+      "reconciled": "Giao dịch này đã được đối soát, nên không thể thay đổi mục này."
+    },
+    "reconciled": "Đã đối soát",
+    "reconciledLocked": "Giao dịch này đã được đối soát: số tiền, ngày, tài khoản và loại bị khóa cho đến khi lần đối soát được mở lại."
   },
   "transfers": {
     "add": "Chuyển giữa các tài khoản",
@@ -392,8 +395,10 @@
       "markRefused": "Không thể đánh dấu hai giao dịch này là chuyển khoản: một trong hai đã được thay đổi ở nơi khác. Hãy kiểm tra và thử lại.",
       "notMarked": "Chưa đánh dấu được hai giao dịch là chuyển khoản.",
       "categoryArchived": "Chọn một danh mục của bạn chưa bị lưu trữ.",
-      "notUnmarked": "Chưa bỏ đánh dấu được chuyển khoản."
-    }
+      "notUnmarked": "Chưa bỏ đánh dấu được chuyển khoản.",
+      "reconciled": "Khoản chuyển tiền này đã được đối soát, nên không thể thay đổi mục này."
+    },
+    "reconciledLocked": "Khoản chuyển tiền này đã được đối soát: tài khoản, số tiền và ngày bị khóa cho đến khi lần đối soát được mở lại."
   },
   "attachments": {
     "title": "Tệp đính kèm",

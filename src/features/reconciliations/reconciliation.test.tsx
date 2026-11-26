@@ -128,3 +128,45 @@ describe('reconciling an account', () => {
     expect(reconciliationsApi.reconciliations).toEqual([])
   })
 })
+
+describe('a reconciled transaction', () => {
+  const reconciled: Parameters<typeof fakeTransactionsApi>[0] = [
+    { type: 'expense', accountId: everyday, amount: '500000.00', date: '2026-10-20', categoryId: 'c-groceries', payee: 'Co.op Mart', isReconciled: true },
+  ]
+
+  it('is marked as reconciled in the list and offers no delete', async () => {
+    fakeApis(reconciled)
+    renderApp('/transactions')
+
+    const row = within((await screen.findByRole('heading', { name: 'Co.op Mart' })).closest('li')!)
+    expect(row.getByText('Reconciled')).toBeInTheDocument()
+    expect(row.queryByRole('button', { name: 'Delete Co.op Mart' })).not.toBeInTheDocument()
+  })
+
+  it('says when edited that its amount, date, account and type are locked, and a change to them is refused', async () => {
+    fakeApis(reconciled)
+    const { user } = renderApp('/transactions')
+    await user.click(await screen.findByRole('button', { name: 'Edit Co.op Mart' }))
+    const drawer = within(await screen.findByRole('dialog', { name: 'Edit transaction' }))
+
+    expect(drawer.getByText('This transaction is reconciled: its amount, date, account and type are locked until its reconciliation is reopened.')).toBeInTheDocument()
+    await user.clear(drawer.getByLabelText('Amount (VND)'))
+    await user.type(drawer.getByLabelText('Amount (VND)'), '600,000')
+    await user.click(drawer.getByRole('button', { name: 'Save' }))
+
+    expect(await drawer.findByText('This transaction is reconciled, so this cannot change.')).toBeInTheDocument()
+  })
+
+  it('locks a transfer either of whose legs is reconciled: it offers no unmark', async () => {
+    fakeApis([
+      { type: 'transferOut', accountId: everyday, amount: '1000.00', date: '2026-10-20', transferId: 't-1', isReconciled: true },
+      { type: 'transferIn', accountId: savings, amount: '1000.00', date: '2026-10-20', transferId: 't-1' },
+    ])
+    const { user } = renderApp('/transactions')
+    await user.click(await screen.findByRole('button', { name: 'Edit Transfer in' }))
+    const drawer = within(await screen.findByRole('dialog', { name: 'Edit transfer' }))
+
+    expect(await drawer.findByText('This transfer is reconciled: its accounts, amounts and date are locked until its reconciliation is reopened.')).toBeInTheDocument()
+    expect(drawer.queryByRole('button', { name: 'Unmark transfer' })).not.toBeInTheDocument()
+  })
+})
