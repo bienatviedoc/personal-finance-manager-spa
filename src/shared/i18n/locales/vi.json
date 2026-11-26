@@ -609,6 +609,19 @@
     "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "transactions": "Xem giao dịch",
     "transactionsBehind": "Các giao dịch của {{name}} trong {{month}}",
+    "overall": {
+      "name": "Ngân sách tổng",
+      "for": "Ngân sách tổng {{month}}",
+      "intro": "Giới hạn cho mọi khoản chi trong tháng, dù danh mục của nó có ngân sách riêng hay không.",
+      "save": "Lưu ngân sách tổng",
+      "remove": "Xóa ngân sách tổng",
+      "stale": "Ngân sách tổng đã được thay đổi ở nơi khác. Số tiền mới nhất đang được hiển thị; hãy kiểm tra và lưu lại."
+    },
+    "pace": {
+      "onPace": "Đúng tiến độ",
+      "aheadOfPace": "Chi nhanh hơn tiến độ",
+      "elapsed": "Đã qua {{percent}}% tháng."
+    },
     "copy": {
       "action": "Sao chép ngân sách từ {{month}}",
       "done_zero": "Không sao chép ngân sách nào từ {{month}}: mọi danh mục có ngân sách ở tháng đó đều đã có ngân sách tháng này hoặc không thể có.",

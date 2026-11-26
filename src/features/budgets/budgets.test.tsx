@@ -412,6 +412,97 @@ describe('the budget screen', () => {
     expect(within(transport).getByText('Archived')).toBeInTheDocument()
   })
 
+  it('sets an overall budget for the month, which tracks all of its spending', async () => {
+    const { budgets, profile } = november()
+    const { user } = renderApp('/budgets/2026-11')
+
+    const overall = await screen.findByRole('group', { name: 'Overall budget for November 2026' })
+    await user.type(within(overall).getByRole('textbox', { name: 'Overall budget' }), '4000000{Enter}')
+
+    // Every category's spending counts, budgeted or not: 200,000 + 1,250,000 + 400,000 + 450,000.
+    await waitFor(() => expect(within(overall).getByText('Spent').parentElement).toHaveTextContent('Spent₫2,300,000'))
+    expect(within(overall).getByText('Remaining').parentElement).toHaveTextContent('Remaining₫1,700,000')
+    expect(within(overall).getByRole('progressbar', { name: 'Overall budget: 57% of the budget spent' })).toBeInTheDocument()
+    expect(within(overall).getByText('On track')).toBeInTheDocument()
+    expect(budgets.requests).toEqual([{ method: 'PUT', month: '2026-11', categoryId: 'overall', body: { amount: '4000000' }, ifMatch: null }])
+    // It is not one of the category budgets, so their totals stay as they were.
+    expect(within(screen.getByRole('group', { name: 'Totals for November 2026' })).getByText('Budgeted').parentElement).toHaveTextContent('₫3,500,000')
+    await waitFor(() => expect(profile.reads).toBe(2))
+  })
+
+  it('changes the overall budget from the row version it was read at, and removes it leaving the category budgets', async () => {
+    const profile = fakeProfileApi({ locale: 'en' })
+    const categories = fakeCategoriesApi()
+    const budgets = fakeBudgetsApi({
+      profile,
+      categories: categories.categories,
+      budgets: [{ month: '2026-11', categoryId: 'c-transport', amount: '500000' }],
+      overall: [{ month: '2026-11', amount: '4000000' }],
+    })
+    const { user } = renderApp('/budgets/2026-11')
+
+    const overall = await screen.findByRole('group', { name: 'Overall budget for November 2026' })
+    const amount = within(overall).getByRole('textbox', { name: 'Overall budget' })
+    await waitFor(() => expect(amount).toHaveValue('4,000,000'))
+    await user.clear(amount)
+    await user.type(amount, '5000000')
+    await user.click(within(overall).getByRole('button', { name: 'Save the overall budget' }))
+    await waitFor(() => expect(within(overall).getByText('Remaining').parentElement).toHaveTextContent('Remaining₫5,000,000'))
+
+    await user.click(within(overall).getByRole('button', { name: 'Remove the overall budget' }))
+
+    await waitFor(() => expect(amount).toHaveValue(''))
+    expect(within(overall).queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(budgets.requests).toEqual([
+      { method: 'PUT', month: '2026-11', categoryId: 'overall', body: { amount: '5000000' }, ifMatch: '"1"' },
+      { method: 'DELETE', month: '2026-11', categoryId: 'overall' },
+    ])
+    expect(amountOf(await row('Transport'), 'Transport')).toHaveValue('500,000')
+  })
+
+  it('shows the pace of each budget and of the overall budget in the current month, against the share of the month elapsed', async () => {
+    const profile = fakeProfileApi({ locale: 'en' })
+    const categories = fakeCategoriesApi()
+    fakeBudgetsApi({
+      profile,
+      categories: categories.categories,
+      today: '2026-11-15',
+      budgets: [
+        { month: '2026-11', categoryId: 'c-food', amount: '3000000' },
+        { month: '2026-11', categoryId: 'c-transport', amount: '500000' },
+      ],
+      overall: [{ month: '2026-11', amount: '4000000' }],
+      spending: { '2026-11': { 'c-groceries': { spent: '1200000' }, 'c-transport': { spent: '450000' } } },
+    })
+    renderApp('/budgets/2026-11')
+
+    expect(await screen.findByText('50% of the month has passed.')).toBeInTheDocument()
+    // 40% of Food & drink is spent with half the month gone; 90% of Transport.
+    expect(within(await row('Food & drink')).getByText('On pace')).toBeInTheDocument()
+    expect(within(await row('Transport')).getByText('Ahead of pace')).toBeInTheDocument()
+    const overall = screen.getByRole('group', { name: 'Overall budget for November 2026' })
+    expect(within(overall).getByText('On pace')).toBeInTheDocument()
+  })
+
+  it('shows a past month’s final result with no pace', async () => {
+    const profile = fakeProfileApi({ locale: 'en' })
+    const categories = fakeCategoriesApi()
+    fakeBudgetsApi({
+      profile,
+      categories: categories.categories,
+      today: '2026-12-03',
+      budgets: [{ month: '2026-11', categoryId: 'c-transport', amount: '500000' }],
+      overall: [{ month: '2026-11', amount: '4000000' }],
+      spending: { '2026-11': { 'c-transport': { spent: '450000' } } },
+    })
+    renderApp('/budgets/2026-11')
+
+    expect(within(await row('Transport')).getByText('Warning')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Overall budget for November 2026' })).toHaveTextContent('₫450,000')
+    expect(screen.queryByText(/pace/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/of the month has passed/)).not.toBeInTheDocument()
+  })
+
   it('says when the budgets could not be loaded', async () => {
     fakeProfileApi({ locale: 'en' })
     fakeCategoriesApi()
