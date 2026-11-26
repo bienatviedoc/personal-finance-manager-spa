@@ -37,7 +37,8 @@
     "forgotPassword": "Quên mật khẩu?",
     "resetPassword": "Đặt mật khẩu mới",
     "checkEmail": "Kiểm tra email",
-    "verifyEmail": "Xác nhận địa chỉ email"
+    "verifyEmail": "Xác nhận địa chỉ email",
+    "reconcile": "Đối soát"
   },
   "placeholder": {
     "notBuilt": "Màn hình này chưa được xây dựng."
@@ -212,7 +213,9 @@
       "generic": "Đã xảy ra lỗi. Hãy thử lại.",
       "notSaved": "Chưa lưu được tài khoản.",
       "notArchived": "Chưa lưu trữ được tài khoản."
-    }
+    },
+    "reconcile": "Đối soát",
+    "reconcileNamed": "Đối soát {{name}}"
   },
   "transactions": {
     "intro": "Các khoản thu và chi của bạn. Lọc, tìm và sắp xếp để tìm bất kỳ giao dịch nào.",
@@ -938,5 +941,43 @@
     "rose": "Hồng đỏ",
     "slate": "Xám đá",
     "current": "Màu hiện tại"
+  },
+  "reconciliations": {
+    "title": "Đối soát {{name}}",
+    "intro": "Đối chiếu tài khoản với sao kê ngân hàng: nhập ngày và số dư cuối kỳ, đánh dấu từng giao dịch có trên sao kê, rồi hoàn tất khi chênh lệch bằng 0.",
+    "toAccounts": "Quay lại tài khoản",
+    "loading": "Đang tải đối soát",
+    "start": "Bắt đầu đối soát",
+    "newStatement": "Sao kê mới",
+    "statementDate": "Ngày sao kê",
+    "closingBalance": "Số dư cuối kỳ",
+    "closingBalanceIn": "Số dư cuối kỳ ({{currency}})",
+    "closingBalanceHint": "Như trên sao kê. Với khoản đang nợ, thêm dấu trừ phía trước.",
+    "reconciledBalance": "Đã đối soát trước đó",
+    "tickedTotal": "Đã đánh dấu",
+    "difference": "Chênh lệch",
+    "toTick": "Giao dịch cần đánh dấu",
+    "tick": "Đánh dấu {{name}}",
+    "nothingToTick": "Không còn giao dịch nào của tài khoản này đến ngày {{date}} cần đánh dấu.",
+    "completeWhenZero": "Chỉ hoàn tất được khi chênh lệch đúng bằng 0.",
+    "complete": "Hoàn tất đối soát",
+    "cancel": "Hủy đối soát",
+    "completed": "Đã đối soát đến ngày {{date}}. Các giao dịch của lần này đã bị khóa.",
+    "reopen": "Mở lại",
+    "errors": {
+      "statementDate": "Nhập ngày sao kê.",
+      "statementDateInFuture": "Ngày sao kê không được ở tương lai.",
+      "statementDateRefused": "Nhập ngày sao kê không ở tương lai và không trước lần đối soát gần nhất.",
+      "balanceRequired": "Nhập số dư cuối kỳ.",
+      "balanceInvalid": "Nhập số dư, ví dụ {{example}}.",
+      "inProgress": "Tài khoản này đang có một lần đối soát chưa xong. Lần đó đang được hiển thị.",
+      "noAccount": "Không tìm thấy tài khoản này.",
+      "generic": "Đã xảy ra lỗi. Hãy thử lại.",
+      "notStarted": "Chưa bắt đầu được đối soát.",
+      "notTicked": "Chưa đánh dấu được giao dịch.",
+      "notCompleted": "Chưa hoàn tất được đối soát.",
+      "notCancelled": "Chưa hủy được đối soát.",
+      "notReopened": "Chưa mở lại được đối soát."
+    }
   }
 }

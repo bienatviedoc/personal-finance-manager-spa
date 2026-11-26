@@ -37,7 +37,8 @@
     "forgotPassword": "Forgot your password?",
     "resetPassword": "Set a new password",
     "checkEmail": "Check your email",
-    "verifyEmail": "Confirm your email address"
+    "verifyEmail": "Confirm your email address",
+    "reconcile": "Reconcile"
   },
   "placeholder": {
     "notBuilt": "This screen is not built yet."
@@ -212,7 +213,9 @@
       "generic": "Something went wrong. Try again.",
       "notSaved": "The account was not saved.",
       "notArchived": "The account was not archived."
-    }
+    },
+    "reconcile": "Reconcile",
+    "reconcileNamed": "Reconcile {{name}}"
   },
   "transactions": {
     "intro": "Your income and expenses. Filter, search and sort them to find any one.",
@@ -938,5 +941,43 @@
     "rose": "Rose",
     "slate": "Slate",
     "current": "Current colour"
+  },
+  "reconciliations": {
+    "title": "Reconcile {{name}}",
+    "intro": "Check the account against a bank statement: enter its closing date and balance, tick each transaction the statement shows, and complete it once the difference is zero.",
+    "toAccounts": "Back to accounts",
+    "loading": "Loading the reconciliation",
+    "start": "Start reconciliation",
+    "newStatement": "New statement",
+    "statementDate": "Statement date",
+    "closingBalance": "Closing balance",
+    "closingBalanceIn": "Closing balance ({{currency}})",
+    "closingBalanceHint": "As the statement shows it. For an amount owed, put a minus sign in front.",
+    "reconciledBalance": "Reconciled before",
+    "tickedTotal": "Ticked",
+    "difference": "Difference",
+    "toTick": "Transactions to tick",
+    "tick": "Tick {{name}}",
+    "nothingToTick": "No transactions on this account up to {{date}} are left to tick.",
+    "completeWhenZero": "It can be completed once the difference is exactly zero.",
+    "complete": "Complete reconciliation",
+    "cancel": "Cancel reconciliation",
+    "completed": "Reconciled to {{date}}. Its transactions are locked.",
+    "reopen": "Reopen",
+    "errors": {
+      "statementDate": "Enter the statement date.",
+      "statementDateInFuture": "A statement date cannot be in the future.",
+      "statementDateRefused": "Enter a statement date that is not in the future, nor before the last reconciliation.",
+      "balanceRequired": "Enter the closing balance.",
+      "balanceInvalid": "Enter a balance, such as {{example}}.",
+      "inProgress": "This account already has a reconciliation in progress. It is shown now.",
+      "noAccount": "This account was not found.",
+      "generic": "Something went wrong. Try again.",
+      "notStarted": "The reconciliation was not started.",
+      "notTicked": "The transaction was not ticked.",
+      "notCompleted": "The reconciliation was not completed.",
+      "notCancelled": "The reconciliation was not cancelled.",
+      "notReopened": "The reconciliation was not reopened."
+    }
   }
 }
