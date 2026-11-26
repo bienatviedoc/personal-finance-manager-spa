@@ -127,7 +127,7 @@ export function useCancelReconciliation(reconciliation: Pick<Reconciliation, 'id
  * are loaded again, as are the transactions, which it may have locked or unlocked.
  */
 function useChangeReconciliation(
-  { id, accountId }: Pick<Reconciliation, 'id' | 'accountId'>,
+  { id }: Pick<Reconciliation, 'id'>,
   changeName: string,
   change: (id: string) => Promise<{ response: Response }>,
   done: (response: Response) => boolean = (response) => response.ok,
@@ -138,13 +138,13 @@ function useChangeReconciliation(
       const { response } = await change(id)
       if (!done(response)) throw new Error(`${changeName} a reconciliation failed: ${response.status}`)
     },
-    onSettled: () => refreshAfterChange(queryClient, accountId),
+    onSettled: () => refreshAfterChange(queryClient),
   })
 }
 
-function refreshAfterChange(queryClient: QueryClient, accountId: string) {
+/** Every reconciliation query, the account's latest among them, is under `reconciliationsKey`. */
+function refreshAfterChange(queryClient: QueryClient) {
   return Promise.all([
-    queryClient.invalidateQueries({ queryKey: latestKey(accountId) }),
     queryClient.invalidateQueries({ queryKey: reconciliationsKey }),
     refreshTransactions(queryClient),
   ])
