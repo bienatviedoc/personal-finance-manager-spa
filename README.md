@@ -106,8 +106,18 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the transfer by that id (`transferQuery`) and saves both legs through `/transfers` (`features/transactions/api/transfers.ts`).
   Between accounts in different currencies the form asks for both amounts; nothing converts one into the other.
   Recording a transfer is not optimistic; it carries an `Idempotency-Key` like a new transaction.
-- **Marking as a transfer** (spec IMP-7; see the glossary). Income and expenses in the list can be picked
-  (`canBePicked`: not a refund, not a leg); once one expense and one income are, `MarkAsTransfer` sends them to
+- **Selecting transactions.** Every transaction the API has can be selected in the list, one by one, or all
+  that pass the filters at once ("Select all N transactions", N being the API's `total.count`), loaded on the
+  screen or not. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
+  they were selected in, and unselecting one leaves the others loaded selected one by one.
+- **Bulk actions** (spec TXN-7; see the glossary). `BulkActions` acts on what is selected through
+  `POST /transactions/bulk` (`useBulkEdit`): set the category, add or remove a tag, move to another account, or
+  delete (once confirmed). Selected one by one, it sends their `transactionIds`; all of them, the view's filters as
+  `filter`, and the API finds them. All take it or none does: the API decides, never the screen, and when it refuses
+  (a 409) the screen names each transaction it refused with why, translated from its `reason`, and keeps the selection.
+  Done, the selection is cleared and the lists, balances, budgets and reports are loaded again, as after any change.
+- **Marking as a transfer** (spec IMP-7; see the glossary). Once one or two income and expenses are selected
+  (`canBePicked`: not a refund, not a leg), `MarkAsTransfer` is offered; with one expense and one income it sends them to
   `POST /transfers/mark` and both become the legs of one transfer. The screen says why it cannot before asking
   (one account, two dates, two amounts in one currency), and the API checks again; a refusal means one of them
   changed, so the list is loaded again. Nothing is matched automatically. The transfer drawer unmarks any transfer
@@ -274,7 +284,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories` |
-| `fakeTransactionsApi` | `/api/v1/transactions`, and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
+| `fakeTransactionsApi` | `/api/v1/transactions`, bulk actions (`/api/v1/transactions/bulk`, kept in `bulkRequests`), and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming, reminders to confirm or dismiss and the upcoming list (worked out from each rule's dates as the API does, from `today`, the test user's by default); nothing posts there, so a rule's next run date stays its start date until a reminder is answered |
 | `fakeReconciliationsApi` | `/api/v1/accounts/{accountId}/reconciliations` and `/api/v1/reconciliations`: starting, ticking, completing, reopening and cancelling, over the accounts and transactions the other fakes hold; completing sets `isReconciled` on what is ticked, which `fakeTransactionsApi` then locks |

@@ -353,7 +353,40 @@
       "reconciled": "Giao dịch này đã được đối soát, nên không thể thay đổi mục này."
     },
     "reconciled": "Đã đối soát",
-    "reconciledLocked": "Giao dịch này đã được đối soát: số tiền, ngày, tài khoản và loại bị khóa cho đến khi lần đối soát được mở lại."
+    "reconciledLocked": "Giao dịch này đã được đối soát: số tiền, ngày, tài khoản và loại bị khóa cho đến khi lần đối soát được mở lại.",
+    "bulk": {
+      "title": "Giao dịch đã chọn",
+      "select": "Chọn {{name}}",
+      "selectAll_other": "Chọn tất cả {{count}} giao dịch",
+      "selected": "Đã chọn {{count}}",
+      "clear": "Bỏ chọn",
+      "setCategory": "Đặt danh mục",
+      "tag": "Thẻ",
+      "addTag": "Thêm thẻ",
+      "removeTag": "Gỡ thẻ",
+      "chooseAccount": "Chọn tài khoản",
+      "move": "Chuyển",
+      "delete": "Xóa",
+      "deleteExplained_other": "Xóa {{count}} giao dịch? Bạn có thể khôi phục chúng trong Đã xóa gần đây trong 30 ngày.",
+      "deleteConfirm": "Xóa",
+      "refused": "Không có gì thay đổi: các giao dịch này không thể áp dụng thao tác đó.",
+      "notChanged": "Không thay đổi",
+      "refusedRow": "{{name}}: {{reason}}",
+      "unknown": "Một giao dịch",
+      "refusals": {
+        "notFound": "giao dịch không còn tồn tại.",
+        "transferLeg": "một vế của chuyển khoản không có danh mục và chỉ thay đổi cùng chuyển khoản.",
+        "split": "giao dịch chia nhỏ giữ nguyên các dòng; hãy sửa giao dịch để đổi danh mục của chúng.",
+        "categoryKind": "thu nhập dùng danh mục thu nhập, chi tiêu dùng danh mục chi tiêu.",
+        "reconciled": "giao dịch đã đối soát nên không thể chuyển hoặc xóa cho đến khi mở lại đối soát.",
+        "otherCurrency": "giao dịch chỉ chuyển được sang tài khoản cùng loại tiền.",
+        "tooManyTags": "giao dịch đã có 20 thẻ."
+      },
+      "invalid": "Không thể chọn danh mục hoặc tài khoản đó nữa. Hãy chọn lại.",
+      "failed": "Các giao dịch đã chọn chưa được thay đổi.",
+      "selectAll_one": "Chọn {{count}} giao dịch",
+      "deleteExplained_one": "Xóa {{count}} giao dịch? Bạn có thể khôi phục nó trong Đã xóa gần đây trong 30 ngày."
+    }
   },
   "transfers": {
     "add": "Chuyển giữa các tài khoản",
@@ -374,8 +407,6 @@
     "markAs": "Đánh dấu là chuyển khoản",
     "markTitle": "Đã chọn để đánh dấu là chuyển khoản",
     "markExplained": "Chọn một khoản chi ở một tài khoản và khoản thu tương ứng ở tài khoản khác, như hai dòng sao kê nhập vào khi thanh toán thẻ. Sau khi đánh dấu, cả hai không còn được tính là chi tiêu hay thu nhập.",
-    "pick": "Chọn {{name}}",
-    "clearPicked": "Bỏ chọn",
     "whyNot": {
       "types": "Chọn một khoản chi và một khoản thu.",
       "sameAccount": "Chuyển khoản phải giữa hai tài khoản khác nhau.",
