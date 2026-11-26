@@ -165,6 +165,56 @@ describe('the categories screen', () => {
     expect(screen.queryByRole('button', { name: 'Archive' })).not.toBeInTheDocument()
   })
 
+  it('merges a category into another after showing how many transactions and budgets will move', async () => {
+    const api = fakeCategoriesApi({ moving: { 'c-groceries': { transactions: 12, budgets: 1 } } })
+    const { user } = renderApp('/settings/categories')
+
+    await user.click(await screen.findByRole('button', { name: 'Merge Groceries' }))
+    const form = screen.getByRole('form', { name: 'Merge Groceries' })
+    await user.selectOptions(within(form).getByLabelText('Merge into'), within(form).getByRole('option', { name: 'Food & drink › Eating out' }))
+
+    expect(await within(form).findByText('12 transactions and 1 budget move to Eating out, and Groceries is archived.')).toBeInTheDocument()
+    await user.click(within(form).getByRole('button', { name: 'Merge' }))
+
+    await expect.poll(() => within(expenseList()).queryByRole('listitem', { name: 'Groceries' })).toBeNull()
+    expect(api.requests.at(-1)).toEqual({ method: 'POST', body: { targetId: 'c-eating-out' } })
+  })
+
+  it('offers to merge only into another category of the same kind, never into its own subcategory', async () => {
+    fakeCategoriesApi()
+    const { user } = renderApp('/settings/categories')
+
+    await user.click(await screen.findByRole('button', { name: 'Merge Food & drink' }))
+
+    const offered = within(screen.getByLabelText('Merge into')).getAllByRole('option').slice(1).map((option) => option.textContent)
+    // A category with subcategories goes only into a top-level one: categories are two levels deep.
+    expect(offered).toEqual(['Transport'])
+  })
+
+  it('says why a merge was refused and keeps both categories', async () => {
+    fakeCategoriesApi({ refuseMergeInto: ['c-transport'] })
+    const { user } = renderApp('/settings/categories')
+
+    await user.click(await screen.findByRole('button', { name: 'Merge Groceries' }))
+    const form = screen.getByRole('form', { name: 'Merge Groceries' })
+    await user.selectOptions(within(form).getByLabelText('Merge into'), 'Transport')
+    await user.click(await within(form).findByRole('button', { name: 'Merge' }))
+
+    expect(await within(form).findByText(/Groceries cannot be merged into Transport/)).toBeInTheDocument()
+    expect(row(expenseList(), 'Groceries')).toBeInTheDocument()
+  })
+
+  it('keeps a category when merging is cancelled', async () => {
+    const api = fakeCategoriesApi()
+    const { user } = renderApp('/settings/categories')
+
+    await user.click(await screen.findByRole('button', { name: 'Merge Transport' }))
+    await user.click(within(screen.getByRole('form', { name: 'Merge Transport' })).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('form', { name: 'Merge Transport' })).not.toBeInTheDocument()
+    expect(api.requests).toEqual([])
+  })
+
   it('is shown in Vietnamese', async () => {
     fakeCategoriesApi()
     renderApp('/settings/categories', { language: 'vi' })

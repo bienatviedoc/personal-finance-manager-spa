@@ -131,6 +131,13 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   `useRestoreTransaction`). Each shows when it can be restored until, the date the API answers, on the user's calendar.
   Restoring a leg of a transfer restores the whole transfer; the API decides what can still be restored, and its
   worker removes the rest for good. Restoring loads the lists, balances, budgets and reports again, like any change.
+- **Merging categories** (spec CAT-3; see the glossary). Each category on the categories screen offers Merge
+  (`MergeCategoryForm`): the user picks the category to merge into, of the same kind and not archived, never the
+  category itself or one of its own subcategories, and only a top-level one for a category with subcategories, so
+  the tree stays two levels deep. Once one is picked, the screen says how many transactions and budgets will move,
+  as the API counts them (`categoryMergePreviewQuery`), and merges only when the user confirms
+  (`useMergeCategory`). The API checks it all again; a refusal on `targetId` (a budget on the category and its parent
+  in the same month) is said in the form. Merged, the categories, lists, balances, budgets and reports load again.
 - **Reconciliation** (spec ACC-7, section 3 rule 11; see the glossary). Each account on the accounts screen links to
   `/accounts/:accountId/reconcile` (`features/reconciliations`), which works on the account's latest reconciliation
   (`latestReconciliationQuery`): the user enters the statement date and closing balance, ticks the transactions
@@ -312,7 +319,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeDataApi` | The full export and deleting the user (`/api/v1/export/all.zip`, `/api/v1/me/deletion`) |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
-| `fakeCategoriesApi` | `/api/v1/categories` |
+| `fakeCategoriesApi` | `/api/v1/categories`, and merging one (`moving` says what each moves, `refuseMergeInto` the targets it refuses) |
 | `fakeTransactionsApi` | `/api/v1/transactions` (a test stands in for `/api/v1/export/transactions.csv` itself, in `transactionExport.test.tsx`), bulk actions (`/api/v1/transactions/bulk`, kept in `bulkRequests`), and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming, reminders to confirm or dismiss and the upcoming list (worked out from each rule's dates as the API does, from `today`, the test user's by default); nothing posts there, so a rule's next run date stays its start date until a reminder is answered |

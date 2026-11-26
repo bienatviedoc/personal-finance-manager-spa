@@ -959,6 +959,20 @@
     "archived": "Đã lưu trữ",
     "archiveConfirm": "Lưu trữ {{name}}? Danh mục sẽ không còn hiện khi chọn và vẫn giữ trên các giao dịch đã có.",
     "archiveConfirmWithSubcategories": "Lưu trữ {{name}} và các danh mục con? Chúng sẽ không còn hiện khi chọn và vẫn giữ trên các giao dịch đã có.",
+    "mergeButton": "Gộp",
+    "mergeAction": "Gộp {{name}}",
+    "merge": {
+      "title": "Gộp {{name}}",
+      "into": "Gộp vào",
+      "choose": "Chọn danh mục",
+      "confirm": "Gộp",
+      "moves": "{{transactions}} và {{budgets}} sẽ chuyển sang {{target}}, và {{name}} được lưu trữ.",
+      "transactions_one": "{{count}} giao dịch",
+      "transactions_other": "{{count}} giao dịch",
+      "budgets_one": "{{count}} ngân sách",
+      "budgets_other": "{{count}} ngân sách",
+      "refused": "Không thể gộp {{name}} vào {{target}}: một danh mục và danh mục cha, hoặc một danh mục con của nó, sẽ cùng có ngân sách trong một tháng. Hãy xóa một trong các ngân sách đó trước."
+    },
     "name": "Tên",
     "kind": "Loại",
     "kinds": {
