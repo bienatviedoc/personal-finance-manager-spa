@@ -44,6 +44,17 @@ describe('the budget vs actual report', () => {
     expect(screen.queryByRole('checkbox', { name: 'Compare with the previous period' })).not.toBeInTheDocument()
   })
 
+  it('filtered by a subcategory, shows the budget of the category it sits under, with all it counts', async () => {
+    setUp()
+    renderApp(`${report}?${march}&categoryId=c-groceries&view=table`)
+
+    expect(await rowsOf('Budget vs actual')).toEqual([
+      ['Food & drink', '₫3,000,000', '₫1,500,000', '₫1,500,000', '50%', 'On track'],
+      ['Total', '₫3,000,000', '₫1,500,000', '₫1,500,000', '', ''],
+    ])
+    expect(screen.queryByRole('table', { name: /no budget/i })).not.toBeInTheDocument()
+  })
+
   it('says when no budget was set in the months', async () => {
     setUp({ budgets: [] })
     renderApp(`${report}?${march}`)

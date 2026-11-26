@@ -73,8 +73,9 @@ type Options = {
 type Asked = Record<string, string>
 
 /**
- * A stand-in for the API's reports (net worth from `holdings`, see the API's NetWorthTests), and its spending by category report, following the same rules as the real API (see the API's
- * SpendingByCategoryTests): spent per category in the report period, each top-level category with its
+ * A stand-in for the API's reports, following the same rules as the real API. Net worth is worked out from
+ * `holdings` (see the API's NetWorthTests). Spending by category (see the API's SpendingByCategoryTests) is
+ * spent per category in the report period, each top-level category with its
  * subcategories unless `parentId` breaks one down, ranked by spent then name, a share of the total to one
  * decimal, what is not converted left out and counted, and with `compare` the previous period (as many whole
  * months before whole months, otherwise as many days). A test fake may do arithmetic on amounts; the app never does.
@@ -194,8 +195,14 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         (onlyIn === null || each.categoryId === onlyIn || category(each.categoryId)?.parentId === onlyIn)
 
       const flowOf = (first: string, last: string) => {
-        const coming = state.income.filter((each) => each.date >= first && each.date <= last && counts(each))
-        const going = state.expenses.filter((each) => each.date >= first && each.date <= last && counts(each))
+        const dated = (each: { date: string; categoryId: string; accountId?: string }) => each.date >= first && each.date <= last && counts(each)
+        // One in an income category is income received, as FakeExpense says.
+        const isIncome = (each: FakeExpense) => category(each.categoryId)?.kind === 'income'
+        const coming = [
+          ...state.income.filter(dated).map((each) => ({ id: each.id, amount: each.amount })),
+          ...state.expenses.filter((each) => dated(each) && isIncome(each)).map((each) => ({ id: each.id, amount: each.spent })),
+        ]
+        const going = state.expenses.filter((each) => dated(each) && !isIncome(each))
         const incomeTotal = coming.reduce((sum, each) => sum + Number(each.amount ?? 0), 0)
         const expenses = going.reduce((sum, each) => sum + Number(each.spent ?? 0), 0)
         const net = incomeTotal - expenses
@@ -207,7 +214,7 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
           notConverted: new Set([...coming.filter((each) => each.amount === null), ...going.filter((each) => each.spent === null)].map((each) => each.id)).size,
         }
       }
-      const monthsOf = (first: string, last: string) => {
+      const monthsWithFlows = (first: string, last: string) => {
         const months = []
         for (let month = `${first.slice(0, 7)}-01`; month <= last; ) {
           const [year, number] = month.split('-').map(Number) as [number, number]
@@ -225,7 +232,7 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         to,
         currency: baseCurrency,
         total: flowOf(from, to),
-        months: monthsOf(from, to),
+        months: monthsWithFlows(from, to),
         previous: before && {
           ...before,
           total: flowOf(before.from, before.to),
@@ -363,7 +370,7 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
 
       const items = new Map<string, { months: number; budgeted: number; spent: number; notConverted: Set<string> }>()
       const unbudgeted = new Map<string, { spent: number; notConverted: Set<string> }>()
-      for (const budget of budgets.filter((each) => months.includes(each.month) && shown(each.categoryId))) {
+      for (const budget of budgets.filter((each) => months.includes(each.month))) {
         const item = items.get(budget.categoryId) ?? { months: 0, budgeted: 0, spent: 0, notConverted: new Set<string>() }
         item.months += 1
         item.budgeted += Number(budget.amount)
@@ -371,7 +378,7 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
       }
       for (const expense of inPeriod(from, to, accountId)) {
         const of = category(expense.categoryId)
-        if (!of || of.kind !== 'expense' || !shown(of.id)) continue
+        if (!of || of.kind !== 'expense') continue
         const month = expense.date.slice(0, 7)
         // A budget on the category itself, or on its parent, counts it (spec section 3, rule 6).
         const coveredBy = budgetOn(month, of.id) ? of.id : of.parentId && budgetOn(month, of.parentId) ? of.parentId : null
@@ -381,6 +388,12 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
         else sum.spent += Number(expense.spent)
         if (!coveredBy) unbudgeted.set(of.id, sum)
       }
+      // The category filter narrows what is shown once all is compared, as the API's GetBudgetVsActual does: the
+      // category and its subcategories, and for a subcategory the budget of the category it sits under, which
+      // counts what every one of its subcategories spends.
+      const budgetOver = onlyIn === null ? null : (category(onlyIn)?.parentId ?? null)
+      for (const id of items.keys()) if (!shown(id) && id !== budgetOver) items.delete(id)
+      for (const id of unbudgeted.keys()) if (!shown(id)) unbudgeted.delete(id)
 
       const stateOf = (budgeted: number, spent: number) =>
         spent > budgeted ? ('over' as const) : budgeted > 0 && (spent * 100) / budgeted >= warningPercent ? ('warning' as const) : ('onTrack' as const)
