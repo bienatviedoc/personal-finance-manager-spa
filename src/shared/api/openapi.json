@@ -6755,6 +6755,13 @@
           }
         }
       },
+      "DashboardBudgetPace": {
+        "enum": [
+          "onPace",
+          "aheadOfPace",
+          null
+        ]
+      },
       "DashboardBudgetResponse": {
         "required": [
           "category",
@@ -7011,7 +7018,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/BudgetPace"
+                "$ref": "#/components/schemas/DashboardBudgetPace"
               }
             ]
           },

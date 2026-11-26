@@ -1488,6 +1488,8 @@ export interface components {
             balance: string;
             notConverted: components["schemas"]["DashboardNotConvertedResponse"][];
         };
+        /** @enum {unknown} */
+        DashboardBudgetPace: "onPace" | "aheadOfPace" | null;
         DashboardBudgetResponse: {
             category: components["schemas"]["ReportCategoryResponse"];
             budgeted: string;
@@ -1546,7 +1548,7 @@ export interface components {
             /** Format: int32 */
             percentSpent: null | number | string;
             state: components["schemas"]["BudgetVsActualState"];
-            pace: null | components["schemas"]["BudgetPace"];
+            pace: null | components["schemas"]["DashboardBudgetPace"];
             /** Format: int32 */
             notConverted: number | string;
         };
