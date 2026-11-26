@@ -12,6 +12,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { spendingByCategoryQuery, spendingTransactionsQuery, type CategorySpending, type ReportCategory, type SpendingByCategory } from '../api/spendingByCategory'
+import { ExportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { Share } from '../frame/Share'
@@ -130,6 +131,20 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
           <NotConverted count={Number(report.notConverted)} />
         </div>
       </dl>
+
+      <ExportCsv
+        name="spending-by-category"
+        filters={filters}
+        columns={['category', 'spent', 'share', ...(report.previous ? ['previousSpent'] : []), 'notConverted', 'currency']}
+        rows={report.items.map((item) => [
+          labelOf(item),
+          item.spent,
+          item.share,
+          ...(report.previous ? [item.previousSpent] : []),
+          item.notConverted,
+          report.currency,
+        ])}
+      />
 
       {report.items.length === 0 ? (
         <p className="text-muted-foreground">{t('reports.spending.empty')}</p>
@@ -265,6 +280,23 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
           <NotConverted count={Number(list.data.notConverted)} />
         </dd>
       </dl>
+      <ExportCsv
+        name="spending-by-category-transactions"
+        filters={filters}
+        columns={['date', 'payee', 'note', 'account', 'amount', 'currency', 'isRefund', 'isSplit', 'spent', 'baseCurrency']}
+        rows={items.map((item) => [
+          item.date,
+          item.payee,
+          item.note,
+          findAccount(accounts.data?.accounts ?? [], item.accountId)?.name,
+          item.amount,
+          item.currency,
+          item.isRefund,
+          item.isSplit,
+          item.spent,
+          currency,
+        ])}
+      />
       {items.length === 0 ? (
         <p className="text-muted-foreground">{t('reports.spending.noTransactions')}</p>
       ) : (

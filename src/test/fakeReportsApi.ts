@@ -265,7 +265,8 @@ export function fakeReportsApi({ categories = defaultTestCategories, expenses = 
           currency: expense.currency ?? baseCurrency,
           isRefund: expense.isRefund ?? false,
           isSplit: byTransaction.get(expense.id)!.length > 1,
-          spent: expense.spent,
+          // As the API answers it, with two decimals at least.
+          spent: expense.spent === null ? null : text(Number(expense.spent)),
         }))
 
       const response: SpendingTransactionsResponse = {
