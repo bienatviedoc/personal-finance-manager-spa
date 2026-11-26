@@ -269,7 +269,7 @@ function CategoryRow({
           tree={mergeTargets}
           onMerge={async (targetId) => {
             const outcome = await onMerge(category, targetId)
-            if (outcome.merged) setMerging(false)
+            if (outcome.saved) setMerging(false)
             return outcome
           }}
           onCancel={() => setMerging(false)}

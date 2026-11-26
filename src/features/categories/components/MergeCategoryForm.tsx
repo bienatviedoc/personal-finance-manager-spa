@@ -43,7 +43,7 @@ export function MergeCategoryForm({ category, tree, onMerge, onCancel }: Props) 
     if (!target) return
     // Whoever merges says that it failed; the form stays open to try again.
     const outcome = await onMerge(target.id).catch(() => undefined)
-    if (outcome && !outcome.merged) setRefused(true)
+    if (outcome && !outcome.saved && outcome.fields.includes('targetId')) setRefused(true)
   }
 
   return (
