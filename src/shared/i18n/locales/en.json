@@ -1177,7 +1177,8 @@
       "spentOf": "{{spent}} spent of {{budgeted}}",
       "progress": "{{percent}}% of the budget spent",
       "counts": "{{onTrack}} on track, {{warning}} at warning, {{over}} over budget",
-      "needingAttention": "Budgets needing attention"
+      "needingAttention": "Budgets needing attention",
+      "overall": "Overall budget"
     },
     "topCategories": {
       "title": "Top categories",

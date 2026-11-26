@@ -1177,7 +1177,8 @@
       "spentOf": "Đã chi {{spent}} trên {{budgeted}}",
       "progress": "Đã chi {{percent}}% ngân sách",
       "counts": "{{onTrack}} đúng kế hoạch, {{warning}} cảnh báo, {{over}} vượt ngân sách",
-      "needingAttention": "Ngân sách cần chú ý"
+      "needingAttention": "Ngân sách cần chú ý",
+      "overall": "Ngân sách tổng"
     },
     "topCategories": {
       "title": "Danh mục chi nhiều nhất",

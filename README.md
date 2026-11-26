@@ -198,7 +198,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   Every figure is the API's, worked out as the accounts screen and the reports work it out; the screen adds nothing
   up, and signs an amount only as the transaction list does. Each card links to what is behind it: the accounts,
   income vs expenses and spending by category for this month (`period=thisMonth`), the budgets, the transactions and
-  the recurring rules. Skeletons stand in for the cards while it loads, and a user with no account that is not
+  the recurring rules. The budget card shows this month's overall budget and its pace (`PaceLabel` from
+  `@/features/budgets`, as the budget screen shows it) above the category budgets, and the overall budget alone to a
+  user with no category budget. Skeletons stand in for the cards while it loads, and a user with no account that is not
   archived (`hasAccounts`) is shown how to add one instead. Nearly anything done elsewhere moves something on it, so
   it is loaded again every time it opens (`staleTime: 0`), and a change to a transaction made on it (quick add) loads it
   again through `refreshDashboard`.

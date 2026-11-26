@@ -5441,6 +5441,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -6799,7 +6802,8 @@
           "warning",
           "over",
           "notConverted",
-          "needingAttention"
+          "needingAttention",
+          "overall"
         ],
         "type": "object",
         "properties": {
@@ -6858,6 +6862,16 @@
             "items": {
               "$ref": "#/components/schemas/DashboardBudgetResponse"
             }
+          },
+          "overall": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DashboardOverallBudgetResponse"
+              }
+            ]
           }
         }
       },
@@ -6955,6 +6969,59 @@
           },
           "isReminder": {
             "type": "boolean"
+          }
+        }
+      },
+      "DashboardOverallBudgetResponse": {
+        "required": [
+          "budgeted",
+          "spent",
+          "remaining",
+          "percentSpent",
+          "state",
+          "pace",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetVsActualState"
+          },
+          "pace": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BudgetPace"
+              }
+            ]
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },

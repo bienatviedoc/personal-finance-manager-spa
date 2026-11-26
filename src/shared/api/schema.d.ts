@@ -1512,6 +1512,7 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
             needingAttention: components["schemas"]["DashboardBudgetResponse"][];
+            overall: null | components["schemas"]["DashboardOverallBudgetResponse"];
         };
         DashboardCategoryResponse: {
             category: components["schemas"]["ReportCategoryResponse"];
@@ -1537,6 +1538,17 @@ export interface components {
             category: components["schemas"]["ReportCategoryResponse"];
             payee: null | string;
             isReminder: boolean;
+        };
+        DashboardOverallBudgetResponse: {
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            state: components["schemas"]["BudgetVsActualState"];
+            pace: null | components["schemas"]["BudgetPace"];
+            /** Format: int32 */
+            notConverted: number | string;
         };
         DashboardResponse: {
             /** Format: date */
@@ -6463,6 +6475,13 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

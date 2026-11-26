@@ -1,6 +1,6 @@
 import type { ParseKeys } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { budgetStates } from '@/features/budgets'
+import { budgetStates, PaceLabel } from '@/features/budgets'
 import { takesFromBalance, titleOf } from '@/features/transactions'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
@@ -8,7 +8,7 @@ import { joinDetails } from '@/shared/lib/details'
 import { formatShare } from '@/shared/lib/formatShare'
 import { cn } from '@/shared/lib/utils'
 import { formatMoney, inCurrencyOrder, Money, signedAmount, type Currency } from '@/shared/money'
-import type { Dashboard, DashboardOccurrence } from '../api/dashboard'
+import type { BudgetState, Dashboard, DashboardOccurrence } from '../api/dashboard'
 import { Card } from './Card'
 
 /** Where the screens and reports behind the cards are. A report is of this month: a preset the reports screen works out again on the day it is opened. */
@@ -78,12 +78,12 @@ export function ThisMonthCard({ dashboard }: { dashboard: Dashboard }) {
 }
 
 /**
- * This month's budgets added up, how many are in each state, and the ones over or at warning. A state is said in
- * words beside an icon of its own shape, never by colour alone.
+ * This month's budgets: the overall budget with its pace, and the category budgets added up, how many are in each
+ * state, and the ones over or at warning. A state or a pace is said in words beside an icon of its own shape, never
+ * by colour alone. A user with only an overall budget sees it alone.
  */
 export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
   const { t } = useTranslation()
-  const locale = useLocale()
   const { budgets, currency } = dashboard
   if (!budgets) {
     return (
@@ -93,16 +93,65 @@ export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
     )
   }
 
-  // A percentage is a count, not money.
-  const percent = budgets.percentSpent === null ? null : Number(budgets.percentSpent)
   const [over, warning, onTrack, notConverted] = [budgets.over, budgets.warning, budgets.onTrack, budgets.notConverted].map(Number) as [number, number, number, number]
-  const filled = percent === null ? 0 : Math.min(100, Math.max(0, percent))
-  const worst = over > 0 ? budgetStates.over : warning > 0 ? budgetStates.warning : budgetStates.onTrack
+  const hasCategoryBudgets = onTrack + warning + over > 0
+  const worst = over > 0 ? 'over' : warning > 0 ? 'warning' : 'onTrack'
   return (
     <Card title={t('dashboard.budgets.title')} to={screens.budgets} linkLabel={t('dashboard.budgets.link')}>
-      <p className="tabular-nums">
-        {t('dashboard.budgets.spentOf', { spent: formatMoney(budgets.spent, currency, locale), budgeted: formatMoney(budgets.budgeted, currency, locale) })}
-      </p>
+      {budgets.overall && (
+        <div role="group" aria-label={t('dashboard.budgets.overall')} className="space-y-1">
+          <p className="text-sm font-medium">{t('dashboard.budgets.overall')}</p>
+          <SpentOf spent={budgets.overall.spent} budgeted={budgets.overall.budgeted} percentSpent={budgets.overall.percentSpent} state={budgets.overall.state} currency={currency} />
+          <div className="flex flex-wrap items-center gap-x-3 text-sm">
+            <StateLabel state={budgets.overall.state} />
+            {budgets.overall.pace && <PaceLabel pace={budgets.overall.pace} />}
+          </div>
+          {Number(budgets.overall.notConverted) > 0 && (
+            <p role="note" className="text-sm font-medium text-warning">
+              {t('budgets.notConverted', { count: Number(budgets.overall.notConverted) })}
+            </p>
+          )}
+        </div>
+      )}
+      {hasCategoryBudgets && (
+        <>
+          {budgets.overall && <p className="text-sm font-medium">{t('budgets.byCategory')}</p>}
+          <SpentOf spent={budgets.spent} budgeted={budgets.budgeted} percentSpent={budgets.percentSpent} state={worst} currency={currency} />
+          <p className="text-sm text-muted-foreground">
+            {t('dashboard.budgets.counts', { onTrack, warning, over })}
+          </p>
+          {budgets.needingAttention.length > 0 && (
+            <ul aria-label={t('dashboard.budgets.needingAttention')} className="space-y-1">
+              {budgets.needingAttention.map((budget) => (
+                <li key={budget.category.id} className="flex flex-wrap items-center gap-x-2 text-sm">
+                  <span className="flex-1 font-medium">{budget.category.name}</span>
+                  <StateLabel state={budget.state} />
+                  {budget.percentSpent !== null && <span className="w-12 text-right tabular-nums">{t('budgets.percent', { percent: Number(budget.percentSpent) })}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+          {notConverted > 0 && (
+            <p role="note" className="text-sm font-medium text-warning">
+              {t('budgets.notConverted', { count: notConverted })}
+            </p>
+          )}
+        </>
+      )}
+    </Card>
+  )
+}
+
+/** Spent of budgeted, with a bar that fills up to the budget and no further, coloured by `state`. */
+function SpentOf({ spent, budgeted, percentSpent, state, currency }: { spent: string; budgeted: string; percentSpent: number | string | null; state: BudgetState; currency: Currency }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  // A percentage is a count, not money.
+  const percent = percentSpent === null ? null : Number(percentSpent)
+  const filled = percent === null ? 0 : Math.min(100, Math.max(0, percent))
+  return (
+    <>
+      <p className="tabular-nums">{t('dashboard.budgets.spentOf', { spent: formatMoney(spent, currency, locale), budgeted: formatMoney(budgeted, currency, locale) })}</p>
       {percent !== null && (
         <div className="flex items-center gap-2">
           <div
@@ -113,37 +162,24 @@ export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
             aria-valuenow={filled}
             className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
           >
-            <div className={cn('h-full rounded-full', worst.bar)} style={{ width: `${filled}%` }} />
+            <div className={cn('h-full rounded-full', budgetStates[state].bar)} style={{ width: `${filled}%` }} />
           </div>
           <span className="text-sm tabular-nums text-muted-foreground">{t('budgets.percent', { percent })}</span>
         </div>
       )}
-      <p className="text-sm text-muted-foreground">
-        {t('dashboard.budgets.counts', { onTrack, warning, over })}
-      </p>
-      {budgets.needingAttention.length > 0 && (
-        <ul aria-label={t('dashboard.budgets.needingAttention')} className="space-y-1">
-          {budgets.needingAttention.map((budget) => {
-            const { label, icon: Icon, text } = budgetStates[budget.state]
-            return (
-              <li key={budget.category.id} className="flex flex-wrap items-center gap-x-2 text-sm">
-                <span className="flex-1 font-medium">{budget.category.name}</span>
-                <span className={cn('inline-flex items-center gap-1 font-medium', text)}>
-                  <Icon aria-hidden className="size-4" />
-                  {t(label)}
-                </span>
-                {budget.percentSpent !== null && <span className="w-12 text-right tabular-nums">{t('budgets.percent', { percent: Number(budget.percentSpent) })}</span>}
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      {notConverted > 0 && (
-        <p role="note" className="text-sm font-medium text-warning">
-          {t('budgets.notConverted', { count: notConverted })}
-        </p>
-      )}
-    </Card>
+    </>
+  )
+}
+
+/** A budget's state in words beside its icon. */
+function StateLabel({ state }: { state: BudgetState }) {
+  const { t } = useTranslation()
+  const { label, icon: Icon, text } = budgetStates[state]
+  return (
+    <span className={cn('inline-flex items-center gap-1 font-medium', text)}>
+      <Icon aria-hidden className="size-4" />
+      {t(label)}
+    </span>
   )
 }
 
