@@ -20,6 +20,14 @@ export type BulkSelection = { transactionIds: string[] } | { filter: BulkFilter 
 /** The list's filters, without its sort order: what selects every transaction that passes them. */
 export type BulkFilter = Omit<TransactionFilters, 'sort' | 'order'>
 
+/** The filters of a view, without its sort order, which selects nothing. */
+export function bulkFilterOf(view: TransactionFilters): BulkFilter {
+  const filter = { ...view }
+  delete filter.sort
+  delete filter.order
+  return filter
+}
+
 /** A transaction the action was refused on, and why (`reason`); the API's `message` is English, so screens say their own. */
 export type RefusedTransaction = components['schemas']['RefusedTransactionResponse']
 export type BulkRefusal = components['schemas']['BulkRefusal']

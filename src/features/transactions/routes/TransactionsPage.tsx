@@ -15,8 +15,7 @@ import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { tagsQuery } from '../api/tags'
-import type { BulkFilter, BulkSelection } from '../api/bulk'
-import { canBePicked, isPending, isTransferLeg, listKey, transactionsQuery, useExportTransactions, type Transaction, type TransactionFilters } from '../api/transactions'
+import { canBePicked, isPending, isTransferLeg, listKey, transactionsQuery, useExportTransactions, type Transaction } from '../api/transactions'
 import { BulkActions } from '../components/BulkActions'
 import { EditTransaction } from '../components/EditTransaction'
 import { MarkAsTransfer } from '../components/MarkAsTransfer'
@@ -28,6 +27,7 @@ import { transactionTitle } from '../components/transactionTitle'
 import { AddTransfer, OpenTransfer } from '../components/TransferDrawer'
 import { useQuickAdd } from '../components/quickAddContext'
 import { VirtualRows } from '../components/VirtualRows'
+import { useSelection } from '../hooks/useSelection'
 import { useTransactionFilters } from '../hooks/useTransactionFilters'
 
 /**
@@ -35,26 +35,6 @@ import { useTransactionFilters } from '../hooks/useTransactionFilters'
  * transfer, or editing the transfer with this id, which either of its legs opens.
  */
 type DrawerFor = { editing: Transaction } | { transferring: true } | { transferId: string } | null
-
-/**
- * What is selected: transactions picked one by one, as they were when picked, or every one that passes the
- * filters of a view, written as `filtersKey` writes them, loaded or not.
- */
-type Selection = { rows: Transaction[] } | { allOf: string }
-
-/** The filters of a view, without its sort order, which selects nothing. */
-const filterOf = ({ from, to, accountId, categoryId, type, min, max, q, tag }: TransactionFilters): BulkFilter => ({
-  from,
-  to,
-  accountId,
-  categoryId,
-  type,
-  min,
-  max,
-  q,
-  tag,
-})
-const filtersKey = (view: TransactionFilters) => JSON.stringify(filterOf(view))
 
 /**
  * The user's income, expenses and transfers, narrowed and sorted by the filters in the address, with what they
@@ -70,7 +50,6 @@ export function TransactionsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.transactions'))
   const [drawer, setDrawer] = useState<DrawerFor>(null)
-  const [selection, setSelection] = useState<Selection>({ rows: [] })
   const addTransaction = useQuickAdd()
   const { baseCurrency } = useUserSettings()
   const locale = useLocale()
@@ -93,28 +72,10 @@ export function TransactionsPage() {
     drawer && 'editing' in drawer
       ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
       : undefined
-  // Every transaction that passes the filters, while the view is still the one they were selected under.
-  const allSelected = 'allOf' in selection && selection.allOf === filtersKey(view)
-  // Picked one by one, they stay selected as they were where a filter now hides them, so an expense can be picked
-  // under one account's filter and income under another's to mark as a transfer.
-  const pickedRows = 'rows' in selection ? selection.rows : []
   const saved = items?.filter((transaction): transaction is Transaction => !isPending(transaction)) ?? []
-  // What is picked, as the list has it now where it shows it: one that has since become a leg or a refund is not.
-  const picked = pickedRows.map((row) => saved.find((transaction) => transaction.id === row.id) ?? row)
-  const isSelected = (id: string) => allSelected || pickedRows.some((row) => row.id === id)
-  const toggleSelected = (transaction: Transaction) =>
-    setSelection(() => {
-      // Unselecting one of all of them leaves the others loaded selected, one by one.
-      const rows = allSelected ? saved : pickedRows
-      return { rows: rows.some((row) => row.id === transaction.id) ? rows.filter((row) => row.id !== transaction.id) : [...rows, transaction] }
-    })
-  const clearSelection = useCallback(() => setSelection({ rows: [] }), [])
-  // Marking as a transfer is offered while what was picked could become one: one or two income or expenses.
-  const marking = !allSelected && pickedRows.length > 0 && pickedRows.length <= 2 && pickedRows.every(canBePicked)
-  const selectedCount = allSelected ? Number(total?.count ?? 0) : pickedRows.length
-  const bulkSelection: BulkSelection = allSelected ? { filter: filterOf(view) } : { transactionIds: pickedRows.map((row) => row.id) }
+  const selection = useSelection(view, saved, total)
   const nameOf = (id: string) => {
-    const transaction = saved.find((candidate) => candidate.id === id) ?? pickedRows.find((row) => row.id === id)
+    const transaction = saved.find((candidate) => candidate.id === id) ?? selection.pickedRows.find((row) => row.id === id)
     return transaction ? transactionTitle(transaction, findCategory(categories.data ?? [], transaction.categoryId), t) : t('transactions.bulk.unknown')
   }
   const open = accounts.data?.accounts.filter((account) => !account.isArchived) ?? []
@@ -202,25 +163,27 @@ export function TransactionsPage() {
           <input
             type="checkbox"
             className="size-4"
-            checked={allSelected}
-            onChange={() => setSelection(allSelected ? { rows: [] } : { allOf: filtersKey(view) })}
+            checked={selection.allSelected}
+            onChange={selection.toggleAll}
           />
           {t('transactions.bulk.selectAll', { count: total.count })}
         </label>
       )}
-      {accounts.data && categories.data && selectedCount > 0 && (
+      {accounts.data && categories.data && selection.count > 0 && (
         <BulkActions
-          count={selectedCount}
-          selection={bulkSelection}
+          count={selection.count}
+          selection={selection.bulk}
           accounts={accounts.data.accounts}
           categories={categories.data}
           nameOf={nameOf}
-          onDone={clearSelection}
-          onClear={clearSelection}
+          onDone={selection.clear}
+          onClear={selection.clear}
         />
       )}
       {/* Started again for each new pick, so what the last attempt said is not shown for another pair. */}
-      {marking && <MarkAsTransfer key={pickedRows.map((row) => row.id).join()} picked={picked.filter(canBePicked)} onClear={clearSelection} />}
+      {selection.marking && (
+        <MarkAsTransfer key={selection.pickedRows.map((row) => row.id).join()} picked={selection.picked.filter(canBePicked)} onClear={selection.clear} />
+      )}
       {loaded && items.length === 0 && isFiltered && <p className="text-muted-foreground">{t('transactions.filters.noMatch')}</p>}
       {loaded && items.length === 0 && !isFiltered && canRecord && <p className="text-muted-foreground">{t('transactions.empty')}</p>}
       {loaded && items.length > 0 && (
@@ -234,7 +197,7 @@ export function TransactionsPage() {
               category={findCategory(categories.data, transaction.categoryId)}
               categories={categories.data}
               onEdit={(editing) => setDrawer(isTransferLeg(editing) ? { transferId: editing.transferId } : { editing })}
-              select={isPending(transaction) ? undefined : { selected: isSelected(transaction.id), onToggle: () => toggleSelected(transaction) }}
+              select={isPending(transaction) ? undefined : { selected: selection.isSelected(transaction.id), onToggle: () => selection.toggle(transaction) }}
             />
           )}
         </VirtualRows>
