@@ -81,6 +81,26 @@ describe('the net worth report', () => {
     expect(await rowsOf()).toHaveLength(3)
   })
 
+  it('names the assets, the liabilities and net worth in the chart, so colour is not all that tells them apart', async () => {
+    setUp()
+    renderApp(`${report}?${firstQuarter}`)
+
+    const chart = await screen.findByRole('img', { name: 'Net worth: assets and liabilities at each month end' })
+    for (const name of ['Assets', 'Liabilities', 'Net worth']) expect(within(chart).getByText(name)).toBeInTheDocument()
+  })
+
+  it('flags beside the latest net worth only what that net worth leaves out, not what an earlier month end did', async () => {
+    setUp([
+      ...holdings,
+      { accountId: 'a-dollars', from: '2026-01-01', balance: null },
+      { accountId: 'a-dollars', from: '2026-03-01', balance: '100000' },
+    ])
+    renderApp(`${report}?${firstQuarter}&view=table`)
+
+    expect((await rowsOf())[0]![3]).toContain('1 not converted')
+    expect(screen.queryByText('1 amount is not converted into your base currency yet and is left out.')).not.toBeInTheDocument()
+  })
+
   it('narrows down to one account, and offers no category filter or comparison', async () => {
     const api = setUp()
     renderApp(`${report}?${firstQuarter}&accountId=a-visa&categoryId=c-food&compare=true&view=table`)

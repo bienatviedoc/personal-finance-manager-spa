@@ -38,25 +38,18 @@ function NetWorthView({ netWorth, filters }: { netWorth: NetWorth; filters: Repo
   const locale = useLocale()
   const { currency, items } = netWorth
   const last = items.at(-1)
-  const notConverted = items.reduce((most, item) => Math.max(most, Number(item.notConverted)), 0)
 
   return (
     <>
       {last && (
-        <dl className="grid grid-cols-1 gap-3 rounded-lg border p-4 sm:grid-cols-3">
-          <div>
-            <dt className="text-sm text-muted-foreground">
-              {t('reports.netWorth.on', {
-                date: formatDate(last.date, locale),
-              })}
-            </dt>
-            <dd className="text-lg font-medium tabular-nums">
-              <Money amount={last.netWorth} currency={currency} />
-            </dd>
-          </div>
-          <div className="sm:col-span-3">
-            <NotConverted count={notConverted} />
-          </div>
+        <dl className="space-y-1 rounded-lg border p-4">
+          <dt className="text-sm text-muted-foreground">{t('reports.netWorth.on', { date: formatDate(last.date, locale) })}</dt>
+          <dd className="text-lg font-medium tabular-nums">
+            <Money amount={last.netWorth} currency={currency} />
+          </dd>
+          <dd>
+            <NotConverted count={Number(last.notConverted)} />
+          </dd>
         </dl>
       )}
 
@@ -65,19 +58,10 @@ function NetWorthView({ netWorth, filters }: { netWorth: NetWorth; filters: Repo
           label={t('reports.netWorth.chart')}
           points={items.map((item) => formatDate(item.date, locale))}
           areas={[
-            {
-              ...series.assets,
-              values: items.map((item) => Number(item.assets)),
-            },
-            {
-              ...series.liabilities,
-              values: items.map((item) => -Number(item.liabilities)),
-            },
+            { ...series.assets, name: t('reports.netWorth.assets'), values: items.map((item) => Number(item.assets)) },
+            { ...series.liabilities, name: t('reports.netWorth.liabilities'), values: items.map((item) => -Number(item.liabilities)) },
           ]}
-          line={{
-            ...series.netWorth,
-            values: items.map((item) => Number(item.netWorth)),
-          }}
+          line={{ ...series.netWorth, name: t('reports.netWorth.netWorth'), values: items.map((item) => Number(item.netWorth)) }}
           formatValue={(value) => formatAxisAmount(value, locale)}
         />
       ) : (

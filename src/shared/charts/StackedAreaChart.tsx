@@ -1,8 +1,10 @@
-import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from 'recharts'
+import { Area, CartesianGrid, ComposedChart, Legend, Line, ReferenceLine, XAxis, YAxis } from 'recharts'
 
 /** One area, or the line drawn over them: a value at each point along the bottom, in its own colour. */
 export type AreaSeries = {
   key: string
+  /** What it is, in the legend, so its colour is never the only thing telling it apart. */
+  name: string
   /** Numbers for drawing only, one per point. Amounts stay decimal strings everywhere else. */
   values: number[]
   color: string
@@ -48,10 +50,22 @@ export function StackedAreaChart({ label, points, areas, line, formatValue, widt
         <XAxis dataKey="point" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} tickFormatter={formatValue} width={96} />
         <ReferenceLine y={0} className="stroke-border" />
+        <Legend />
         {areas.map((area) => (
-          <Area key={area.key} dataKey={area.key} stackId="areas" stroke={area.color} fill={area.color} fillOpacity={0.4} isAnimationActive={false} />
+          <Area
+            key={area.key}
+            dataKey={area.key}
+            name={area.name}
+            stackId="areas"
+            stroke={area.color}
+            fill={area.color}
+            fillOpacity={0.4}
+            // An area over one point has no width, so a period with one month end shows it as a dot.
+            dot={points.length === 1}
+            isAnimationActive={false}
+          />
         ))}
-        {line && <Line dataKey={line.key} stroke={line.color} strokeWidth={2} dot isAnimationActive={false} />}
+        {line && <Line dataKey={line.key} name={line.name} stroke={line.color} strokeWidth={2} dot isAnimationActive={false} />}
       </ComposedChart>
     </figure>
   )
