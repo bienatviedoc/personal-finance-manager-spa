@@ -1223,12 +1223,13 @@ export interface components {
             title: string;
             /** Format: int32 */
             status: number | string;
+            detail: string;
             refused: components["schemas"]["RefusedTransactionResponse"][];
         };
         BulkEditRequest: {
             action: string;
             transactionIds?: null | string[];
-            filter?: null | components["schemas"]["BulkFilterRequest"];
+            filter?: null | components["schemas"]["TransactionFilterRequest"];
             /** Format: uuid */
             categoryId?: null | string;
             tag?: null | string;
@@ -1239,17 +1240,6 @@ export interface components {
             /** Format: int32 */
             count: number | string;
         };
-        BulkFilterRequest: {
-            from?: null | string;
-            to?: null | string;
-            accountId?: null | string;
-            categoryId?: null | string;
-            type?: null | string;
-            min?: null | string;
-            max?: null | string;
-            q?: null | string;
-            tag?: null | string;
-        };
         /** @enum {unknown} */
         BulkRefusal: "notFound" | "transferLeg" | "split" | "categoryKind" | "reconciled" | "otherCurrency" | "tooManyTags";
         BulkSelectionTooLargeProblem: {
@@ -1257,6 +1247,7 @@ export interface components {
             title: string;
             /** Format: int32 */
             status: number | string;
+            detail: string;
             /** Format: int32 */
             max: number | string;
         };
@@ -1830,6 +1821,17 @@ export interface components {
             /** Format: uuid */
             id: string;
             name: string;
+        };
+        TransactionFilterRequest: {
+            from?: null | string;
+            to?: null | string;
+            accountId?: null | string;
+            categoryId?: null | string;
+            type?: null | string;
+            min?: null | string;
+            max?: null | string;
+            q?: null | string;
+            tag?: null | string;
         };
         TransactionLineRequest: {
             /** Format: uuid */

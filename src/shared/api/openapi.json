@@ -5676,6 +5676,7 @@
           "type",
           "title",
           "status",
+          "detail",
           "refused"
         ],
         "type": "object",
@@ -5693,6 +5694,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "detail": {
+            "type": "string"
           },
           "refused": {
             "type": "array",
@@ -5727,7 +5731,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/BulkFilterRequest"
+                "$ref": "#/components/schemas/TransactionFilterRequest"
               }
             ]
           },
@@ -5769,65 +5773,6 @@
           }
         }
       },
-      "BulkFilterRequest": {
-        "type": "object",
-        "properties": {
-          "from": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "to": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "accountId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "categoryId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "type": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "min": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "max": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "q": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "tag": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "BulkRefusal": {
         "enum": [
           "notFound",
@@ -5844,6 +5789,7 @@
           "type",
           "title",
           "status",
+          "detail",
           "max"
         ],
         "type": "object",
@@ -5861,6 +5807,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "detail": {
+            "type": "string"
           },
           "max": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -8160,6 +8109,65 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "TransactionFilterRequest": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "min": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "max": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "q": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tag": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
