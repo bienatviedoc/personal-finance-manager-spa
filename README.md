@@ -322,6 +322,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   cancel by signing in again. When a sign-in does cancel a deletion the API says so, and the shell shows a
   notice until the user dismisses it. The interface says "delete your profile", never "account": an account is
   where money sits (see the glossary), and a test checks both languages.
+- **The audit log** is Settings > Audit log (`/settings/audit-log`): the user's sign-ins, statements committed, imports
+  undone, bulk actions and deletes, the newest first, older ones a page at a time. The API writes every entry and its
+  summary (in the user's locale when it was written); the SPA names the action, writes when it happened in the user's
+  time zone, and shows the summary as it came. Entries cannot be changed or deleted, so the screen only reads.
 - **Lockout and rate limiting are the API's.** A locked user is answered like a wrong password, so the sign-in
   screen warns about the lock beside that message; a 429 becomes "too many attempts".
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -386,6 +390,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
 | `fakeSecurityApi` | Changing the password and two-factor sign-in (`/api/v1/me/password`, `/api/v1/me/two-factor/...`) |
 | `fakeDataApi` | The full export and deleting the user (`/api/v1/export/all.zip`, `/api/v1/me/deletion`) |
+| `fakeAuditLogApi` | The audit log (`/api/v1/me/audit-log`): the entries a test gives it (`auditEntry` fills in the rest), the newest first, a page at a time; `fail` makes it answer a server error |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories`, and merging one (`moving` says what each moves, `refuseMergeInto` the targets it refuses) |

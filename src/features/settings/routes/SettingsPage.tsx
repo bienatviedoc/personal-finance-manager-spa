@@ -8,6 +8,7 @@ const sections: { to: string; label: ParseKeys }[] = [
   { to: 'categories', label: 'settings.categories' },
   { to: 'rules', label: 'settings.rules' },
   { to: 'security', label: 'settings.security.title' },
+  { to: 'audit-log', label: 'settings.auditLog.title' },
   { to: 'data', label: 'settings.data.title' },
 ]
 

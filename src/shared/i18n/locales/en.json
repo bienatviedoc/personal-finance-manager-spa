@@ -956,6 +956,21 @@
         "incorrect": "That is not your password."
       }
     },
+    "auditLog": {
+      "title": "Audit log",
+      "body": "A record of each sign-in, statement imported, import undone, bulk edit and delete, the newest first. Entries cannot be changed or deleted.",
+      "empty": "Nothing has been recorded yet.",
+      "notLoaded": "The audit log could not be loaded. Try again in a little while.",
+      "more": "Show older entries",
+      "actions": {
+        "signIn": "Signed in",
+        "importCommit": "Statement committed",
+        "importUndo": "Import undone",
+        "bulkEdit": "Bulk edit",
+        "bulkDelete": "Bulk delete",
+        "delete": "Deleted"
+      }
+    },
     "data": {
       "title": "Your data",
       "export": {
