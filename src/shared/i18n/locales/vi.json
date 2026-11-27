@@ -955,6 +955,21 @@
         "incorrect": "Đó không phải mật khẩu của bạn."
       }
     },
+    "auditLog": {
+      "title": "Nhật ký hoạt động",
+      "body": "Ghi lại mỗi lần đăng nhập, nhập sao kê, hoàn tác lần nhập, sửa hàng loạt và xóa, mới nhất ở trên cùng. Không thể sửa hay xóa các mục trong nhật ký.",
+      "empty": "Chưa có gì được ghi lại.",
+      "notLoaded": "Không tải được nhật ký hoạt động. Hãy thử lại sau ít phút.",
+      "more": "Xem các mục cũ hơn",
+      "actions": {
+        "signIn": "Đăng nhập",
+        "importCommit": "Xác nhận nhập sao kê",
+        "importUndo": "Hoàn tác lần nhập",
+        "bulkEdit": "Sửa hàng loạt",
+        "bulkDelete": "Xóa hàng loạt",
+        "delete": "Đã xóa"
+      }
+    },
     "data": {
       "title": "Dữ liệu của bạn",
       "export": {
