@@ -1086,7 +1086,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description The user's past import batches: every statement committed, whatever became of it since (committing, committed, failed or undone), with its file name, when it was uploaded and its counts, the last uploaded first, a page at a time. accountId lists one account's. A statement uploaded and not committed is not listed. */
+        get: operations["ListImportBatches"];
         put?: never;
         /** @description Uploads a bank statement to import into one of the user's accounts: a CSV file of at most 5 MB and 10,000 rows, saved as text (UTF-8, or UTF-16 with a byte order mark), sent as the file field of a multipart/form-data body beside accountId. Nothing is imported yet: the answer is the import batch, with a first guess at how to read the file (suggestedMapping) for the user to confirm or change in the preview. */
         post: operations["UploadStatement"];
@@ -1107,7 +1108,8 @@ export interface paths {
         get: operations["GetImportBatch"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Undoes the import batch: every transaction it created is deleted, edited or not, and can be restored for 30 days like any deleted transaction. One marked as a leg of a transfer since deletes the transfer, the other leg with it. A batch still being imported is stopped, and what it imported so far deleted. The answer is the batch, undone; undoing it again answers the same. While any of its transactions (or the other leg of a transfer one is a leg of) is reconciled it answers 409 with the problem type urn:pfm:problem:import-reconciled and changes nothing: reopen the reconciliation first. A statement uploaded and never committed answers 409 with the problem type urn:pfm:problem:import-not-committed. */
+        delete: operations["UndoImport"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1795,6 +1797,10 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        ImportBatchListResponse: {
+            items: components["schemas"]["ImportBatchResponse"][];
+            nextCursor: null | string;
+        };
         ImportBatchResponse: {
             /** Format: uuid */
             id: string;
@@ -1819,9 +1825,12 @@ export interface components {
             committedAt: null | string;
             mapping: null | components["schemas"]["MappingResponse"];
             suggestedMapping: null | components["schemas"]["MappingResponse"];
+            savedMapping: null | components["schemas"]["MappingResponse"];
+            /** Format: date-time */
+            undoneAt: null | string;
         };
         /** @enum {unknown} */
-        ImportBatchStatus: "uploaded" | "committing" | "committed" | "failed";
+        ImportBatchStatus: "uploaded" | "committing" | "committed" | "failed" | "undone";
         /** @enum {unknown} */
         ImportFailure: "accountArchived" | "categoryArchived" | "accountCurrencyChanged" | "transactionRefused" | "unexpected" | null;
         ImportPreviewResponse: {
@@ -6615,6 +6624,48 @@ export interface operations {
             };
         };
     };
+    ListImportBatches: {
+        parameters: {
+            query?: {
+                accountId?: string;
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     UploadStatement: {
         parameters: {
             query?: never;
@@ -6696,6 +6747,62 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    UndoImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

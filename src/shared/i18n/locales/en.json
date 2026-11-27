@@ -1371,7 +1371,8 @@
       "failed_other": "{{count}} rows could not be read and were not imported.",
       "stopped": "The import stopped after {{imported}} of {{count}} transactions. Those stay.",
       "seeTransactions": "See them in the transactions",
-      "startAgain": "Start again"
+      "startAgain": "Start again",
+      "undone": "This import was undone. Its transactions were deleted; you can restore any of them from Recently deleted for 30 days."
     },
     "errors": {
       "generic": "The import could not be loaded. Try again in a moment.",
@@ -1400,6 +1401,39 @@
       "accountCurrencyChanged": "The account's currency changed after you imported the statement, so its rows no longer read the same.",
       "transactionRefused": "A row could not be recorded as a transaction.",
       "unexpected": "Something went wrong while importing it. Start again, and if it happens again, tell us."
+    },
+    "savedMapping": "Read with the mapping saved for this account when its last statement was imported. Change anything this one does differently.",
+    "recentlyDeleted": "Recently deleted",
+    "undo": {
+      "action": "Undo",
+      "named": "Undo {{fileName}}",
+      "explained_one": "This deletes the {{count}} transaction this statement imported, edited or not. You can restore it from Recently deleted for 30 days.",
+      "explained_other": "This deletes the {{count}} transactions this statement imported, edited or not. You can restore any of them from Recently deleted for 30 days.",
+      "confirm": "Undo import",
+      "cancel": "Cancel",
+      "reconciled_one": "{{count}} of its transactions is reconciled. Reopen the reconciliation, then undo the import.",
+      "reconciled_other": "{{count}} of its transactions are reconciled. Reopen the reconciliation, then undo the import.",
+      "failed": "The import could not be undone."
+    },
+    "history": {
+      "title": "Past imports",
+      "none": "No statements imported yet.",
+      "notLoaded": "The past imports could not be loaded. Try again in a moment.",
+      "more": "Show more",
+      "imported_one": "{{count}} transaction imported",
+      "imported_other": "{{count}} transactions imported",
+      "skippedDuplicates_one": "{{count}} likely duplicate skipped",
+      "skippedDuplicates_other": "{{count}} likely duplicates skipped",
+      "failed_one": "{{count}} row could not be read",
+      "failed_other": "{{count}} rows could not be read",
+      "undoneNote": "Its transactions were deleted and can be restored for 30 days:",
+      "status": {
+        "uploaded": "Not imported",
+        "committing": "Importing",
+        "committed": "Imported",
+        "failed": "Stopped",
+        "undone": "Undone"
+      }
     }
   }
 }

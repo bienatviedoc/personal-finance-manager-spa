@@ -196,8 +196,20 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   and skipped, or that it stopped and why (translated from the API's `failure` code), and loads the lists, balances,
   budgets and reports again (`refreshTransactions`). A stopped import offers to start again: the upload screen
   opens with the account chosen (unless it was archived) and the next file starts from the stopped batch's mapping
-  rather than the API's guess (`StartAgain`, carried as router state). Every imported transaction carries its `importBatchId`. Saving the mapping per account
-  and undoing a batch are still to come (#23).
+  rather than the API's guess (`StartAgain`, carried as router state). Every imported transaction carries its `importBatchId`.
+- **The mapping saved for an account** (spec IMP-2; see the glossary: saved mapping). The API saves the mapping a
+  statement is committed with for its account, and answers it with the next upload for that account
+  (`savedMapping`). `ImportBatchPage` starts from it, ahead of the API's guess, and says so; every choice can still be
+  changed, and what is committed is saved in its place. Starting again after a stopped import keeps that import's
+  mapping instead.
+- **Past imports and undo** (spec IMP-5; see the glossary: undo). Under the upload form, `PastImports` lists every
+  statement committed, the last first, a page at a time (`pastImportsQuery`): its file name (opening its screen),
+  account, the day it was uploaded on the user's calendar, where it got to and its counts, all as the API answers
+  them. A statement being imported, imported or stopped offers Undo (`UndoImport`, `useUndoImport`), here and on its
+  own screen: once confirmed, the API deletes every transaction it created, edited or not, and stops it if it is still
+  being imported; they can be restored from Recently deleted for 30 days, which the screen links to. While any of
+  them is reconciled the API refuses (409 `import-reconciled`, with how many), and the screen says how many and to
+  reopen the reconciliation first. Undone, the lists, balances, budgets and reports load again.
 - **Categorisation rules** (spec IMP-4; see the glossary) are `features/rules`, at Settings > Rules
   (`/settings/rules`): the user's rules in the order the API tries them (`rulesQuery`, highest priority first), each
   set up, edited and deleted there with its match text, match type, category and priority (`RuleForm`; a new rule

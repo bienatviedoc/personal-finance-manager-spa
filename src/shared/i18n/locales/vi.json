@@ -1371,7 +1371,8 @@
       "failed_other": "{{count}} dòng không đọc được và không được nhập.",
       "stopped": "Việc nhập đã dừng sau {{imported}} trên {{count}} giao dịch. Những giao dịch đó vẫn được giữ.",
       "seeTransactions": "Xem trong danh sách giao dịch",
-      "startAgain": "Bắt đầu lại"
+      "startAgain": "Bắt đầu lại",
+      "undone": "Lần nhập này đã được hoàn tác. Các giao dịch của nó đã bị xóa; bạn có thể khôi phục bất kỳ giao dịch nào trong mục Đã xóa gần đây trong 30 ngày."
     },
     "errors": {
       "generic": "Không tải được việc nhập. Hãy thử lại sau giây lát.",
@@ -1400,6 +1401,39 @@
       "accountCurrencyChanged": "Loại tiền của tài khoản đã thay đổi sau khi bạn nhập sao kê, nên các dòng không còn đọc như trước.",
       "transactionRefused": "Một dòng không thể ghi thành giao dịch.",
       "unexpected": "Đã có lỗi khi nhập. Hãy bắt đầu lại, và nếu lỗi lặp lại, hãy báo cho chúng tôi."
+    },
+    "savedMapping": "Đọc theo cách đã lưu cho tài khoản này khi nhập sao kê lần trước. Hãy đổi những gì sao kê này khác đi.",
+    "recentlyDeleted": "Đã xóa gần đây",
+    "undo": {
+      "action": "Hoàn tác",
+      "named": "Hoàn tác {{fileName}}",
+      "explained_one": "Thao tác này xóa {{count}} giao dịch mà sao kê đã nhập, dù đã sửa hay chưa. Bạn có thể khôi phục trong mục Đã xóa gần đây trong 30 ngày.",
+      "explained_other": "Thao tác này xóa {{count}} giao dịch mà sao kê đã nhập, dù đã sửa hay chưa. Bạn có thể khôi phục bất kỳ giao dịch nào trong mục Đã xóa gần đây trong 30 ngày.",
+      "confirm": "Hoàn tác lần nhập",
+      "cancel": "Hủy",
+      "reconciled_one": "{{count}} giao dịch của nó đã được đối soát. Hãy mở lại kỳ đối soát, rồi hoàn tác lần nhập.",
+      "reconciled_other": "{{count}} giao dịch của nó đã được đối soát. Hãy mở lại kỳ đối soát, rồi hoàn tác lần nhập.",
+      "failed": "Không thể hoàn tác lần nhập."
+    },
+    "history": {
+      "title": "Các lần nhập trước",
+      "none": "Chưa nhập sao kê nào.",
+      "notLoaded": "Không tải được các lần nhập trước. Hãy thử lại sau giây lát.",
+      "more": "Xem thêm",
+      "imported_one": "Đã nhập {{count}} giao dịch",
+      "imported_other": "Đã nhập {{count}} giao dịch",
+      "skippedDuplicates_one": "Bỏ qua {{count}} dòng có thể trùng",
+      "skippedDuplicates_other": "Bỏ qua {{count}} dòng có thể trùng",
+      "failed_one": "{{count}} dòng không đọc được",
+      "failed_other": "{{count}} dòng không đọc được",
+      "undoneNote": "Các giao dịch của nó đã bị xóa và có thể khôi phục trong 30 ngày:",
+      "status": {
+        "uploaded": "Chưa nhập",
+        "committing": "Đang nhập",
+        "committed": "Đã nhập",
+        "failed": "Đã dừng",
+        "undone": "Đã hoàn tác"
+      }
     }
   }
 }

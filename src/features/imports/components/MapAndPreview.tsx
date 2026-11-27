@@ -12,13 +12,13 @@ import { MappingForm, type ColumnChoice } from './MappingForm'
 import { PreviewTable, RawRows } from './PreviewTable'
 
 /**
- * Mapping a statement and checking it before anything is saved (spec IMP-1, IMP-3): the mapping starts from the
- * API's guess at the layout; each change previews the file again, and the rows ticked to import start as every
+ * Mapping a statement and checking it before anything is saved (spec IMP-1, IMP-3): the mapping starts from the one
+ * saved for the account (`fromSaved`, spec IMP-2), which the user can change, or else the API's guess at the layout; each change previews the file again, and the rows ticked to import start as every
  * transaction but the likely duplicates, each on the category a categorisation rule suggests for it, which the user may
  * change. Committing sends the mapping, the rows ticked, each row's own category, and a category for each way money
  * moves among the rows left without one.
  */
-export function MapAndPreview({ batch, suggested }: { batch: ImportBatch; suggested: Mapping }) {
+export function MapAndPreview({ batch, suggested, fromSaved = false }: { batch: ImportBatch; suggested: Mapping; fromSaved?: boolean }) {
   const { t } = useTranslation()
   const [mapping, setMapping] = useState(suggested)
   const [separate, setSeparate] = useState(suggested.debitColumn !== null)
@@ -29,6 +29,7 @@ export function MapAndPreview({ batch, suggested }: { batch: ImportBatch; sugges
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground">{t('imports.mapIntro')}</p>
+      {fromSaved && <p className="rounded-lg border bg-muted/40 p-3 text-sm">{t('imports.savedMapping')}</p>}
       <MappingForm mapping={mapping} onChange={setMapping} columns={columns} separate={separate} onSeparateChange={setSeparate} />
       {preview.isError && <ErrorMessage>{t('imports.errors.preview')}</ErrorMessage>}
       {preview.data &&
