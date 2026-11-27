@@ -31,10 +31,12 @@ const saved: components['schemas']['MappingResponse'] = {
 
 type Past = NonNullable<Parameters<typeof fakeImportsApi>[0]['batches']>
 
-function fakeApis({ batches = [] as Past } = {}) {
+function fakeApis({ batches = [] as Past, archived = [] as string[] } = {}) {
   fakeInstitutionsApi()
   const accountsApi = fakeAccountsApi([{ name: 'Everyday' }])
-  const categoriesApi = fakeCategoriesApi({ categories: defaultTestCategories })
+  const categoriesApi = fakeCategoriesApi({
+    categories: defaultTestCategories.map((category) => (archived.includes(category.id) ? { ...category, isArchived: true } : category)),
+  })
   const transactionsApi = fakeTransactionsApi([], { accounts: accountsApi.accounts, categories: categoriesApi.categories })
   return fakeImportsApi({ accounts: accountsApi.accounts, categories: categoriesApi.categories, transactions: transactionsApi.transactions, batches })
 }
@@ -80,6 +82,40 @@ describe('the mapping saved for an account', () => {
 
     await waitFor(() => expect(importsApi.commitRequests).toHaveLength(1))
     expect(importsApi.commitRequests[0]!.mapping).toEqual({ ...saved, descriptionColumn: null })
+  })
+
+  it('starts from the categories the account’s last statement was imported with, so a repeat import needs no choices', async () => {
+    const importsApi = fakeApis()
+    importsApi.savedMappings.set(everyday, saved)
+    importsApi.savedCategories.set(everyday, { expenseCategoryId: 'c-food', incomeCategoryId: 'c-salary' })
+    const { user } = renderApp('/import')
+
+    await screen.findByRole('option', { name: 'Everyday (VND)' })
+    await user.selectOptions(screen.getByLabelText('Account'), everyday)
+    await user.upload(screen.getByLabelText('Statement file (CSV)'), new File([statement], 'tcb-november.csv', { type: 'text/csv' }))
+    await user.click(screen.getByRole('button', { name: 'Upload' }))
+
+    await waitFor(() => expect(screen.getByLabelText('Category for money going out')).toHaveValue('c-food'))
+    expect(screen.getByLabelText('Category for money coming in')).toHaveValue('c-salary')
+    await user.click(await screen.findByRole('button', { name: 'Import 2 transactions' }))
+
+    await waitFor(() => expect(importsApi.commitRequests).toHaveLength(1))
+    expect(importsApi.commitRequests[0]).toMatchObject({ expenseCategoryId: 'c-food', incomeCategoryId: 'c-salary' })
+  })
+
+  it('leaves a saved category to choose again once it is archived', async () => {
+    const importsApi = fakeApis({ archived: ['c-food'] })
+    importsApi.savedMappings.set(everyday, saved)
+    importsApi.savedCategories.set(everyday, { expenseCategoryId: 'c-food', incomeCategoryId: 'c-salary' })
+    const { user } = renderApp('/import')
+
+    await screen.findByRole('option', { name: 'Everyday (VND)' })
+    await user.selectOptions(screen.getByLabelText('Account'), everyday)
+    await user.upload(screen.getByLabelText('Statement file (CSV)'), new File([statement], 'tcb-november.csv', { type: 'text/csv' }))
+    await user.click(screen.getByRole('button', { name: 'Upload' }))
+
+    await waitFor(() => expect(screen.getByLabelText('Category for money coming in')).toHaveValue('c-salary'))
+    expect(screen.getByLabelText('Category for money going out')).toHaveValue('')
   })
 
   it('starts from the guess at the layout for an account with no mapping saved, saying nothing of one', async () => {

@@ -75,8 +75,10 @@ const normalised = (description: string | null | undefined) =>
  * date, amount, direction and normalised description of a transaction on the account (or the date, amount and
  * direction of a transfer leg on it) as a likely duplicate, unticked, each transaction matching one row at most; a commit takes rows the preview parses, a category for each
  * direction chosen, and answers 202 with the batch committing (409 `import-committed` once committed, 409
- * `import-in-progress` while another batch is committing into the account, 400 on `id` once its account is archived). Nothing
- * imports by itself: `importNext` moves a committing batch on, as the worker would.
+ * `import-in-progress` while another batch is committing into the account, 400 on `id` once its account is archived), and
+ * saves its mapping and categories for the account, offered with the account's next upload; past imports are listed,
+ * the last uploaded first, and one is undone unless any of its transactions is reconciled. Nothing imports by itself:
+ * `importNext` moves a committing batch on, as the worker would.
  */
 export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20', rules = [] }: Options) {
   type Kept = Batch & { text: string | null }
@@ -92,6 +94,8 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
     previews: [] as Record<string, string>[],
     /** The mapping saved for each account: the one its last statement was committed with. */
     savedMappings: new Map<string, Mapping>(),
+    /** The categories saved with each account's mapping: those its last statements were committed with. */
+    savedCategories: new Map<string, { expenseCategoryId: string | null; incomeCategoryId: string | null }>(),
     /** How many transactions of a batch are reconciled, which refuses its undo. */
     reconciled: new Map<string, number>(),
   }
@@ -128,7 +132,14 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
     const batch: Partial<Kept> = { ...kept }
     delete batch.text
     const uploaded = kept.status === 'uploaded'
-    return { ...(batch as Batch), suggestedMapping: uploaded ? kept.suggestedMapping : null, savedMapping: uploaded ? (state.savedMappings.get(kept.accountId) ?? null) : null }
+    const savedCategories = uploaded ? state.savedCategories.get(kept.accountId) : undefined
+    return {
+      ...(batch as Batch),
+      suggestedMapping: uploaded ? kept.suggestedMapping : null,
+      savedMapping: uploaded ? (state.savedMappings.get(kept.accountId) ?? null) : null,
+      savedExpenseCategoryId: savedCategories?.expenseCategoryId ?? null,
+      savedIncomeCategoryId: savedCategories?.incomeCategoryId ?? null,
+    }
   }
   const find = (id: unknown) => state.batches.find((batch) => batch.id === id)
 
@@ -414,6 +425,12 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       if (Object.keys(errors).length > 0) return problem(400, { errors })
       if (state.batches.some((other) => other !== batch && other.accountId === batch.accountId && other.status === 'committing')) return importing()
       state.savedMappings.set(batch.accountId, mapping as Mapping)
+      // A category not sent (no row needed one of its kind) keeps the one saved.
+      const before = state.savedCategories.get(batch.accountId)
+      state.savedCategories.set(batch.accountId, {
+        expenseCategoryId: body.expenseCategoryId ?? before?.expenseCategoryId ?? null,
+        incomeCategoryId: body.incomeCategoryId ?? before?.incomeCategoryId ?? null,
+      })
       Object.assign(batch, {
         status: 'committing',
         mapping,

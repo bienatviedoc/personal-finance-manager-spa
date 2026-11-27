@@ -16,7 +16,8 @@ import { PreviewTable, RawRows } from './PreviewTable'
  * saved for the account (`fromSaved`, spec IMP-2), which the user can change, or else the API's guess at the layout; each change previews the file again, and the rows ticked to import start as every
  * transaction but the likely duplicates, each on the category a categorisation rule suggests for it, which the user may
  * change. Committing sends the mapping, the rows ticked, each row's own category, and a category for each way money
- * moves among the rows left without one.
+ * moves among the rows left without one. Those two start as the ones saved for the account with its mapping, so a
+ * repeat import needs no choices.
  */
 export function MapAndPreview({ batch, suggested, fromSaved = false }: { batch: ImportBatch; suggested: Mapping; fromSaved?: boolean }) {
   const { t } = useTranslation()
@@ -75,10 +76,17 @@ function Check({ batch, mapping, preview, reading }: { batch: ImportBatch; mappi
   const [picked, setPicked] = useState<{ preview: ImportPreview; categories: Map<number, string> } | null>(null)
   const rowCategories = picked?.preview === preview ? picked.categories : new Map<number, string>()
   const categoryOf = (row: PreviewRow) => rowCategories.get(Number(row.number)) ?? row.suggestedCategoryId ?? ''
-  const [expenseCategoryId, setExpenseCategoryId] = useState('')
-  const [incomeCategoryId, setIncomeCategoryId] = useState('')
+  // Chosen by the user; until then, the ones saved for the account with its mapping (spec IMP-2), when they can still be chosen.
+  const [expensePicked, setExpenseCategoryId] = useState<string | null>(null)
+  const [incomePicked, setIncomeCategoryId] = useState<string | null>(null)
   const [errors, setErrors] = useState<Partial<Record<CommitField, string>>>({})
   const [inProgress, setInProgress] = useState(false)
+
+  const expenseChoices = choices.filter((choice) => choice.category.kind === 'expense').map((choice) => ({ value: choice.category.id, label: choice.label }))
+  const incomeChoices = choices.filter((choice) => choice.category.kind === 'income').map((choice) => ({ value: choice.category.id, label: choice.label }))
+  const offered = (saved: string | null | undefined, among: { value: string }[]) => (saved && among.some((choice) => choice.value === saved) ? saved : '')
+  const expenseCategoryId = expensePicked ?? offered(batch.savedExpenseCategoryId, expenseChoices)
+  const incomeCategoryId = incomePicked ?? offered(batch.savedIncomeCategoryId, incomeChoices)
 
   const chosen = preview.rows.filter((row) => selection.has(Number(row.number)))
   // The batch's categories are for the rows chosen without one of their own.
@@ -119,8 +127,6 @@ function Check({ batch, mapping, preview, reading }: { batch: ImportBatch; mappi
     }
   }
 
-  const expenseChoices = choices.filter((choice) => choice.category.kind === 'expense').map((choice) => ({ value: choice.category.id, label: choice.label }))
-  const incomeChoices = choices.filter((choice) => choice.category.kind === 'income').map((choice) => ({ value: choice.category.id, label: choice.label }))
 
   return (
     <div className="space-y-4">
