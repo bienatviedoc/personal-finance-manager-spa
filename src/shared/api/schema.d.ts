@@ -6400,17 +6400,17 @@ export interface operations {
     PreviewImport: {
         parameters: {
             query?: {
-                Separator?: string;
-                SkipFirstRows?: number | string;
-                HasHeaderRow?: boolean;
-                SkipLastRows?: number | string;
-                DateColumn?: number | string;
-                DescriptionColumn?: number | string;
-                AmountColumn?: number | string;
-                DebitColumn?: number | string;
-                CreditColumn?: number | string;
-                DateFormat?: string;
-                DecimalSeparator?: string;
+                separator?: string;
+                skipFirstRows?: number | string;
+                hasHeaderRow?: boolean;
+                skipLastRows?: number | string;
+                dateColumn?: number | string;
+                descriptionColumn?: number | string;
+                amountColumn?: number | string;
+                debitColumn?: number | string;
+                creditColumn?: number | string;
+                dateFormat?: string;
+                decimalSeparator?: string;
             };
             header?: never;
             path: {

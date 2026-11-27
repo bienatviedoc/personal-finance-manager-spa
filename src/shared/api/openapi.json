@@ -5002,14 +5002,14 @@
             }
           },
           {
-            "name": "Separator",
+            "name": "separator",
             "in": "query",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "SkipFirstRows",
+            "name": "skipFirstRows",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5021,14 +5021,14 @@
             }
           },
           {
-            "name": "HasHeaderRow",
+            "name": "hasHeaderRow",
             "in": "query",
             "schema": {
               "type": "boolean"
             }
           },
           {
-            "name": "SkipLastRows",
+            "name": "skipLastRows",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5040,7 +5040,7 @@
             }
           },
           {
-            "name": "DateColumn",
+            "name": "dateColumn",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5052,7 +5052,7 @@
             }
           },
           {
-            "name": "DescriptionColumn",
+            "name": "descriptionColumn",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5064,7 +5064,7 @@
             }
           },
           {
-            "name": "AmountColumn",
+            "name": "amountColumn",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5076,7 +5076,7 @@
             }
           },
           {
-            "name": "DebitColumn",
+            "name": "debitColumn",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5088,7 +5088,7 @@
             }
           },
           {
-            "name": "CreditColumn",
+            "name": "creditColumn",
             "in": "query",
             "schema": {
               "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5100,14 +5100,14 @@
             }
           },
           {
-            "name": "DateFormat",
+            "name": "dateFormat",
             "in": "query",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "DecimalSeparator",
+            "name": "decimalSeparator",
             "in": "query",
             "schema": {
               "type": "string"
