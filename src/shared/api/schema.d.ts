@@ -1026,6 +1026,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Uploads a bank statement to import into one of the user's accounts: a CSV file of at most 5 MB and 10,000 rows, saved as text (UTF-8, or UTF-16 with a byte order mark), sent as the file field of a multipart/form-data body beside accountId. Nothing is imported yet: the answer is the import batch, with a first guess at how to read the file (suggestedMapping) for the user to confirm or change in the preview. */
+        post: operations["UploadStatement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One import batch: where it has got to (uploaded, committing, committed or failed) and its counts. While it is committing, importedCount grows towards selectedCount as the worker imports the rows: ask again every second or two to show progress. */
+        get: operations["GetImportBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The uploaded statement read with a mapping, before anything is saved: every row with its cells, what it is (header, skipped, blank, parsed, failed or unmapped), for a parsed row the transaction it says, and for a failed row what is wrong with it. A row with the date, amount, direction and description (compared without case, accents or extra spaces) of a transaction already on the account is a likely duplicate, unticked (selected false). Without a date column and an amount (or a debit and a credit) column the rows are only cut into cells, for the user to map. A committed batch keeps no file: 409 with the problem type urn:pfm:problem:import-committed. */
+        get: operations["PreviewImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Commits the statement: the rows chosen (rows the preview reads as transactions, with the same mapping) are imported in the background as income (on incomeCategoryId) or expenses (on expenseCategoryId) on the batch's account, each belonging to the batch, and the answer is 202 with the batch, committing. A likely duplicate is imported only when it is chosen; those left out are counted in duplicateCount. A batch whose account has been archived since it was uploaded is refused on id. A batch committed already answers 409 with the problem type urn:pfm:problem:import-committed. While another statement is being imported into the same account it answers 409 with the problem type urn:pfm:problem:import-in-progress and changes nothing: once that one is imported, preview again, and the rows it brought in are likely duplicates. */
+        post: operations["CommitImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/dashboard": {
         parameters: {
             query?: never;
@@ -1464,6 +1532,14 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        CommitImportRequest: {
+            mapping: null | components["schemas"]["MappingRequest"];
+            rows: null | (number | string)[];
+            /** Format: uuid */
+            expenseCategoryId: null | string;
+            /** Format: uuid */
+            incomeCategoryId: null | string;
+        };
         ConfirmReminderRequest: {
             amount?: null | string;
         };
@@ -1584,6 +1660,10 @@ export interface components {
         };
         /** @enum {unknown} */
         DashboardTransactionType: "income" | "expense" | "transferOut" | "transferIn";
+        /** @enum {unknown} */
+        DateFormat: "dayMonthYear" | "monthDayYear" | "yearMonthDay";
+        /** @enum {unknown} */
+        DecimalSeparator: "dot" | "comma";
         DeletedTransactionListResponse: {
             items: components["schemas"]["DeletedTransactionResponse"][];
             nextCursor: null | string;
@@ -1633,6 +1713,43 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        ImportBatchResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            accountId: string;
+            fileName: string;
+            status: components["schemas"]["ImportBatchStatus"];
+            /** Format: int32 */
+            rowCount: number | string;
+            /** Format: int32 */
+            selectedCount: number | string;
+            /** Format: int32 */
+            importedCount: number | string;
+            /** Format: int32 */
+            duplicateCount: number | string;
+            /** Format: int32 */
+            failedCount: number | string;
+            failure: null | components["schemas"]["ImportFailure"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            committedAt: null | string;
+            mapping: null | components["schemas"]["MappingResponse"];
+            suggestedMapping: null | components["schemas"]["MappingResponse"];
+        };
+        /** @enum {unknown} */
+        ImportBatchStatus: "uploaded" | "committing" | "committed" | "failed";
+        /** @enum {unknown} */
+        ImportFailure: "accountArchived" | "categoryArchived" | "accountCurrencyChanged" | "transactionRefused" | "unexpected" | null;
+        ImportPreviewResponse: {
+            header: string[];
+            /** Format: int32 */
+            columnCount: number | string;
+            currency: components["schemas"]["Currency"];
+            rows: components["schemas"]["PreviewRowResponse"][];
+            counts: components["schemas"]["PreviewCountsResponse"];
+        };
         IncomeAndExpensesResponse: {
             income: string;
             expenses: string;
@@ -1683,6 +1800,46 @@ export interface components {
         };
         /** @enum {unknown} */
         Locale: "en" | "vi" | null;
+        MappingRequest: {
+            separator: null | string;
+            /** Format: int32 */
+            skipFirstRows: null | number | string;
+            hasHeaderRow: null | boolean;
+            /** Format: int32 */
+            skipLastRows: null | number | string;
+            /** Format: int32 */
+            dateColumn: null | number | string;
+            /** Format: int32 */
+            descriptionColumn: null | number | string;
+            /** Format: int32 */
+            amountColumn: null | number | string;
+            /** Format: int32 */
+            debitColumn: null | number | string;
+            /** Format: int32 */
+            creditColumn: null | number | string;
+            dateFormat: null | string;
+            decimalSeparator: null | string;
+        };
+        MappingResponse: {
+            separator: components["schemas"]["Separator"];
+            /** Format: int32 */
+            skipFirstRows: number | string;
+            hasHeaderRow: boolean;
+            /** Format: int32 */
+            skipLastRows: number | string;
+            /** Format: int32 */
+            dateColumn: null | number | string;
+            /** Format: int32 */
+            descriptionColumn: null | number | string;
+            /** Format: int32 */
+            amountColumn: null | number | string;
+            /** Format: int32 */
+            debitColumn: null | number | string;
+            /** Format: int32 */
+            creditColumn: null | number | string;
+            dateFormat: components["schemas"]["DateFormat"];
+            decimalSeparator: components["schemas"]["DecimalSeparator"];
+        };
         MarkAsTransferRequest: {
             /** Format: uuid */
             expenseId: string;
@@ -1763,6 +1920,30 @@ export interface components {
             amount: string;
             /** Format: double */
             percent: null | number | string;
+        };
+        PreviewCountsResponse: {
+            /** Format: int32 */
+            parsed: number | string;
+            /** Format: int32 */
+            failed: number | string;
+            /** Format: int32 */
+            likelyDuplicates: number | string;
+            /** Format: int32 */
+            selected: number | string;
+        };
+        PreviewRowResponse: {
+            /** Format: int32 */
+            number: number | string;
+            cells: string[];
+            kind: components["schemas"]["StatementRowKind"];
+            /** Format: date */
+            date: null | string;
+            type: null | components["schemas"]["StatementEntryType"];
+            amount: null | string;
+            description: null | string;
+            problem: null | components["schemas"]["RowProblem"];
+            likelyDuplicate: boolean;
+            selected: boolean;
         };
         PreviousIncomeVsExpensesResponse: {
             /** Format: date */
@@ -1947,6 +2128,10 @@ export interface components {
             token: string;
             password: string;
         };
+        /** @enum {unknown} */
+        RowProblem: "missingColumns" | "noDate" | "dateUnreadable" | "dateInFuture" | "noAmount" | "amountUnreadable" | "zeroAmount" | "tooManyDecimals" | "debitAndCredit" | null;
+        /** @enum {unknown} */
+        Separator: "comma" | "semicolon" | "tab" | "pipe";
         SignInRequest: {
             email: string;
             password: string;
@@ -2018,6 +2203,10 @@ export interface components {
             statementDate: null | string;
             statementBalance: null | string;
         };
+        /** @enum {unknown} */
+        StatementEntryType: "income" | "expense" | null;
+        /** @enum {unknown} */
+        StatementRowKind: "skipped" | "header" | "blank" | "parsed" | "failed" | "unmapped";
         TagListResponse: {
             items: components["schemas"]["TagResponse"][];
             nextCursor: null | string;
@@ -2093,6 +2282,8 @@ export interface components {
             recurringRuleId: null | string;
             tags: string[];
             isReconciled: boolean;
+            /** Format: uuid */
+            importBatchId: null | string;
         };
         /** @enum {unknown} */
         TransactionType: "income" | "expense" | "transferOut" | "transferIn";
@@ -6115,6 +6306,218 @@ export interface operations {
             };
             /** @description Unauthorized */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UploadStatement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    accountId?: string;
+                } & {
+                    file?: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetImportBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PreviewImport: {
+        parameters: {
+            query?: {
+                separator?: string;
+                skipFirstRows?: number | string;
+                hasHeaderRow?: boolean;
+                skipLastRows?: number | string;
+                dateColumn?: number | string;
+                descriptionColumn?: number | string;
+                amountColumn?: number | string;
+                debitColumn?: number | string;
+                creditColumn?: number | string;
+                dateFormat?: string;
+                decimalSeparator?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportPreviewResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CommitImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

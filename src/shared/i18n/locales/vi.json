@@ -230,7 +230,7 @@
     "noTransactions": "Tài khoản này chưa có giao dịch nào.",
     "errors": {
       "notLoaded": "Không tải được tài khoản.",
-        "transactionsNotLoaded": "Không tải được giao dịch của tài khoản."
+      "transactionsNotLoaded": "Không tải được giao dịch của tài khoản."
     }
   },
   "transactions": {
@@ -1198,6 +1198,151 @@
       "title": "Sắp tới",
       "empty": "Không có gì đến hạn trong 30 ngày tới.",
       "link": "Xem giao dịch định kỳ"
+    }
+  },
+  "imports": {
+    "intro": "Tải lên sao kê ngân hàng dạng CSV để thêm các giao dịch của nó vào một tài khoản. Bạn sẽ ghép các cột và kiểm tra từng dòng trước khi lưu.",
+    "upload": "Tải lên",
+    "account": "Tài khoản",
+    "chooseAccount": "Chọn tài khoản",
+    "file": "Tệp sao kê (CSV)",
+    "fileHint": "Tệp CSV tối đa 5 MB và 10.000 dòng, như ngân hàng của bạn xuất ra.",
+    "loading": "Đang tải sao kê",
+    "batchTitle": "Nhập {{fileName}}",
+    "another": "Nhập sao kê khác",
+    "mapIntro": "Cho biết tệp được sắp xếp thế nào. Bản xem trước bên dưới thay đổi theo từng lựa chọn; chưa có gì được lưu cho đến khi bạn nhập.",
+    "mapFirst": "Chọn cột ngày và cột số tiền (hoặc cột ghi nợ và ghi có) để xem các giao dịch.",
+    "rawTable": "Sao kê như đã tải lên",
+    "rawMore_one": "{{shown}} dòng đầu tiên trong {{count}} dòng.",
+    "rawMore_other": "{{shown}} dòng đầu tiên trong {{count}} dòng.",
+    "previewTable": "Các dòng của sao kê",
+    "commit": "Nhập các dòng đã chọn",
+    "categoriesIntro": "Giao dịch được nhập sẽ được ghi vào các danh mục này. Bạn có thể đổi từng giao dịch sau.",
+    "expenseCategory": "Danh mục cho tiền ra",
+    "incomeCategory": "Danh mục cho tiền vào",
+    "chooseCategory": "Chọn danh mục",
+    "importCount_one": "Nhập {{count}} giao dịch",
+    "importCount_other": "Nhập {{count}} giao dịch",
+    "mapping": {
+      "title": "Cách đọc tệp",
+      "separator": "Dấu phân cách",
+      "separators": {
+        "comma": "Dấu phẩy (,)",
+        "semicolon": "Dấu chấm phẩy (;)",
+        "tab": "Tab",
+        "pipe": "Dấu gạch đứng (|)"
+      },
+      "skipFirstRows": "Số dòng bỏ qua ở đầu",
+      "skipFirstRowsHint": "Các dòng trước tên cột hoặc giao dịch đầu tiên, như tên ngân hàng và số tài khoản.",
+      "hasHeaderRow": "Dòng tiếp theo là tên các cột",
+      "skipLastRows": "Số dòng bỏ qua ở cuối",
+      "skipLastRowsHint": "Các dòng sau giao dịch cuối cùng, như dòng tổng cộng.",
+      "dateColumn": "Cột ngày",
+      "descriptionColumn": "Cột mô tả",
+      "noDescription": "Không có mô tả",
+      "chooseColumn": "Chọn cột",
+      "column": "Cột {{number}}",
+      "amounts": "Số tiền",
+      "amountChoices": {
+        "one": "Một cột số tiền",
+        "separate": "Cột ghi nợ và ghi có"
+      },
+      "amountColumn": "Cột số tiền",
+      "amountColumnHint": "Tiền ra là số âm.",
+      "debitColumn": "Cột ghi nợ (tiền ra)",
+      "creditColumn": "Cột ghi có (tiền vào)",
+      "dateFormat": "Định dạng ngày",
+      "dateFormats": {
+        "dayMonthYear": "Ngày, tháng, năm (31/12/2026)",
+        "monthDayYear": "Tháng, ngày, năm (12/31/2026)",
+        "yearMonthDay": "Năm, tháng, ngày (2026-12-31)"
+      },
+      "decimalSeparator": "Dấu thập phân",
+      "decimalSeparators": {
+        "dot": "Dấu chấm (1,234.56)",
+        "comma": "Dấu phẩy (1.234,56)"
+      }
+    },
+    "preview": {
+      "import": "Nhập",
+      "row": "Dòng",
+      "date": "Ngày",
+      "description": "Mô tả",
+      "amount": "Số tiền",
+      "status": "Trạng thái",
+      "importRow": "Nhập dòng {{number}}",
+      "likelyDuplicate": "Có thể trùng",
+      "kinds": {
+        "skipped": "Bỏ qua",
+        "header": "Tên cột",
+        "blank": "Trống"
+      },
+      "pages": "Các trang của sao kê",
+      "previous": "Các dòng trước",
+      "next": "Các dòng sau",
+      "page": "Dòng {{from}}–{{to}} trên {{count}}"
+    },
+    "problems": {
+      "missingColumns": "Dòng có ít ô hơn số cột đã chọn.",
+      "noDate": "Dòng không có ngày.",
+      "dateUnreadable": "Không đọc được ngày.",
+      "dateInFuture": "Ngày ở sau hôm nay.",
+      "noAmount": "Dòng không có số tiền.",
+      "amountUnreadable": "Không đọc được số tiền.",
+      "zeroAmount": "Số tiền bằng không.",
+      "tooManyDecimals": "Số tiền có nhiều chữ số thập phân hơn tiền tệ của tài khoản.",
+      "debitAndCredit": "Dòng có cả ghi nợ và ghi có."
+    },
+    "summary": {
+      "title": "Những gì sẽ được nhập",
+      "toImport_one": "{{count}} dòng sẽ được nhập",
+      "toImport_other": "{{count}} dòng sẽ được nhập",
+      "skippedDuplicates_one": "{{count}} dòng có thể trùng sẽ được bỏ qua",
+      "skippedDuplicates_other": "{{count}} dòng có thể trùng sẽ được bỏ qua",
+      "failed_one": "{{count}} dòng không đọc được và sẽ không được nhập",
+      "failed_other": "{{count}} dòng không đọc được và sẽ không được nhập"
+    },
+    "progress": {
+      "label": "Đang nhập giao dịch",
+      "count": "Đã nhập {{imported}} trên {{count}} giao dịch"
+    },
+    "done": {
+      "imported_one": "Đã nhập {{count}} giao dịch.",
+      "imported_other": "Đã nhập {{count}} giao dịch.",
+      "skippedDuplicates_one": "Đã bỏ qua {{count}} dòng có thể trùng.",
+      "skippedDuplicates_other": "Đã bỏ qua {{count}} dòng có thể trùng.",
+      "failed_one": "{{count}} dòng không đọc được và không được nhập.",
+      "failed_other": "{{count}} dòng không đọc được và không được nhập.",
+      "stopped": "Việc nhập đã dừng sau {{imported}} trên {{count}} giao dịch. Những giao dịch đó vẫn được giữ.",
+      "seeTransactions": "Xem trong danh sách giao dịch",
+      "startAgain": "Bắt đầu lại"
+    },
+    "errors": {
+      "generic": "Không tải được việc nhập. Hãy thử lại sau giây lát.",
+      "account": "Chọn một tài khoản của bạn chưa được lưu trữ.",
+      "noFile": "Chọn tệp sao kê để tải lên.",
+      "tooLarge": "Tệp lớn hơn 5 MB. Hãy tải lên tệp CSV tối đa 5 MB.",
+      "unreadable": "Không thể đọc tệp này như một sao kê. Hãy lưu dưới dạng CSV (UTF-8), tối đa 10.000 dòng, rồi tải lên lại.",
+      "notUploaded": "Không tải lên được sao kê.",
+      "preview": "Không xem trước được sao kê. Hãy thử lại sau giây lát.",
+      "expenseCategory": "Chọn danh mục để ghi tiền ra.",
+      "incomeCategory": "Chọn danh mục để ghi tiền vào.",
+      "notCommitted": "Không nhập được sao kê.",
+      "refused": {
+        "rows": "Các dòng đã thay đổi kể từ khi xem trước. Hãy kiểm tra và nhập lại.",
+        "expenseCategoryId": "Chọn một danh mục chi tiêu của bạn chưa được lưu trữ.",
+        "incomeCategoryId": "Chọn một danh mục thu nhập của bạn chưa được lưu trữ.",
+        "mapping": "Chọn cột ngày và cột số tiền, hoặc cột ghi nợ và ghi có.",
+        "id": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên."
+      },
+      "importInProgress": "Một sao kê khác đang được nhập vào tài khoản này. Hãy đợi nó xong rồi kiểm tra lại các dòng: những dòng nó đã nhập sẽ hiện là có thể trùng."
+    },
+    "failures": {
+      "accountArchived": "Tài khoản đã được lưu trữ sau khi bạn nhập sao kê.",
+      "categoryArchived": "Một danh mục đã chọn cho sao kê đã được lưu trữ sau khi bạn nhập.",
+      "accountCurrencyChanged": "Loại tiền của tài khoản đã thay đổi sau khi bạn nhập sao kê, nên các dòng không còn đọc như trước.",
+      "transactionRefused": "Một dòng không thể ghi thành giao dịch.",
+      "unexpected": "Đã có lỗi khi nhập. Hãy bắt đầu lại, và nếu lỗi lặp lại, hãy báo cho chúng tôi."
     }
   }
 }

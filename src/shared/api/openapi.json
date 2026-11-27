@@ -4870,6 +4870,372 @@
         }
       }
     },
+    "/api/v1/imports": {
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "description": "Uploads a bank statement to import into one of the user's accounts: a CSV file of at most 5 MB and 10,000 rows, saved as text (UTF-8, or UTF-16 with a byte order mark), sent as the file field of a multipart/form-data body beside accountId. Nothing is imported yet: the answer is the import batch, with a first guess at how to read the file (suggestedMapping) for the user to confirm or change in the preview.",
+        "operationId": "UploadStatement",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "accountId": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "$ref": "#/components/schemas/IFormFile"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/imports/{id}": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "description": "One import batch: where it has got to (uploaded, committing, committed or failed) and its counts. While it is committing, importedCount grows towards selectedCount as the worker imports the rows: ask again every second or two to show progress.",
+        "operationId": "GetImportBatch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/imports/{id}/preview": {
+      "get": {
+        "tags": [
+          "Imports"
+        ],
+        "description": "The uploaded statement read with a mapping, before anything is saved: every row with its cells, what it is (header, skipped, blank, parsed, failed or unmapped), for a parsed row the transaction it says, and for a failed row what is wrong with it. A row with the date, amount, direction and description (compared without case, accents or extra spaces) of a transaction already on the account is a likely duplicate, unticked (selected false). Without a date column and an amount (or a debit and a credit) column the rows are only cut into cells, for the user to map. A committed batch keeps no file: 409 with the problem type urn:pfm:problem:import-committed.",
+        "operationId": "PreviewImport",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "separator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "skipFirstRows",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "hasHeaderRow",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "skipLastRows",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "dateColumn",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "descriptionColumn",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "amountColumn",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "debitColumn",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "creditColumn",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "dateFormat",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decimalSeparator",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/imports/{id}/commit": {
+      "post": {
+        "tags": [
+          "Imports"
+        ],
+        "description": "Commits the statement: the rows chosen (rows the preview reads as transactions, with the same mapping) are imported in the background as income (on incomeCategoryId) or expenses (on expenseCategoryId) on the batch's account, each belonging to the batch, and the answer is 202 with the batch, committing. A likely duplicate is imported only when it is chosen; those left out are counted in duplicateCount. A batch whose account has been archived since it was uploaded is refused on id. A batch committed already answers 409 with the problem type urn:pfm:problem:import-committed. While another statement is being imported into the same account it answers 409 with the problem type urn:pfm:problem:import-in-progress and changes nothing: once that one is imported, preview again, and the rows it brought in are likely duplicates.",
+        "operationId": "CommitImport",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/dashboard": {
       "get": {
         "tags": [
@@ -6664,6 +7030,55 @@
           }
         }
       },
+      "CommitImportRequest": {
+        "required": [
+          "mapping",
+          "rows",
+          "expenseCategoryId",
+          "incomeCategoryId"
+        ],
+        "type": "object",
+        "properties": {
+          "mapping": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MappingRequest"
+              }
+            ]
+          },
+          "rows": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          "expenseCategoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "incomeCategoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
       "ConfirmReminderRequest": {
         "type": "object",
         "properties": {
@@ -7172,6 +7587,19 @@
           "transferIn"
         ]
       },
+      "DateFormat": {
+        "enum": [
+          "dayMonthYear",
+          "monthDayYear",
+          "yearMonthDay"
+        ]
+      },
+      "DecimalSeparator": {
+        "enum": [
+          "dot",
+          "comma"
+        ]
+      },
       "DeletedTransactionListResponse": {
         "required": [
           "items",
@@ -7373,6 +7801,178 @@
       "IFormFile": {
         "type": "string",
         "format": "binary"
+      },
+      "ImportBatchResponse": {
+        "required": [
+          "id",
+          "accountId",
+          "fileName",
+          "status",
+          "rowCount",
+          "selectedCount",
+          "importedCount",
+          "duplicateCount",
+          "failedCount",
+          "failure",
+          "createdAt",
+          "committedAt",
+          "mapping",
+          "suggestedMapping"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportBatchStatus"
+          },
+          "rowCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "selectedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "importedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "duplicateCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failure": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImportFailure"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "committedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "mapping": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MappingResponse"
+              }
+            ]
+          },
+          "suggestedMapping": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MappingResponse"
+              }
+            ]
+          }
+        }
+      },
+      "ImportBatchStatus": {
+        "enum": [
+          "uploaded",
+          "committing",
+          "committed",
+          "failed"
+        ]
+      },
+      "ImportFailure": {
+        "enum": [
+          "accountArchived",
+          "categoryArchived",
+          "accountCurrencyChanged",
+          "transactionRefused",
+          "unexpected",
+          null
+        ]
+      },
+      "ImportPreviewResponse": {
+        "required": [
+          "header",
+          "columnCount",
+          "currency",
+          "rows",
+          "counts"
+        ],
+        "type": "object",
+        "properties": {
+          "header": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "columnCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreviewRowResponse"
+            }
+          },
+          "counts": {
+            "$ref": "#/components/schemas/PreviewCountsResponse"
+          }
+        }
       },
       "IncomeAndExpensesResponse": {
         "required": [
@@ -7588,6 +8188,202 @@
           "vi",
           null
         ]
+      },
+      "MappingRequest": {
+        "required": [
+          "separator",
+          "skipFirstRows",
+          "hasHeaderRow",
+          "skipLastRows",
+          "dateColumn",
+          "descriptionColumn",
+          "amountColumn",
+          "debitColumn",
+          "creditColumn",
+          "dateFormat",
+          "decimalSeparator"
+        ],
+        "type": "object",
+        "properties": {
+          "separator": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "skipFirstRows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasHeaderRow": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "skipLastRows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "descriptionColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "amountColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "debitColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "creditColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateFormat": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "decimalSeparator": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MappingResponse": {
+        "required": [
+          "separator",
+          "skipFirstRows",
+          "hasHeaderRow",
+          "skipLastRows",
+          "dateColumn",
+          "descriptionColumn",
+          "amountColumn",
+          "debitColumn",
+          "creditColumn",
+          "dateFormat",
+          "decimalSeparator"
+        ],
+        "type": "object",
+        "properties": {
+          "separator": {
+            "$ref": "#/components/schemas/Separator"
+          },
+          "skipFirstRows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasHeaderRow": {
+            "type": "boolean"
+          },
+          "skipLastRows": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "descriptionColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "amountColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "debitColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "creditColumn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dateFormat": {
+            "$ref": "#/components/schemas/DateFormat"
+          },
+          "decimalSeparator": {
+            "$ref": "#/components/schemas/DecimalSeparator"
+          }
+        }
       },
       "MarkAsTransferRequest": {
         "required": [
@@ -7892,6 +8688,128 @@
               "string"
             ],
             "format": "double"
+          }
+        }
+      },
+      "PreviewCountsResponse": {
+        "required": [
+          "parsed",
+          "failed",
+          "likelyDuplicates",
+          "selected"
+        ],
+        "type": "object",
+        "properties": {
+          "parsed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "likelyDuplicates": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "selected": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "PreviewRowResponse": {
+        "required": [
+          "number",
+          "cells",
+          "kind",
+          "date",
+          "type",
+          "amount",
+          "description",
+          "problem",
+          "likelyDuplicate",
+          "selected"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "cells": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kind": {
+            "$ref": "#/components/schemas/StatementRowKind"
+          },
+          "date": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StatementEntryType"
+              }
+            ]
+          },
+          "amount": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "problem": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RowProblem"
+              }
+            ]
+          },
+          "likelyDuplicate": {
+            "type": "boolean"
+          },
+          "selected": {
+            "type": "boolean"
           }
         }
       },
@@ -8614,6 +9532,28 @@
           }
         }
       },
+      "RowProblem": {
+        "enum": [
+          "missingColumns",
+          "noDate",
+          "dateUnreadable",
+          "dateInFuture",
+          "noAmount",
+          "amountUnreadable",
+          "zeroAmount",
+          "tooManyDecimals",
+          "debitAndCredit",
+          null
+        ]
+      },
+      "Separator": {
+        "enum": [
+          "comma",
+          "semicolon",
+          "tab",
+          "pipe"
+        ]
+      },
       "SignInRequest": {
         "required": [
           "email",
@@ -8915,6 +9855,23 @@
           }
         }
       },
+      "StatementEntryType": {
+        "enum": [
+          "income",
+          "expense",
+          null
+        ]
+      },
+      "StatementRowKind": {
+        "enum": [
+          "skipped",
+          "header",
+          "blank",
+          "parsed",
+          "failed",
+          "unmapped"
+        ]
+      },
       "TagListResponse": {
         "required": [
           "items",
@@ -9163,7 +10120,8 @@
           "lines",
           "recurringRuleId",
           "tags",
-          "isReconciled"
+          "isReconciled",
+          "importBatchId"
         ],
         "type": "object",
         "properties": {
@@ -9241,6 +10199,13 @@
           },
           "isReconciled": {
             "type": "boolean"
+          },
+          "importBatchId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -9708,6 +10673,9 @@
     },
     {
       "name": "Budgets"
+    },
+    {
+      "name": "Imports"
     },
     {
       "name": "Reports"

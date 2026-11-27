@@ -202,8 +202,9 @@ function useSaveTransaction<Draft extends TransactionDraft>(
         { categoryId: fields.categoryId ?? '', amount: fields.amount, note: null },
       ]
       const shown: ListedTransaction = {
-        // What a user records is posted by no recurring rule, and is in no reconciliation.
+        // What a user records is posted by no recurring rule, imported from no statement, and is in no reconciliation.
         recurringRuleId: null,
+        importBatchId: null,
         isReconciled: false,
         ...identify(draft),
         ...fields,
