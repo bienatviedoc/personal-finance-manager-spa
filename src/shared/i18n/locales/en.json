@@ -638,7 +638,7 @@
     "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
     "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
     "transactions": "See transactions",
-    "transactionsBehind": "Transactions behind {{name}} in {{month}}",
+    "transactionsBehind": "See transactions behind {{name}} in {{month}}",
     "overall": {
       "name": "Overall budget",
       "for": "Overall budget for {{month}}",
@@ -998,7 +998,7 @@
     "edit": "Edit",
     "editAction": "Edit {{name}}",
     "addSubcategory": "Add subcategory",
-    "addSubcategoryAction": "Add a subcategory to {{name}}",
+    "addSubcategoryAction": "Add subcategory to {{name}}",
     "archive": "Archive",
     "archiveAction": "Archive {{name}}",
     "archived": "Archived",
