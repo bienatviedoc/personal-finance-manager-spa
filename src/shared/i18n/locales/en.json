@@ -1329,8 +1329,9 @@
         "expenseCategoryId": "Choose one of your expense categories that is not archived.",
         "incomeCategoryId": "Choose one of your income categories that is not archived.",
         "mapping": "Choose the date column and the amount column, or the debit and credit columns.",
-        "accountId": "The account has been archived since the statement was uploaded."
-      }
+        "id": "The account has been archived since the statement was uploaded."
+      },
+      "importInProgress": "Another statement is being imported into this account. Wait for it to finish, then check the rows again: those it imported will show as likely duplicates."
     },
     "failures": {
       "accountArchived": "The account was archived after you imported the statement.",

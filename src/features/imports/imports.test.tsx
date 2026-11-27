@@ -28,7 +28,19 @@ function fakeApis({ batches = [] as { accountId: string; text: string }[], trans
   const accountsApi = fakeAccountsApi([{ name: 'Everyday' }])
   const categoriesApi = fakeCategoriesApi({ categories: defaultTestCategories })
   const transactionsApi = fakeTransactionsApi(transactions, { accounts: accountsApi.accounts, categories: categoriesApi.categories })
-  return fakeImportsApi({ accounts: accountsApi.accounts, categories: categoriesApi.categories, transactions: transactionsApi.transactions, batches })
+  return {
+    ...fakeImportsApi({ accounts: accountsApi.accounts, categories: categoriesApi.categories, transactions: transactionsApi.transactions, batches }),
+    accounts: accountsApi.accounts,
+  }
+}
+
+/** Maps `statement`, chooses both categories and imports the 3 transactions ticked. */
+async function commitStatement(user: User) {
+  await mapStatement(user)
+  await (await previewRows()).findByRole('checkbox', { name: 'Import row 4' })
+  await user.selectOptions(screen.getByLabelText('Category for money going out'), 'c-food')
+  await user.selectOptions(screen.getByLabelText('Category for money coming in'), 'c-salary')
+  await user.click(screen.getByRole('button', { name: 'Import 3 transactions' }))
 }
 
 type User = ReturnType<typeof renderApp>['user']
@@ -209,6 +221,30 @@ describe('importing a statement', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe(`/import/${secondBatch}`))
     expect(await (await previewRows()).findByRole('checkbox', { name: 'Import row 4' })).toBeChecked()
     expect(screen.getByLabelText('Decimal separator')).toHaveValue('comma')
+  })
+
+  it('says another statement is being imported into the account, and imports nothing until it is done', async () => {
+    const importsApi = fakeApis({ batches: [{ accountId: everyday, text: statement }, { accountId: everyday, text: statement }] })
+    Object.assign(importsApi.batches[0]!, { status: 'committing' })
+    const { user } = renderApp(`/import/${secondBatch}`)
+
+    await commitStatement(user)
+
+    expect(
+      await screen.findByText('Another statement is being imported into this account. Wait for it to finish, then check the rows again: those it imported will show as likely duplicates.'),
+    ).toBeInTheDocument()
+    expect(importsApi.batches[1]!.status).toBe('uploaded')
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+
+  it('says the account was archived since the statement was uploaded when the commit is refused for it', async () => {
+    const importsApi = fakeApis({ batches: [{ accountId: everyday, text: statement }] })
+    Object.assign(importsApi.accounts[0]!, { isArchived: true })
+    const { user } = renderApp(`/import/${firstBatch}`)
+
+    await commitStatement(user)
+
+    expect(await screen.findByText('The account has been archived since the statement was uploaded.')).toBeInTheDocument()
   })
 
   it('says each reason an import can stop in words of its own', async () => {

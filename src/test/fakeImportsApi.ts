@@ -71,7 +71,8 @@ const normalised = (description: string | null | undefined) =>
  * query, row by row (skipped, header, blank, parsed, failed with its problem, or unmapped), and marks a row with the
  * date, amount, direction and normalised description of a transaction on the account as a likely duplicate,
  * unticked, each transaction matching one row at most; a commit takes rows the preview parses, a category for each
- * direction chosen, and answers 202 with the batch committing (409 `import-committed` once committed). Nothing
+ * direction chosen, and answers 202 with the batch committing (409 `import-committed` once committed, 409
+ * `import-in-progress` while another batch is committing into the account, 400 on `id` once its account is archived). Nothing
  * imports by itself: `importNext` moves a committing batch on, as the worker would.
  */
 export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20' }: Options) {
@@ -284,6 +285,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
   }
 
   const committed = () => problem(409, { type: 'urn:pfm:problem:import-committed' })
+  const importing = () => problem(409, { type: 'urn:pfm:problem:import-in-progress' })
 
   server.use(
     http.post(apiUrl('/api/v1/imports'), async ({ request }) => {
@@ -328,6 +330,9 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       const batch = find(params.id)
       if (!batch) return problem(404)
       if (batch.status !== 'uploaded') return committed()
+      if (accounts.find((account) => account.id === batch.accountId)?.isArchived) {
+        return problem(400, { errors: { id: ["The statement's account has been archived: upload it again for one of your accounts that is not."] } })
+      }
       const query = new URLSearchParams(Object.entries(body.mapping ?? {}).filter(([, value]) => value !== null).map(([name, value]) => [name, String(value)]))
       const mapping = mappingOf(query)
       if (!('separator' in mapping) || typeof mapping.separator !== 'string') return problem(400, { errors: { mapping: ['Send the mapping.'] } })
@@ -344,6 +349,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
         if ((needed && !id) || (id && (!category || category.isArchived || category.kind !== kind))) errors[field] = [`Choose one of your ${kind} categories that is not archived.`]
       }
       if (Object.keys(errors).length > 0) return problem(400, { errors })
+      if (state.batches.some((other) => other !== batch && other.accountId === batch.accountId && other.status === 'committing')) return importing()
       Object.assign(batch, {
         status: 'committing',
         mapping,

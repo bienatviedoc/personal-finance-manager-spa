@@ -22,10 +22,21 @@ export type UploadField = (typeof uploadFields)[number]
 /** What uploading answers: the batch, to map and preview, or the fields the API refused. */
 export type UploadOutcome = { saved: true; batch: ImportBatch } | { saved: false; fields: UploadField[] }
 
-const commitFields = ['rows', 'expenseCategoryId', 'incomeCategoryId', 'mapping', 'accountId'] as const
+/** What a commit can be refused on: `id` is the batch itself, refused when its account was archived after the upload. */
+const commitFields = ['rows', 'expenseCategoryId', 'incomeCategoryId', 'mapping', 'id'] as const
 export type CommitField = (typeof commitFields)[number]
-/** What committing answers: the batch, now being imported; the fields the API refused; or that it was committed already, elsewhere. */
-export type CommitOutcome = { saved: true; batch: ImportBatch } | { saved: false; fields: CommitField[] } | { saved: false; committed: true }
+/**
+ * What committing answers: the batch, now being imported; the fields the API refused; that it was committed already,
+ * elsewhere; or that another statement is being imported into the account, so nothing changed.
+ */
+export type CommitOutcome =
+  | { saved: true; batch: ImportBatch }
+  | { saved: false; fields: CommitField[] }
+  | { saved: false; committed: true }
+  | { saved: false; importInProgress: true }
+
+/** The problem type of a commit refused while another statement is being imported into the same account. */
+const importInProgress = 'urn:pfm:problem:import-in-progress'
 
 const importsKey = ['imports']
 const batchKey = (id: string) => [...importsKey, id]
@@ -95,7 +106,10 @@ export function useCommitImport(id: string) {
     mutationFn: async (body: { mapping: Mapping; rows: number[]; expenseCategoryId: string | null; incomeCategoryId: string | null }): Promise<CommitOutcome> => {
       const { data, error, response } = await api.POST('/api/v1/imports/{id}/commit', { params: { path: { id } }, body })
       if (data) return { saved: true, batch: data }
-      if (response.status === 409) return { saved: false, committed: true }
+      if (response.status === 409) {
+        const type = (error as { type?: string } | undefined)?.type
+        return type === importInProgress ? { saved: false, importInProgress: true } : { saved: false, committed: true }
+      }
       const fields = refusedFields(response, error, commitFields)
       if (fields) return { saved: false, fields }
       throw new Error(`Committing a statement failed: ${response.status}`)

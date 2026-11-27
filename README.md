@@ -183,7 +183,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   passed over. A new mapping is a new preview, so the ticks start again from the API's. The screen says how many
   rows will be imported, how many likely duplicates skipped and how many rows cannot be read, counting the rows the
   API answered; it adds up no amount. Committing sends the mapping, the rows ticked and a category for money going
-  out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`).
+  out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`). A
+  commit refused because another statement is being imported into the account (409 `import-in-progress`) says to
+  wait and check the rows again; one refused on `id` says the account was archived after the upload.
   The API's worker then imports in the background: the batch is asked for every second while it is `committing`
   (`importBatchQuery`), and `ImportProgress` shows how many are imported as a progress bar, then what was imported
   and skipped, or that it stopped and why (translated from the API's `failure` code), and loads the lists, balances,

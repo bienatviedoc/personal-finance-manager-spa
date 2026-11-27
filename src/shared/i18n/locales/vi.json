@@ -1329,8 +1329,9 @@
         "expenseCategoryId": "Chọn một danh mục chi tiêu của bạn chưa được lưu trữ.",
         "incomeCategoryId": "Chọn một danh mục thu nhập của bạn chưa được lưu trữ.",
         "mapping": "Chọn cột ngày và cột số tiền, hoặc cột ghi nợ và ghi có.",
-        "accountId": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên."
-      }
+        "id": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên."
+      },
+      "importInProgress": "Một sao kê khác đang được nhập vào tài khoản này. Hãy đợi nó xong rồi kiểm tra lại các dòng: những dòng nó đã nhập sẽ hiện là có thể trùng."
     },
     "failures": {
       "accountArchived": "Tài khoản đã được lưu trữ sau khi bạn nhập sao kê.",
