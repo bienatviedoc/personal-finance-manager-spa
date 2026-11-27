@@ -79,7 +79,9 @@ test.describe('signed in', () => {
     ['Import', '/import'],
     ['Settings: profile', '/settings/profile'],
     ['Settings: categories', '/settings/categories'],
+    ['Settings: rules', '/settings/rules'],
     ['Settings: security', '/settings/security'],
+    ['Settings: audit log', '/settings/audit-log'],
     ['Settings: data', '/settings/data'],
   ]) {
     test(`${screen} meets WCAG 2.1 AA`, async () => {
