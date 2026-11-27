@@ -258,7 +258,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   `@/shared/lib/csv`, RFC 4180 and UTF-8 with a byte order mark, as the API writes its own), named for the report
   and its period (`net-worth-2026-01-01-2026-03-31.csv`). Columns take the API's names, amounts stay as the API
   answers them, plain decimals beside a `currency` column, and dates are `YYYY-MM-DD`; a report that compares adds
-  the period before. No report asks the API for a file.
+  the period before. No report asks the API for a file. Text that starts with `=`, `+`, `-`, `@`, a tab or a carriage
+  return (a category or account name, a payee) is written behind a single quote, so a spreadsheet shows it rather
+  than runs it (OWASP, CSV injection); an amount, even below zero, stays a number.
 - **A CSV file is the same in every language.** Nothing in it is translated: a report whose rows are of more than one
   kind starts each with a `row` column, a fixed code in English saying what the row is, and its other columns hold only
   numbers, codes, dates and what the user named. Income vs expenses: `month`, `total`, `previousMonth`,
