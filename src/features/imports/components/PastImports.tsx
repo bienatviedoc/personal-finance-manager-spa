@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import { accountsQuery } from '@/features/accounts'
 import { useUserSettings } from '@/features/settings'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
-import { formatDate, todayIn } from '@/shared/dates'
+import { formatMoment } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { joinDetails } from '@/shared/lib/details'
 import { Button } from '@/shared/ui/button'
@@ -60,7 +60,7 @@ function PastImport({ batch }: { batch: ImportBatch }) {
             </Link>
           </h3>
           <p className="text-sm text-muted-foreground">
-            {joinDetails([account?.name, formatDate(todayIn(timeZone, new Date(batch.createdAt)), locale), t(`imports.history.status.${batch.status}`)])}
+            {joinDetails([account?.name, formatMoment(batch.createdAt, locale, timeZone, { time: false }), t(`imports.history.status.${batch.status}`)])}
           </p>
           <p className="text-sm">
             {joinDetails([

@@ -539,7 +539,10 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   the amount input takes the decimals of the chosen account's currency.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
-  (from `useUserSettings()` in `@/features/settings`), not the browser's. A month (`2026-11`, such as a budget month) is a
+  (from `useUserSettings()` in `@/features/settings`), not the browser's. A moment the API sends (an ISO timestamp,
+  such as `at` or `createdAt`) is written with `formatMoment(moment, locale, timeZone)`, its date and time in the
+  user's time zone, or its date alone with `{ time: false }`; nothing formats one with `Intl.DateTimeFormat` itself.
+  A month (`2026-11`, such as a budget month) is a
   `CalendarMonth`, made only by `isCalendarMonth`, `monthOf` or `shiftMonth` and written with `formatMonth`.
 - The user's base currency and time zone come from `useUserSettings()`.
 - **Not converted.** An amount the API could not convert, for want of an exchange rate, comes back under

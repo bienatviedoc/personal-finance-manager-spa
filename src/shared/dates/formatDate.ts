@@ -16,6 +16,15 @@ export function formatDate(date: CalendarDate, locale: Language, style: 'short' 
   return new Intl.DateTimeFormat(locale, { dateStyle: style, timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
 }
 
+/**
+ * Writes a moment the API sent (an ISO timestamp, such as when an audit entry was written or a statement uploaded)
+ * as its date and time in a time zone, such as the user's: `formatMoment('2026-11-19T20:00:00Z', 'en',
+ * 'Asia/Ho_Chi_Minh')` is `Nov 20, 2026, 3:00 AM`. With `time: false`, the date alone, as `formatDate` writes one.
+ */
+export function formatMoment(moment: string, locale: Language, timeZone: string, { time = true }: { time?: boolean } = {}): string {
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: time ? 'short' : undefined, timeZone }).format(new Date(moment))
+}
+
 /** The calendar date a number of days after this one, or before it when negative. */
 export function shiftDate(date: CalendarDate, days: number): CalendarDate {
   // Worked out in UTC, where every day is as long as any other, so no time zone or clock change moves it.

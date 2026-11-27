@@ -2,6 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { formatMoment } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
@@ -55,7 +56,7 @@ function Entry({ entry }: { entry: AuditEntry }) {
   const { t } = useTranslation()
   const locale = useLocale()
   const { timeZone } = useUserSettings()
-  const at = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone }).format(new Date(entry.at))
+  const at = formatMoment(entry.at, locale, timeZone)
 
   return (
     <li className="flex flex-col gap-0.5 p-3 sm:flex-row sm:items-baseline sm:gap-4">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, shiftDate, todayIn } from './formatDate'
+import { formatDate, formatMoment, shiftDate, todayIn } from './formatDate'
 
 describe('formatDate', () => {
   it.each([
@@ -13,6 +13,19 @@ describe('formatDate', () => {
 
   it('refuses anything that is not a calendar date', () => {
     expect(() => formatDate('19/11/2026', 'en')).toThrow()
+  })
+})
+
+describe('formatMoment', () => {
+  it('writes a moment the API sent as its date and time where the user is, not where the browser is', () => {
+    // 20:00 UTC on 19 November is already 03:00 on 20 November in Vietnam.
+    expect(formatMoment('2026-11-19T20:00:00Z', 'en', 'Asia/Ho_Chi_Minh')).toMatch(/^Nov 20, 2026.*3:00\sAM$/)
+    expect(formatMoment('2026-11-19T20:00:00Z', 'en', 'Europe/London')).toMatch(/^Nov 19, 2026.*8:00\sPM$/)
+  })
+
+  it('writes the date alone when asked', () => {
+    expect(formatMoment('2026-11-19T20:00:00Z', 'vi', 'Asia/Ho_Chi_Minh', { time: false })).toBe('20 thg 11, 2026')
+    expect(formatMoment('2026-11-19T20:00:00Z', 'en', 'Europe/London', { time: false })).toBe('Nov 19, 2026')
   })
 })
 
