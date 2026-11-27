@@ -11,11 +11,14 @@ import {
   useArchiveCategory,
   useCreateCategory,
   useEditCategory,
+  useMergeCategory,
   type Category,
   type CategoryKind,
+  type MergeOutcome,
 } from '../api/categories'
 import { CategoryBadge } from '../components/CategoryBadge'
 import { CategoryForm } from '../components/CategoryForm'
+import { MergeCategoryForm } from '../components/MergeCategoryForm'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 
@@ -46,6 +49,7 @@ export function CategoriesPage() {
   const create = useCreateCategory()
   const edit = useEditCategory()
   const archive = useArchiveCategory()
+  const merge = useMergeCategory()
   const formId = useId()
   // One form is open at a time, so one of these at most has failed.
   const save = create.isError ? create : edit
@@ -125,6 +129,13 @@ export function CategoriesPage() {
         retry={() => archive.variables !== undefined && archive.mutate(archive.variables)}
         onDismiss={archive.reset}
       />
+      <FailureToast
+        failed={merge.isError}
+        message={t('categories.errors.generic')}
+        // Submitted again through its form, which closes once merged and says why the API refused the target.
+        retry={{ form: mergeFormId(merge.variables?.id ?? '') }}
+        onDismiss={merge.reset}
+      />
 
       {form}
 
@@ -139,6 +150,8 @@ export function CategoriesPage() {
             onAddSubcategory={(parent) => setEditing(opening.newSubcategory(parent))}
             onEdit={(category) => setEditing(opening.edit(category))}
             onArchive={(category) => archive.mutateAsync(category.id)}
+            mergeTargets={notArchived(categories.data)}
+            onMerge={(category, targetId) => merge.mutateAsync({ id: category.id, targetId })}
           />
         ))}
     </section>
@@ -149,7 +162,14 @@ type RowActions = {
   onAddSubcategory: (parent: Category) => void
   onEdit: (category: Category) => void
   onArchive: (category: Category) => Promise<unknown>
+  /** The tree a category can be merged into: the categories that are not archived. */
+  mergeTargets: Category[]
+  onMerge: (category: Category, targetId: string) => Promise<MergeOutcome>
 }
+
+/** The tree without its archived categories, which take nothing new. */
+const notArchived = (tree: Category[]): Category[] =>
+  tree.filter((category) => !category.isArchived).map((category) => ({ ...category, subcategories: category.subcategories.filter((sub) => !sub.isArchived) }))
 
 function KindSection({
   kind,
@@ -188,9 +208,18 @@ function KindSection({
   )
 }
 
-function CategoryRow({ category, onAddSubcategory, onEdit, onArchive, children }: RowActions & { category: Category; children?: ReactNode }) {
+function CategoryRow({
+  category,
+  onAddSubcategory,
+  onEdit,
+  onArchive,
+  mergeTargets,
+  onMerge,
+  children,
+}: RowActions & { category: Category; children?: ReactNode }) {
   const { t } = useTranslation()
   const [confirming, setConfirming] = useState(false)
+  const [merging, setMerging] = useState(false)
   const isTopLevel = category.parentId === null
 
   return (
@@ -211,6 +240,9 @@ function CategoryRow({ category, onAddSubcategory, onEdit, onArchive, children }
                 {t('categories.addSubcategory')}
               </Button>
             )}
+            <Button variant="ghost" size="sm" aria-label={t('categories.mergeAction', { name: category.name })} onClick={() => setMerging(true)}>
+              {t('categories.mergeButton')}
+            </Button>
             <Button variant="ghost" size="sm" aria-label={t('categories.archiveAction', { name: category.name })} onClick={() => setConfirming(true)}>
               {t('categories.archive')}
             </Button>
@@ -232,7 +264,25 @@ function CategoryRow({ category, onAddSubcategory, onEdit, onArchive, children }
           </div>
         </div>
       )}
+      {merging && (
+        <MergeCategoryForm
+          id={mergeFormId(category.id)}
+          category={category}
+          tree={mergeTargets}
+          onMerge={async (targetId) => {
+            const outcome = await onMerge(category, targetId)
+            if (outcome.saved) setMerging(false)
+            return outcome
+          }}
+          onCancel={() => setMerging(false)}
+        />
+      )}
       {children}
     </li>
   )
+}
+
+/** The id of the form that merges a category, one per row. */
+function mergeFormId(categoryId: string) {
+  return `merge-${categoryId}`
 }

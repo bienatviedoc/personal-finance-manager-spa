@@ -1,12 +1,11 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ArrowRightLeft, Download } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { accountsQuery, findAccount } from '@/features/accounts'
 import { categoriesQuery, findCategory } from '@/features/categories'
 import { useUserSettings } from '@/features/settings'
-import { Drawer } from '@/shared/components/Drawer'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { maxBulkSelection } from '@/shared/api/limits'
@@ -16,26 +15,21 @@ import { cn, focusRing } from '@/shared/lib/utils'
 import { withMostDecimals } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { tagsQuery } from '../api/tags'
-import { canBePicked, isPending, isTransferLeg, listKey, transactionsQuery, useExportTransactions, type Transaction } from '../api/transactions'
+import { canBePicked, isPending, listKey, transactionsQuery, useExportTransactions, type Transaction } from '../api/transactions'
 import { BulkActions } from '../components/BulkActions'
-import { EditTransaction } from '../components/EditTransaction'
 import { MarkAsTransfer } from '../components/MarkAsTransfer'
 import { ListSkeleton } from '../components/ListSkeleton'
 import { TransactionFilterBar } from '../components/TransactionFilterBar'
 import { TransactionRow } from '../components/TransactionRow'
 import { TransactionTotal } from '../components/TransactionTotal'
 import { transactionTitle } from '../components/transactionTitle'
-import { AddTransfer, OpenTransfer } from '../components/TransferDrawer'
+import { TransactionDrawer } from '../components/TransactionDrawer'
 import { useQuickAdd } from '../components/quickAddContext'
 import { VirtualRows } from '../components/VirtualRows'
+import { useLoadNextPage } from '../hooks/useLoadNextPage'
 import { useSelection } from '../hooks/useSelection'
+import { useTransactionDrawer } from '../hooks/useTransactionDrawer'
 import { useTransactionFilters } from '../hooks/useTransactionFilters'
-
-/**
- * What the drawer is open for: editing this transaction, as it was when the drawer opened, recording a
- * transfer, or editing the transfer with this id, which either of its legs opens.
- */
-type DrawerFor = { editing: Transaction } | { transferring: true } | { transferId: string } | null
 
 /**
  * The user's income, expenses and transfers, narrowed and sorted by the filters in the address, with what they
@@ -50,7 +44,6 @@ type DrawerFor = { editing: Transaction } | { transferring: true } | { transferI
 export function TransactionsPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.transactions'))
-  const [drawer, setDrawer] = useState<DrawerFor>(null)
   const addTransaction = useQuickAdd()
   const { baseCurrency } = useUserSettings()
   const locale = useLocale()
@@ -66,13 +59,7 @@ export function TransactionsPage() {
   const items = transactions.data?.pages.flatMap((page) => page.items)
   // Every page carries the total of everything that passes the filters; the last one loaded is the latest word.
   const total = transactions.data?.pages.at(-1)?.total
-  // The transaction being edited is read from the list, to follow a newer version loaded while the drawer is
-  // open. An edit shown ahead of the API's answer can move it past the pages loaded so far (an earlier date):
-  // the drawer then keeps the one it was opened for, so the form and what its save answers are not lost.
-  const editing =
-    drawer && 'editing' in drawer
-      ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
-      : undefined
+  const drawer = useTransactionDrawer(items)
   const saved = items?.filter((transaction): transaction is Transaction => !isPending(transaction)) ?? []
   const selection = useSelection(view, saved, total)
   // What the last bulk action did, said where focus lands once its panel closes with the selection.
@@ -93,20 +80,11 @@ export function TransactionsPage() {
   const canRecord = open.length > 0
   // A transfer is between two different accounts.
   const canTransfer = open.length > 1
-  const drawerTitle =
-    drawer && 'transferId' in drawer
-      ? t('transfers.editTitle')
-      : drawer && 'transferring' in drawer
-        ? t('transfers.new')
-        : t('transactions.editTitle')
   const loaded = items !== undefined && accounts.data !== undefined && categories.data !== undefined
   const canOpenDrawer = accounts.data !== undefined && categories.data !== undefined
 
   const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = transactions
-  // A page that failed to load is asked for again by the user, not by the list at every render.
-  const loadNextPage = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage()
-  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
+  const loadNextPage = useLoadNextPage(transactions)
 
   return (
     <section className="max-w-2xl space-y-6">
@@ -131,7 +109,7 @@ export function TransactionsPage() {
             {t('transactions.add')}
           </Button>
           {canTransfer && (
-            <Button variant="outline" disabled={!canOpenDrawer} onClick={() => setDrawer({ transferring: true })}>
+            <Button variant="outline" disabled={!canOpenDrawer} onClick={() => drawer.open({ transferring: true })}>
               <ArrowRightLeft aria-hidden />
               {t('transfers.add')}
             </Button>
@@ -212,7 +190,7 @@ export function TransactionsPage() {
               account={findAccount(accounts.data.accounts, transaction.accountId)}
               category={findCategory(categories.data, transaction.categoryId)}
               categories={categories.data}
-              onEdit={(editing) => setDrawer(isTransferLeg(editing) ? { transferId: editing.transferId } : { editing })}
+              onEdit={drawer.edit}
               select={isPending(transaction) ? undefined : { selected: selection.isSelected(transaction.id), onToggle: () => selection.toggle(transaction) }}
             />
           )}
@@ -225,15 +203,7 @@ export function TransactionsPage() {
         </Button>
       )}
 
-      <Drawer open={drawer !== null} onOpenChange={(open) => !open && setDrawer(null)} title={drawerTitle}>
-        {canOpenDrawer && editing && (
-          <EditTransaction transaction={editing} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
-        )}
-        {canOpenDrawer && drawer && 'transferring' in drawer && <AddTransfer accounts={accounts.data.accounts} onClose={() => setDrawer(null)} />}
-        {canOpenDrawer && drawer && 'transferId' in drawer && (
-          <OpenTransfer id={drawer.transferId} accounts={accounts.data.accounts} categories={categories.data} onClose={() => setDrawer(null)} />
-        )}
-      </Drawer>
+      <TransactionDrawer openFor={drawer.openFor} editing={drawer.editing} accounts={accounts.data?.accounts} categories={categories.data} onClose={drawer.close} />
     </section>
   )
 }

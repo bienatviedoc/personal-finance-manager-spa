@@ -2,7 +2,7 @@ import { File as NodeFile } from 'node:buffer'
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest'
-import { loadReportsScreen } from '@/features/reports'
+import { loadAccountBalance, loadReportsScreen } from '@/features/reports'
 import { forgetAntiforgeryToken } from '@/shared/api/client'
 import { installFakeMatchMedia } from './mediaQueries'
 import { server } from './server'
@@ -27,7 +27,7 @@ beforeAll(() => {
 
 // The reports screen is loaded when first opened, with the charting library, and many tests open it as just any
 // screen. Loading it can take longer than a test waits for what it shows, so it is loaded once here, before them.
-beforeAll(() => loadReportsScreen(), 30_000)
+beforeAll(() => Promise.all([loadReportsScreen(), loadAccountBalance()]), 30_000)
 
 beforeEach(() => {
   installFakeMatchMedia()

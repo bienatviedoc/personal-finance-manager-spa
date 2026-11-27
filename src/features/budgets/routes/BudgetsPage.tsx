@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ParseKeys } from 'i18next'
 import { ChevronLeft, ChevronRight, Copy, List } from 'lucide-react'
-import { useId, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { useId, type MouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import { categoriesQuery, CategoryBadge, type Category } from '@/features/categories'
@@ -13,11 +13,25 @@ import { daysOf, formatMonth, isCalendarMonth, monthOf, shiftMonth, todayIn } fr
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { cn, focusRing } from '@/shared/lib/utils'
-import { amountExample, AmountInput, Money, type AmountValue, type Currency } from '@/shared/money'
+import { amountExample, Money, type Currency } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
+import { BudgetAmountForm } from '../components/BudgetAmountForm'
 import { budgetStates } from '../components/budgetStates'
-import { budgetsQuery, useCopyBudgets, useRemoveBudget, useSetBudget, type Budget, type BudgetState, type BudgetTotals } from '../api/budgets'
+import { PaceLabel } from '../components/PaceLabel'
+import {
+  budgetsQuery,
+  useCopyBudgets,
+  useRemoveBudget,
+  useRemoveOverallBudget,
+  useSetBudget,
+  useSetOverallBudget,
+  type Budget,
+  type BudgetState,
+  type BudgetTotals,
+  type OverallBudget,
+} from '../api/budgets'
 import type { BudgetMonth } from '../budgetMonth'
+import { useBudgetAmount } from '../hooks/useBudgetAmount'
 
 /** What a row needs of the category it is for: one from the user's tree, or the one a budget carries when it is archived. */
 type RowCategory = Pick<Category, 'id' | 'parentId' | 'name' | 'icon' | 'color' | 'isArchived'>
@@ -26,6 +40,9 @@ type RowCategory = Pick<Category, 'id' | 'parentId' | 'name' | 'icon' | 'color' 
 type Blocked = { by: 'parent'; parentName: string } | { by: 'subcategories' }
 
 type Row = { category: RowCategory; budget: Budget | undefined; blocked: Blocked | undefined; subcategories: Row[] }
+
+/** What a budget, a category's or the overall one, has been spent against, as the API worked it out. */
+type Spending = Pick<Budget, 'percentSpent' | 'state' | 'spent' | 'remaining' | 'notConverted' | 'pace'>
 
 /**
  * The budget screen: the budgets of one budget month against what was spent, with totals, a month switcher,
@@ -54,6 +71,9 @@ export function BudgetsPage() {
       </div>
 
       <MonthSwitcher month={month} monthName={monthName} thisMonth={thisMonth} />
+      {budgets.data && budgets.data.percentOfMonthElapsed !== null && (
+        <p className="text-sm text-muted-foreground">{t('budgets.pace.elapsed', { percent: Number(budgets.data.percentOfMonthElapsed) })}</p>
+      )}
 
       {(budgets.isError || categories.isError) && <ErrorMessage>{t('budgets.errors.notLoaded')}</ErrorMessage>}
 
@@ -61,6 +81,9 @@ export function BudgetsPage() {
         <>
           {/* What a copy said belongs to the month it was made in. */}
           <CopyLastMonth key={month} month={month} />
+
+          {/* What was typed for one month is not a draft for another. */}
+          <OverallBudgetCard key={`overall/${month}`} budget={budgets.data.overall} month={month} monthName={monthName} currency={budgets.data.currency} />
 
           {budgets.data.items.length === 0 ? (
             <p className="text-muted-foreground">{t('budgets.empty')}</p>
@@ -206,6 +229,54 @@ function NotConverted({ count }: { count: number }) {
   )
 }
 
+/**
+ * The month's overall budget (spec BUD-5): a spending limit on all of its expenses together, set, changed and removed like a category's
+ * budget, against every expense of the month as the API counts it. It is not one of the category budgets' totals.
+ */
+function OverallBudgetCard({ budget, month, monthName, currency }: { budget: OverallBudget | null; month: BudgetMonth; monthName: string; currency: Currency }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const set = useSetOverallBudget(month)
+  const remove = useRemoveOverallBudget(month)
+  const name = t('budgets.overall.name')
+  const amount = useBudgetAmount<'stale'>({
+    saved: budget?.budgeted,
+    submit: async (value) => {
+      const outcome = await set.mutateAsync({ amount: value, rowVersion: budget?.rowVersion }).catch(() => undefined)
+      if (!outcome || outcome.saved) return null
+      return isStale(outcome) ? 'stale' : 'invalid'
+    },
+    remove: () => remove.mutate(),
+  })
+  const { error } = amount
+
+  return (
+    <div role="group" aria-label={t('budgets.overall.for', { month: monthName })} className="space-y-2 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-24 flex-1">
+          <p className="font-medium">{name}</p>
+          <p className="text-sm text-muted-foreground">{t('budgets.overall.intro', { month: monthName })}</p>
+        </div>
+        {budget && <StateBadge state={budget.state} />}
+        <BudgetAmountForm
+          amount={amount}
+          currency={currency}
+          busy={set.isPending || remove.isPending}
+          labels={{ amount: name, save: t('budgets.overall.save'), remove: t('budgets.overall.remove') }}
+        />
+      </div>
+      {error && (
+        <p id={amount.errorId} role={error === 'stale' ? 'status' : 'alert'} className={cn('text-sm', error !== 'stale' && 'text-destructive')}>
+          {error === 'stale' ? t('budgets.overall.stale') : t('budgets.errors.amount', { example: amountExample(locale, currency) })}
+        </p>
+      )}
+      {budget && <Progress budget={budget} name={name} currency={currency} />}
+      <FailureToast failed={set.isError} message={t('budgets.errors.notSaved')} retry={{ form: amount.formId }} onDismiss={set.reset} />
+      <FailureToast failed={remove.isError} message={t('budgets.errors.notRemoved')} retry={() => remove.mutate()} onDismiss={remove.reset} />
+    </div>
+  )
+}
+
 /** What the row says went wrong with the amount, as a translation key. */
 type RowError = 'invalid' | 'category' | 'stale'
 
@@ -219,8 +290,6 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
   const { category, budget, blocked, subcategories } = row
   const { t } = useTranslation()
   const locale = useLocale()
-  const formId = useId()
-  const errorId = useId()
   const set = useSetBudget(month)
   const remove = useRemoveBudget(month)
   const navigate = useNavigate()
@@ -233,34 +302,17 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
     void navigate(transactionsLink)
   }
 
-  // The amount as the user has it; it follows the saved budget whenever that changes (saved, removed, or
-  // loaded again after it was changed somewhere else).
-  const saved = budget?.budgeted ?? ''
-  const [value, setValue] = useState<AmountValue>(saved)
-  const [syncedWith, setSyncedWith] = useState(saved)
-  const [error, setError] = useState<RowError | null>(null)
-  if (syncedWith !== saved) {
-    setSyncedWith(saved)
-    setValue(saved)
-  }
-
-  const isDirty = value !== saved
-  const isBusy = set.isPending || remove.isPending
-
-  const save = async (event: FormEvent) => {
-    event.preventDefault()
-    if (value === null) return setError('invalid')
-    setError(null)
-    if (value === '') {
-      if (budget) remove.mutate(category.id)
-      return
-    }
-
-    const outcome = await set.mutateAsync({ categoryId: category.id, amount: value, rowVersion: budget?.rowVersion }).catch(() => undefined)
-    if (!outcome || outcome.saved) return
-    if (isStale(outcome)) return setError('stale')
-    setError(outcome.fields.includes('amount') ? 'invalid' : 'category')
-  }
+  const amount = useBudgetAmount<RowError>({
+    saved: budget?.budgeted,
+    submit: async (value) => {
+      const outcome = await set.mutateAsync({ categoryId: category.id, amount: value, rowVersion: budget?.rowVersion }).catch(() => undefined)
+      if (!outcome || outcome.saved) return null
+      if (isStale(outcome)) return 'stale'
+      return outcome.fields.includes('amount') ? 'invalid' : 'category'
+    },
+    remove: () => remove.mutate(category.id),
+  })
+  const { error } = amount
 
   return (
     <li aria-label={category.name} className={nested ? 'pt-3' : 'p-3'}>
@@ -273,38 +325,16 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
           {category.isArchived && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{t('budgets.archived')}</span>}
           {budget && <StateBadge state={budget.state} />}
           {!blocked && (
-            <form id={formId} noValidate onSubmit={save} className="flex flex-wrap items-center gap-2">
-              <AmountInput
-                className="w-36 text-right tabular-nums"
-                aria-label={t('budgets.amountFor', { name: category.name })}
-                aria-invalid={error === 'invalid' ? true : undefined}
-                aria-describedby={error ? errorId : undefined}
-                placeholder={t('budgets.noBudget')}
-                currency={currency}
-                value={value}
-                onChange={(next) => {
-                  setValue(next)
-                  setError(null)
-                }}
-              />
-              {isDirty && (
-                <Button type="submit" size="sm" disabled={isBusy} aria-label={t('budgets.saveFor', { name: category.name })}>
-                  {t('budgets.save')}
-                </Button>
-              )}
-              {budget && !isDirty && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={isBusy}
-                  aria-label={t('budgets.removeFor', { name: category.name })}
-                  onClick={() => remove.mutate(category.id)}
-                >
-                  {t('budgets.remove')}
-                </Button>
-              )}
-            </form>
+            <BudgetAmountForm
+              amount={amount}
+              currency={currency}
+              busy={set.isPending || remove.isPending}
+              labels={{
+                amount: t('budgets.amountFor', { name: category.name }),
+                save: t('budgets.saveFor', { name: category.name }),
+                remove: t('budgets.removeFor', { name: category.name }),
+              }}
+            />
           )}
         </div>
 
@@ -314,14 +344,14 @@ function BudgetRow({ row, month, currency, nested = false }: { row: Row; month: 
           </p>
         )}
         {error && (
-          <p id={errorId} role={error === 'stale' ? 'status' : 'alert'} className={cn('text-sm', error !== 'stale' && 'text-destructive')}>
+          <p id={amount.errorId} role={error === 'stale' ? 'status' : 'alert'} className={cn('text-sm', error !== 'stale' && 'text-destructive')}>
             {t(errorMessages[error], { example: amountExample(locale, currency) })}
           </p>
         )}
         {budget && <Progress budget={budget} name={category.name} currency={currency} />}
         {transactionsLink && <TransactionsBehind to={transactionsLink} name={category.name} month={month} />}
 
-        <FailureToast failed={set.isError} message={t('budgets.errors.notSaved')} retry={{ form: formId }} onDismiss={set.reset} />
+        <FailureToast failed={set.isError} message={t('budgets.errors.notSaved')} retry={{ form: amount.formId }} onDismiss={set.reset} />
         <FailureToast
           failed={remove.isError}
           message={t('budgets.errors.notRemoved')}
@@ -377,8 +407,11 @@ function StateBadge({ state }: { state: BudgetState }): ReactNode {
   )
 }
 
-/** Spent against the budget: a bar that fills up to the budget and no further, the percentage in figures, and what was spent and remains. */
-function Progress({ budget, name, currency }: { budget: Budget; name: string; currency: Currency }) {
+/**
+ * Spent against the budget: a bar that fills up to the budget and no further, the percentage in figures, what was
+ * spent and remains, and in the current month its pace.
+ */
+function Progress({ budget, name, currency }: { budget: Spending; name: string; currency: Currency }) {
   const { t } = useTranslation()
   // A percentage is a count, not money. A budget of zero has none: its bar is full once anything is spent.
   const percent = budget.percentSpent === null ? null : Number(budget.percentSpent)
@@ -403,6 +436,7 @@ function Progress({ budget, name, currency }: { budget: Budget; name: string; cu
         <Figure label={t('budgets.spent')} amount={budget.spent} currency={currency} />
         <Figure label={t('budgets.remaining')} amount={budget.remaining} currency={currency} />
       </dl>
+      {budget.pace && <PaceLabel pace={budget.pace} />}
       <NotConverted count={Number(budget.notConverted)} />
     </div>
   )

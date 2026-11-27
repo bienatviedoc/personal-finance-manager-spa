@@ -21,6 +21,7 @@ const dashboard = fakeDashboardApi.bind(null, {
     warning: 2,
     over: 1,
     notConverted: 0,
+    overall: null,
     needingAttention: [
       { category: category('c-transport', 'Transport'), budgeted: '1000000.00', spent: '1200000.00', remaining: '-200000.00', percentSpent: 120, state: 'over' },
       { category: category('c-shopping', 'Shopping'), budgeted: '1000000.00', spent: '900000.00', remaining: '100000.00', percentSpent: 90, state: 'warning' },
@@ -75,6 +76,48 @@ describe('the dashboard', () => {
     expect(budgets).toHaveTextContent('1 on track, 2 at warning, 1 over budget')
     const attention = within(budgets).getByRole('list', { name: 'Budgets needing attention' })
     expect(within(attention).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['TransportOver budget120%', 'ShoppingWarning90%'])
+    expect(within(budgets).getByRole('link', { name: 'See budgets' })).toHaveAttribute('href', '/budgets')
+  })
+
+  it("shows this month's overall budget and its pace beside the category budgets, in words", async () => {
+    const shown = dashboard()
+    shown.dashboard.budgets = {
+      ...shown.dashboard.budgets!,
+      overall: { budgeted: '10000000.00', spent: '6000000.00', remaining: '4000000.00', percentSpent: 60, state: 'onTrack', pace: 'aheadOfPace', notConverted: 0 },
+    }
+    renderApp('/')
+
+    const overall = within(await card('Budgets this month')).getByRole('group', { name: 'Overall budget' })
+    expect(overall).toHaveTextContent('₫6,000,000 spent of ₫10,000,000')
+    expect(within(overall).getByRole('progressbar', { name: '60% of the budget spent' })).toBeInTheDocument()
+    expect(overall).toHaveTextContent('On track')
+    expect(overall).toHaveTextContent('Ahead of pace')
+  })
+
+  it('shows the overall budget to a user who has no category budget this month', async () => {
+    fakeDashboardApi({
+      hasAccounts: true,
+      budgets: {
+        budgeted: '0.00',
+        spent: '0.00',
+        remaining: '0.00',
+        percentSpent: null,
+        onTrack: 0,
+        warning: 0,
+        over: 0,
+        notConverted: 0,
+        needingAttention: [],
+        overall: { budgeted: '10000000.00', spent: '11000000.00', remaining: '-1000000.00', percentSpent: 110, state: 'over', pace: 'aheadOfPace', notConverted: 0 },
+      },
+    })
+    renderApp('/')
+
+    const budgets = await card('Budgets this month')
+    const overall = within(budgets).getByRole('group', { name: 'Overall budget' })
+    expect(overall).toHaveTextContent('₫11,000,000 spent of ₫10,000,000')
+    expect(overall).toHaveTextContent('Over budget')
+    expect(budgets).not.toHaveTextContent('No budgets this month.')
+    expect(budgets).not.toHaveTextContent('0 on track')
     expect(within(budgets).getByRole('link', { name: 'See budgets' })).toHaveAttribute('href', '/budgets')
   })
 

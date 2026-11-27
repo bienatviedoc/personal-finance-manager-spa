@@ -6,3 +6,4 @@ export const recurringRoutes: RouteObject[] = [
 ]
 
 export { RecurringRuleLink } from './components/RecurringRuleLink'
+export { refreshRecurringRules } from './api/recurringRules'

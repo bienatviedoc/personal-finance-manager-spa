@@ -12,6 +12,7 @@ import { spendingDrillDown } from '../spending/drillDown'
 import { IncomeVsExpensesReport } from '../income/IncomeVsExpensesReport'
 import { SpendingByCategoryReport } from '../spending/SpendingByCategoryReport'
 import { NetWorthReport } from '../netWorth/NetWorthReport'
+import { CashFlowReport } from '../cashFlow/CashFlowReport'
 import { TrendsReport } from '../trends/TrendsReport'
 import { MonthlySummaryDownload } from '../monthlySummary/MonthlySummaryDownload'
 
@@ -61,6 +62,12 @@ const reports: Report[] = [
     title: 'reports.netWorth.title',
     hasCategoryFilter: false,
     render: (filters) => <NetWorthReport filters={filters} />,
+  },
+  {
+    path: 'cash-flow',
+    title: 'reports.cashFlow.title',
+    hasCategoryFilter: false,
+    render: (filters) => <CashFlowReport filters={filters} />,
   },
 ]
 

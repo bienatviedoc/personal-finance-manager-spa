@@ -217,6 +217,22 @@
     "reconcile": "Reconcile",
     "reconcileNamed": "Reconcile {{name}}"
   },
+  "accountDetail": {
+    "toAccounts": "Back to accounts",
+    "notFound": "There is no such account.",
+    "balance": "Balance over time",
+    "balanceChart": "Balance of {{name}} over the last {{days}} days",
+    "loadingBalance": "Loading the balance",
+    "cashFlow": "Cash flow of {{name}}",
+    "transactions": "Transactions",
+    "transactionsOn": "Transactions on {{name}}",
+    "allTransactions": "All transactions on {{name}}",
+    "noTransactions": "No transactions on this account yet.",
+    "errors": {
+      "notLoaded": "The account could not be loaded.",
+        "transactionsNotLoaded": "The account's transactions could not be loaded."
+    }
+  },
   "transactions": {
     "intro": "Your income and expenses. Filter, search and sort them to find any one.",
     "recentlyDeleted": {
@@ -585,6 +601,20 @@
     }
   },
   "budgets": {
+    "notifications": {
+      "title": "Budget notifications",
+      "buttonUnread_one": "Budget notifications, {{count}} unread",
+      "buttonUnread_other": "Budget notifications, {{count}} unread",
+      "warning": "{{name}} reached {{percent}}% of its budget for {{month}}",
+      "over": "{{name}} went over its budget for {{month}}",
+      "spentOf": "{{spent}} spent of {{budgeted}}",
+      "unread": "Unread",
+      "readAll": "Mark all as read",
+      "more": "Show more",
+      "empty": "No budget notifications yet. You are told here, and by email, when a category reaches its warning threshold or goes over budget.",
+      "notLoaded": "The budget notifications could not be loaded.",
+      "notRead": "The budget notifications could not be marked read."
+    },
     "intro": "How much you plan to spend in each expense category, month by month, against what you have spent.",
     "byCategory": "Budgets by category",
     "subcategoriesOf": "Subcategories of {{name}}",
@@ -609,6 +639,19 @@
     "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
     "transactions": "See transactions",
     "transactionsBehind": "Transactions behind {{name}} in {{month}}",
+    "overall": {
+      "name": "Overall budget",
+      "for": "Overall budget for {{month}}",
+      "intro": "A spending limit on all of {{month}}'s expenses together, whether or not their category has a budget of its own.",
+      "save": "Save the overall budget",
+      "remove": "Remove the overall budget",
+      "stale": "The overall budget was changed somewhere else. The latest amount is shown; check it and save again."
+    },
+    "pace": {
+      "onPace": "On pace",
+      "aheadOfPace": "Ahead of pace",
+      "elapsed": "{{percent}}% of the month has passed."
+    },
     "copy": {
       "action": "Copy budgets from {{month}}",
       "done_zero": "No budgets copied from {{month}}: every category with a budget there already has one this month or takes none.",
@@ -771,6 +814,19 @@
       "liabilities": "Liabilities",
       "netWorth": "Net worth"
     },
+    "cashFlow": {
+      "title": "Cash flow",
+      "on": "Balance on {{date}}",
+      "chart": "Cash flow: the running balance over the period",
+      "table": "Running balance",
+      "date": "Date",
+      "balance": "Balance",
+      "interval": "Show the balance",
+      "intervals": {
+        "day": "Daily",
+        "week": "Weekly"
+      }
+    },
     "monthlySummary": {
       "title": "Monthly summary",
       "body": "Download one month's income, expenses, savings rate, spending by category and budgets as a PDF.",
@@ -826,6 +882,8 @@
       "language": "Language",
       "budgetWarning": "Budget warning threshold (%)",
       "budgetWarningHint": "A budget’s state becomes a warning once this share of it is spent.",
+      "emailBudgetNotifications": "Email me budget notifications",
+      "emailBudgetNotificationsHint": "When a category’s spending reaches its warning threshold or goes over budget. They are always shown in the app.",
       "amountExample": "Amounts will look like this:",
       "save": "Save",
       "saved": "Your settings are saved.",
@@ -946,6 +1004,22 @@
     "archived": "Archived",
     "archiveConfirm": "Archive {{name}}? It disappears from pickers and stays on existing transactions.",
     "archiveConfirmWithSubcategories": "Archive {{name}} and its subcategories? They disappear from pickers and stay on existing transactions.",
+    "mergeButton": "Merge",
+    "mergeAction": "Merge {{name}}",
+    "merge": {
+      "title": "Merge {{name}}",
+      "into": "Merge into",
+      "choose": "Choose a category",
+      "noMatches": "No category matches.",
+      "confirm": "Merge",
+      "moves": "{{transactions}} and {{budgets}} move to {{target}}, and {{name}} is archived.",
+      "transactions_one": "{{count}} transaction",
+      "transactions_other": "{{count}} transactions",
+      "budgets_one": "{{count}} budget",
+      "budgets_other": "{{count}} budgets",
+      "targetGone": "{{target}} can no longer be merged into: it was archived or moved somewhere else. Choose another category.",
+      "refused": "{{name}} cannot be merged into {{target}}: a category and its parent, or one of its subcategories, would then both have a budget in the same month. Remove one of those budgets first."
+    },
     "name": "Name",
     "kind": "Kind",
     "kinds": {
@@ -1106,7 +1180,8 @@
       "spentOf": "{{spent}} spent of {{budgeted}}",
       "progress": "{{percent}}% of the budget spent",
       "counts": "{{onTrack}} on track, {{warning}} at warning, {{over}} over budget",
-      "needingAttention": "Budgets needing attention"
+      "needingAttention": "Budgets needing attention",
+      "overall": "Overall budget"
     },
     "topCategories": {
       "title": "Top categories",

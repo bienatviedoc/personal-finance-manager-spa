@@ -399,6 +399,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/categories/{id}/merge-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description How many transactions and budgets merging the category would move, for the user to confirm. Changes nothing. */
+        get: operations["PreviewCategoryMerge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/categories/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Merges the category into targetId, of the same kind: every transaction line, budget and recurring rule moves to the target, budget amounts in the same month are added, its subcategories move under the target, and the category is archived. Refused when it would make three levels or budget a category and its parent in the same month. */
+        post: operations["MergeCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/transactions": {
         parameters: {
             query?: never;
@@ -906,6 +940,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/budgets/{month}/overall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Sets the overall budget of a month: a cap on all of its spending in the user's base currency, whether or not a category has a budget of its own, and independent of the category budgets. Setting a new one answers 201 and sends no If-Match; changing the amount of one that exists answers 200 and must send the row version last read as If-Match: a stale one answers 412, none answers 428. */
+        put: operations["SetOverallBudget"];
+        post?: never;
+        /** @description Removes the overall budget of a month. Its category budgets stay. */
+        delete: operations["RemoveOverallBudget"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/budgets/{month}/copy-from/{sourceMonth}": {
         parameters: {
             query?: never;
@@ -915,8 +967,59 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount. */
+        /** @description Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount. Its overall budget is copied too when the month has none. */
         post: operations["CopyBudgets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budget-notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The user's budget notifications, the newest first, a page at a time, with how many are unread. One is raised when a category's budget moves into warning or over after a change that affects spent; each category raises at most one warning and one over a budget month. Each keeps what the budget stood at when it was raised. */
+        get: operations["ListBudgetNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budget-notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Marks one budget notification read. Reading one already read changes nothing. */
+        post: operations["ReadBudgetNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budget-notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Marks every unread budget notification read. */
+        post: operations["ReadAllBudgetNotifications"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1042,6 +1145,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Cash flow over time: the running balance at the end of every day, or of every week (Monday to Sunday) and of the period's last day, of one account in its own currency, or of all the user's accounts, archived ones included, in the user's base currency. A balance is the account's opening balance plus every transaction dated on or before the day, and nothing before the account opened. Across accounts, the balances in each currency are added up and converted at the exchange rate of the day shown, or the nearest earlier one; those with no rate are left out and counted in notConverted. Not paged: one item per day or week. */
+        get: operations["GetCashFlow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/monthly-summary.pdf": {
         parameters: {
             query?: never;
@@ -1131,6 +1251,8 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        /** @enum {unknown} */
+        BalanceInterval: "day" | "week";
         BaseCurrencyTotalResponse: {
             currency: components["schemas"]["Currency"];
             balance: string;
@@ -1154,7 +1276,34 @@ export interface components {
             warningPercent: number | string;
             items: components["schemas"]["BudgetResponse"][];
             totals: components["schemas"]["BudgetTotalsResponse"];
+            overall: null | components["schemas"]["OverallBudgetResponse"];
+            /** Format: int32 */
+            percentOfMonthElapsed: null | number | string;
         };
+        BudgetNotificationListResponse: {
+            items: components["schemas"]["BudgetNotificationResponse"][];
+            nextCursor: null | string;
+            /** Format: int32 */
+            unread: number | string;
+        };
+        BudgetNotificationResponse: {
+            /** Format: uuid */
+            id: string;
+            month: string;
+            category: components["schemas"]["BudgetCategoryResponse"];
+            state: components["schemas"]["BudgetState"];
+            budgeted: string;
+            spent: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            currency: components["schemas"]["Currency"];
+            /** Format: date-time */
+            raisedAt: string;
+            /** Format: date-time */
+            readAt: null | string;
+        };
+        /** @enum {unknown} */
+        BudgetPace: "onPace" | "aheadOfPace" | null;
         BudgetRequest: {
             amount: string;
         };
@@ -1171,6 +1320,7 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
             rowVersion: string;
+            pace: null | components["schemas"]["BudgetPace"];
         };
         /** @enum {unknown} */
         BudgetState: "onTrack" | "warning" | "over";
@@ -1251,6 +1401,24 @@ export interface components {
             /** Format: int32 */
             max: number | string;
         };
+        CashFlowPointResponse: {
+            /** Format: date */
+            date: string;
+            balance: string;
+            /** Format: int32 */
+            notConverted: number | string;
+        };
+        CashFlowResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            interval: components["schemas"]["BalanceInterval"];
+            currency: components["schemas"]["Currency"];
+            /** Format: uuid */
+            accountId: null | string;
+            items: components["schemas"]["CashFlowPointResponse"][];
+        };
         CategoryChangeRequest: {
             name: string;
             kind: components["schemas"]["CategoryKind"];
@@ -1261,6 +1429,16 @@ export interface components {
         CategoryKind: "income" | "expense";
         CategoryListResponse: {
             items: components["schemas"]["CategoryResponse"][];
+        };
+        CategoryMergeRequest: {
+            /** Format: uuid */
+            targetId: string;
+        };
+        CategoryMergeResponse: {
+            /** Format: int32 */
+            transactions: number | string;
+            /** Format: int32 */
+            budgets: number | string;
         };
         CategoryRequest: {
             name: string;
@@ -1310,6 +1488,8 @@ export interface components {
             balance: string;
             notConverted: components["schemas"]["DashboardNotConvertedResponse"][];
         };
+        /** @enum {unknown} */
+        DashboardBudgetPace: "onPace" | "aheadOfPace" | null;
         DashboardBudgetResponse: {
             category: components["schemas"]["ReportCategoryResponse"];
             budgeted: string;
@@ -1334,6 +1514,7 @@ export interface components {
             /** Format: int32 */
             notConverted: number | string;
             needingAttention: components["schemas"]["DashboardBudgetResponse"][];
+            overall: null | components["schemas"]["DashboardOverallBudgetResponse"];
         };
         DashboardCategoryResponse: {
             category: components["schemas"]["ReportCategoryResponse"];
@@ -1359,6 +1540,17 @@ export interface components {
             category: components["schemas"]["ReportCategoryResponse"];
             payee: null | string;
             isReminder: boolean;
+        };
+        DashboardOverallBudgetResponse: {
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            state: components["schemas"]["BudgetVsActualState"];
+            pace: null | components["schemas"]["DashboardBudgetPace"];
+            /** Format: int32 */
+            notConverted: number | string;
         };
         DashboardResponse: {
             /** Format: date */
@@ -1555,6 +1747,18 @@ export interface components {
             note: null | string;
             mode: components["schemas"]["RecurringMode"];
         };
+        OverallBudgetResponse: {
+            budgeted: string;
+            spent: string;
+            remaining: string;
+            /** Format: int32 */
+            percentSpent: null | number | string;
+            state: components["schemas"]["BudgetState"];
+            pace: null | components["schemas"]["BudgetPace"];
+            /** Format: int32 */
+            notConverted: number | string;
+            rowVersion: string;
+        };
         PeriodChangeResponse: {
             amount: string;
             /** Format: double */
@@ -1605,6 +1809,7 @@ export interface components {
             /** Format: int32 */
             budgetWarningPercent: number | string;
             baseCurrencyLocked: boolean;
+            emailBudgetNotifications: boolean;
         };
         QuickAddResponse: {
             /** Format: uuid */
@@ -1990,6 +2195,7 @@ export interface components {
             locale?: null | string;
             /** Format: int32 */
             budgetWarningPercent?: null | number | string;
+            emailBudgetNotifications?: null | boolean;
         };
         VerifyEmailRequest: {
             /** Format: uuid */
@@ -3414,6 +3620,95 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PreviewCategoryMerge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryMergeResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    MergeCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryMergeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryMergeResponse"];
+                };
             };
             /** @description Bad Request */
             400: {
@@ -5548,6 +5843,124 @@ export interface operations {
             };
         };
     };
+    SetOverallBudget: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverallBudgetResponse"];
+                };
+            };
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverallBudgetResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Required */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveOverallBudget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                month: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CopyBudgets: {
         parameters: {
             query?: never;
@@ -5576,6 +5989,128 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListBudgetNotifications: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetNotificationListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReadBudgetNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAllBudgetNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */
@@ -5899,6 +6434,56 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+        };
+    };
+    GetCashFlow: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                accountId?: string;
+                interval?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashFlowResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

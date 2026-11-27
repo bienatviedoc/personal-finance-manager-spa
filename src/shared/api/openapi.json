@@ -1711,6 +1711,116 @@
         }
       }
     },
+    "/api/v1/categories/{id}/merge-preview": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "description": "How many transactions and budgets merging the category would move, for the user to confirm. Changes nothing.",
+        "operationId": "PreviewCategoryMerge",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryMergeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/categories/{id}/merge": {
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "description": "Merges the category into targetId, of the same kind: every transaction line, budget and recurring rule moves to the target, budget amounts in the same month are added, its subcategories move under the target, and the category is archived. Refused when it would make three levels or budget a category and its parent in the same month.",
+        "operationId": "MergeCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryMergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryMergeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/transactions": {
       "get": {
         "tags": [
@@ -4413,12 +4523,155 @@
         }
       }
     },
+    "/api/v1/budgets/{month}/overall": {
+      "put": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Sets the overall budget of a month: a cap on all of its spending in the user's base currency, whether or not a category has a budget of its own, and independent of the category budgets. Setting a new one answers 201 and sends no If-Match; changing the amount of one that exists answers 200 and must send the row version last read as If-Match: a stale one answers 412, none answers 428.",
+        "operationId": "SetOverallBudget",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverallBudgetResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverallBudgetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Precondition Required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Removes the overall budget of a month. Its category budgets stay.",
+        "operationId": "RemoveOverallBudget",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/budgets/{month}/copy-from/{sourceMonth}": {
       "post": {
         "tags": [
           "Budgets"
         ],
-        "description": "Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount.",
+        "description": "Copies the budgets of the source month into the month in one action, such as last month's into this one, each with its amount. Its overall budget is copied too when the month has none.",
         "operationId": "CopyBudgets",
         "parameters": [
           {
@@ -4455,6 +4708,151 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/budget-notifications": {
+      "get": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "The user's budget notifications, the newest first, a page at a time, with how many are unread. One is raised when a category's budget moves into warning or over after a change that affects spent; each category raises at most one warning and one over a budget month. Each keeps what the budget stood at when it was raised.",
+        "operationId": "ListBudgetNotifications",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetNotificationListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/budget-notifications/{id}/read": {
+      "post": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Marks one budget notification read. Reading one already read changes nothing.",
+        "operationId": "ReadBudgetNotification",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/budget-notifications/read": {
+      "post": {
+        "tags": [
+          "Budgets"
+        ],
+        "description": "Marks every unread budget notification read.",
+        "operationId": "ReadAllBudgetNotifications",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -4976,6 +5374,80 @@
         }
       }
     },
+    "/api/v1/reports/cash-flow": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "description": "Cash flow over time: the running balance at the end of every day, or of every week (Monday to Sunday) and of the period's last day, of one account in its own currency, or of all the user's accounts, archived ones included, in the user's base currency. A balance is the account's opening balance plus every transaction dated on or before the day, and nothing before the account opened. Across accounts, the balances in each currency are added up and converted at the exchange rate of the day shown, or the nearest earlier one; those with no rate are left out and counted in notConverted. Not paged: one item per day or week.",
+        "operationId": "GetCashFlow",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashFlowResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/v1/reports/monthly-summary.pdf": {
       "get": {
         "tags": [
@@ -5319,6 +5791,12 @@
           }
         }
       },
+      "BalanceInterval": {
+        "enum": [
+          "day",
+          "week"
+        ]
+      },
       "BaseCurrencyTotalResponse": {
         "required": [
           "currency",
@@ -5390,7 +5868,9 @@
           "currency",
           "warningPercent",
           "items",
-          "totals"
+          "totals",
+          "overall",
+          "percentOfMonthElapsed"
         ],
         "type": "object",
         "properties": {
@@ -5416,8 +5896,123 @@
           },
           "totals": {
             "$ref": "#/components/schemas/BudgetTotalsResponse"
+          },
+          "overall": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OverallBudgetResponse"
+              }
+            ]
+          },
+          "percentOfMonthElapsed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
+      },
+      "BudgetNotificationListResponse": {
+        "required": [
+          "items",
+          "nextCursor",
+          "unread"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetNotificationResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unread": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "BudgetNotificationResponse": {
+        "required": [
+          "id",
+          "month",
+          "category",
+          "state",
+          "budgeted",
+          "spent",
+          "percentSpent",
+          "currency",
+          "raisedAt",
+          "readAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "month": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/BudgetCategoryResponse"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetState"
+          },
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "raisedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "BudgetPace": {
+        "enum": [
+          "onPace",
+          "aheadOfPace",
+          null
+        ]
       },
       "BudgetRequest": {
         "required": [
@@ -5440,7 +6035,8 @@
           "percentSpent",
           "state",
           "notConverted",
-          "rowVersion"
+          "rowVersion",
+          "pace"
         ],
         "type": "object",
         "properties": {
@@ -5482,6 +6078,16 @@
           },
           "rowVersion": {
             "type": "string"
+          },
+          "pace": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BudgetPace"
+              }
+            ]
           }
         }
       },
@@ -5821,6 +6427,71 @@
           }
         }
       },
+      "CashFlowPointResponse": {
+        "required": [
+          "date",
+          "balance",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "balance": {
+            "type": "string"
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "CashFlowResponse": {
+        "required": [
+          "from",
+          "to",
+          "interval",
+          "currency",
+          "accountId",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "interval": {
+            "$ref": "#/components/schemas/BalanceInterval"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CashFlowPointResponse"
+            }
+          }
+        }
+      },
       "CategoryChangeRequest": {
         "required": [
           "name",
@@ -5861,6 +6532,43 @@
             "items": {
               "$ref": "#/components/schemas/CategoryResponse"
             }
+          }
+        }
+      },
+      "CategoryMergeRequest": {
+        "required": [
+          "targetId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CategoryMergeResponse": {
+        "required": [
+          "transactions",
+          "budgets"
+        ],
+        "type": "object",
+        "properties": {
+          "transactions": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "budgets": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -6047,6 +6755,13 @@
           }
         }
       },
+      "DashboardBudgetPace": {
+        "enum": [
+          "onPace",
+          "aheadOfPace",
+          null
+        ]
+      },
       "DashboardBudgetResponse": {
         "required": [
           "category",
@@ -6094,7 +6809,8 @@
           "warning",
           "over",
           "notConverted",
-          "needingAttention"
+          "needingAttention",
+          "overall"
         ],
         "type": "object",
         "properties": {
@@ -6153,6 +6869,16 @@
             "items": {
               "$ref": "#/components/schemas/DashboardBudgetResponse"
             }
+          },
+          "overall": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DashboardOverallBudgetResponse"
+              }
+            ]
           }
         }
       },
@@ -6250,6 +6976,59 @@
           },
           "isReminder": {
             "type": "boolean"
+          }
+        }
+      },
+      "DashboardOverallBudgetResponse": {
+        "required": [
+          "budgeted",
+          "spent",
+          "remaining",
+          "percentSpent",
+          "state",
+          "pace",
+          "notConverted"
+        ],
+        "type": "object",
+        "properties": {
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetVsActualState"
+          },
+          "pace": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DashboardBudgetPace"
+              }
+            ]
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -7038,6 +7817,63 @@
           }
         }
       },
+      "OverallBudgetResponse": {
+        "required": [
+          "budgeted",
+          "spent",
+          "remaining",
+          "percentSpent",
+          "state",
+          "pace",
+          "notConverted",
+          "rowVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "budgeted": {
+            "type": "string"
+          },
+          "spent": {
+            "type": "string"
+          },
+          "remaining": {
+            "type": "string"
+          },
+          "percentSpent": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/BudgetState"
+          },
+          "pace": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BudgetPace"
+              }
+            ]
+          },
+          "notConverted": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rowVersion": {
+            "type": "string"
+          }
+        }
+      },
       "PeriodChangeResponse": {
         "required": [
           "amount",
@@ -7200,7 +8036,8 @@
           "timeZone",
           "locale",
           "budgetWarningPercent",
-          "baseCurrencyLocked"
+          "baseCurrencyLocked",
+          "emailBudgetNotifications"
         ],
         "type": "object",
         "properties": {
@@ -7236,6 +8073,9 @@
             "format": "int32"
           },
           "baseCurrencyLocked": {
+            "type": "boolean"
+          },
+          "emailBudgetNotifications": {
             "type": "boolean"
           }
         }
@@ -8805,6 +9645,12 @@
               "string"
             ],
             "format": "int32"
+          },
+          "emailBudgetNotifications": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },

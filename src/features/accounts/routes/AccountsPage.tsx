@@ -221,7 +221,11 @@ function AccountRow({ account, institutions }: { account: Account; institutions:
     <li className="space-y-2 p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <div className="min-w-24 flex-1">
-          <h3 className="font-medium break-words">{account.name}</h3>
+          <h3 className="font-medium break-words">
+            <Link className="hover:underline" to={`/accounts/${account.id}`}>
+              {account.name}
+            </Link>
+          </h3>
           <p className="text-sm text-muted-foreground">
             {t(`accounts.types.${account.type}`)}
             {account.last4 && (

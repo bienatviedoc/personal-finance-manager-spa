@@ -217,6 +217,22 @@
     "reconcile": "Đối soát",
     "reconcileNamed": "Đối soát {{name}}"
   },
+  "accountDetail": {
+    "toAccounts": "Quay lại tài khoản",
+    "notFound": "Không có tài khoản này.",
+    "balance": "Số dư theo thời gian",
+    "balanceChart": "Số dư của {{name}} trong {{days}} ngày qua",
+    "loadingBalance": "Đang tải số dư",
+    "cashFlow": "Dòng tiền của {{name}}",
+    "transactions": "Giao dịch",
+    "transactionsOn": "Giao dịch trên {{name}}",
+    "allTransactions": "Tất cả giao dịch trên {{name}}",
+    "noTransactions": "Tài khoản này chưa có giao dịch nào.",
+    "errors": {
+      "notLoaded": "Không tải được tài khoản.",
+        "transactionsNotLoaded": "Không tải được giao dịch của tài khoản."
+    }
+  },
   "transactions": {
     "intro": "Các khoản thu và chi của bạn. Lọc, tìm và sắp xếp để tìm bất kỳ giao dịch nào.",
     "recentlyDeleted": {
@@ -585,6 +601,20 @@
     }
   },
   "budgets": {
+    "notifications": {
+      "title": "Thông báo ngân sách",
+      "buttonUnread_one": "Thông báo ngân sách, {{count}} chưa đọc",
+      "buttonUnread_other": "Thông báo ngân sách, {{count}} chưa đọc",
+      "warning": "{{name}} đã dùng {{percent}}% ngân sách {{month}}",
+      "over": "{{name}} đã vượt ngân sách {{month}}",
+      "spentOf": "Đã chi {{spent}} trên {{budgeted}}",
+      "unread": "Chưa đọc",
+      "readAll": "Đánh dấu tất cả là đã đọc",
+      "more": "Xem thêm",
+      "empty": "Chưa có thông báo ngân sách nào. Bạn sẽ được báo ở đây, và qua email, khi một danh mục chạm ngưỡng cảnh báo hoặc vượt ngân sách.",
+      "notLoaded": "Không tải được thông báo ngân sách.",
+      "notRead": "Không đánh dấu đã đọc được thông báo ngân sách."
+    },
     "intro": "Số tiền bạn dự định chi cho từng danh mục chi, theo từng tháng, so với số bạn đã chi.",
     "byCategory": "Ngân sách theo danh mục",
     "subcategoriesOf": "Danh mục con của {{name}}",
@@ -609,6 +639,19 @@
     "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "transactions": "Xem giao dịch",
     "transactionsBehind": "Các giao dịch của {{name}} trong {{month}}",
+    "overall": {
+      "name": "Ngân sách tổng",
+      "for": "Ngân sách tổng {{month}}",
+      "intro": "Hạn mức chi tiêu cho tất cả các khoản chi {{month}}, dù danh mục của chúng có ngân sách riêng hay không.",
+      "save": "Lưu ngân sách tổng",
+      "remove": "Xóa ngân sách tổng",
+      "stale": "Ngân sách tổng đã được thay đổi ở nơi khác. Số tiền mới nhất đang được hiển thị; hãy kiểm tra và lưu lại."
+    },
+    "pace": {
+      "onPace": "Đúng tiến độ",
+      "aheadOfPace": "Chi nhanh hơn tiến độ",
+      "elapsed": "Đã qua {{percent}}% tháng."
+    },
     "copy": {
       "action": "Sao chép ngân sách từ {{month}}",
       "done_zero": "Không sao chép ngân sách nào từ {{month}}: mọi danh mục có ngân sách ở tháng đó đều đã có ngân sách tháng này hoặc không thể có.",
@@ -771,6 +814,19 @@
       "liabilities": "Nợ phải trả",
       "netWorth": "Giá trị tài sản ròng"
     },
+    "cashFlow": {
+      "title": "Dòng tiền",
+      "on": "Số dư ngày {{date}}",
+      "chart": "Dòng tiền: số dư lũy kế trong kỳ",
+      "table": "Số dư lũy kế",
+      "date": "Ngày",
+      "balance": "Số dư",
+      "interval": "Hiển thị số dư",
+      "intervals": {
+        "day": "Theo ngày",
+        "week": "Theo tuần"
+      }
+    },
     "monthlySummary": {
       "title": "Tổng kết tháng",
       "body": "Tải về thu nhập, chi tiêu, tỷ lệ tiết kiệm, chi tiêu theo danh mục và ngân sách của một tháng dưới dạng tệp PDF.",
@@ -826,6 +882,8 @@
       "language": "Ngôn ngữ",
       "budgetWarning": "Ngưỡng cảnh báo ngân sách (%)",
       "budgetWarningHint": "Ngân sách chuyển sang trạng thái cảnh báo khi đã chi đến tỷ lệ này.",
+      "emailBudgetNotifications": "Gửi email thông báo ngân sách cho tôi",
+      "emailBudgetNotificationsHint": "Khi chi tiêu của một danh mục chạm ngưỡng cảnh báo hoặc vượt ngân sách. Thông báo luôn hiện trong ứng dụng.",
       "amountExample": "Số tiền sẽ hiển thị như sau:",
       "save": "Lưu",
       "saved": "Đã lưu cài đặt của bạn.",
@@ -946,6 +1004,22 @@
     "archived": "Đã lưu trữ",
     "archiveConfirm": "Lưu trữ {{name}}? Danh mục sẽ không còn hiện khi chọn và vẫn giữ trên các giao dịch đã có.",
     "archiveConfirmWithSubcategories": "Lưu trữ {{name}} và các danh mục con? Chúng sẽ không còn hiện khi chọn và vẫn giữ trên các giao dịch đã có.",
+    "mergeButton": "Gộp",
+    "mergeAction": "Gộp {{name}}",
+    "merge": {
+      "title": "Gộp {{name}}",
+      "into": "Gộp vào",
+      "choose": "Chọn danh mục",
+      "noMatches": "Không có danh mục nào khớp.",
+      "confirm": "Gộp",
+      "moves": "{{transactions}} và {{budgets}} sẽ chuyển sang {{target}}, và {{name}} được lưu trữ.",
+      "transactions_one": "{{count}} giao dịch",
+      "transactions_other": "{{count}} giao dịch",
+      "budgets_one": "{{count}} ngân sách",
+      "budgets_other": "{{count}} ngân sách",
+      "targetGone": "Không thể gộp vào {{target}} nữa: danh mục này đã được lưu trữ hoặc chuyển đi nơi khác. Hãy chọn danh mục khác.",
+      "refused": "Không thể gộp {{name}} vào {{target}}: một danh mục và danh mục cha, hoặc một danh mục con của nó, sẽ cùng có ngân sách trong một tháng. Hãy xóa một trong các ngân sách đó trước."
+    },
     "name": "Tên",
     "kind": "Loại",
     "kinds": {
@@ -1106,7 +1180,8 @@
       "spentOf": "Đã chi {{spent}} trên {{budgeted}}",
       "progress": "Đã chi {{percent}}% ngân sách",
       "counts": "{{onTrack}} đúng kế hoạch, {{warning}} cảnh báo, {{over}} vượt ngân sách",
-      "needingAttention": "Ngân sách cần chú ý"
+      "needingAttention": "Ngân sách cần chú ý",
+      "overall": "Ngân sách tổng"
     },
     "topCategories": {
       "title": "Danh mục chi nhiều nhất",

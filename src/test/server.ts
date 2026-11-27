@@ -14,6 +14,7 @@ export const testUser: ProfileResponse = {
   locale: null,
   budgetWarningPercent: 80,
   baseCurrencyLocked: false,
+  emailBudgetNotifications: true,
 }
 export const antiforgeryToken = 'test-antiforgery-token'
 
@@ -23,6 +24,8 @@ const url = (path: string) => `${window.location.origin}${path}`
 export const server = setupServer(
   http.get(url('/api/v1/auth/antiforgery'), () => HttpResponse.json({ token: antiforgeryToken })),
   http.get(url('/api/v1/me'), () => HttpResponse.json(testUser)),
+  // Every signed-in screen shows how many budget notifications are unread: none, unless a test says otherwise.
+  http.get(url('/api/v1/budget-notifications'), () => HttpResponse.json({ items: [], nextCursor: null, unread: 0 })),
 )
 
 /** Like the real API: a request that changes something without the anti-forgery token is refused; null with it. */

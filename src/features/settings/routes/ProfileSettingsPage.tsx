@@ -20,6 +20,7 @@ const schema = z.object({
   locale: z.enum(supportedLanguages),
   // As typed: a whole percentage from 1 to 100.
   budgetWarningPercent: z.string().regex(/^(100|[1-9][0-9]?)$/, { error: 'settings.profile.errors.budgetWarningPercent' }),
+  emailBudgetNotifications: z.boolean(),
 })
 
 type Values = z.infer<typeof schema>
@@ -39,6 +40,7 @@ export function ProfileSettingsPage() {
   useDocumentTitle(t('settings.profile.title'))
   const headingId = useId()
   const formId = useId()
+  const emailHintId = useId()
   const interfaceLocale = useLocale()
   const settings = useUserSettings()
   const update = useUpdateProfile()
@@ -52,6 +54,7 @@ export function ProfileSettingsPage() {
       timeZone: settings.timeZone,
       locale: settings.locale ?? interfaceLocale,
       budgetWarningPercent: String(settings.budgetWarningPercent),
+      emailBudgetNotifications: settings.emailBudgetNotifications,
     },
     resetOptions: { keepDirtyValues: true },
   })
@@ -78,8 +81,8 @@ export function ProfileSettingsPage() {
     if (!outcome) return
     if (outcome.saved) {
       // What was saved is no longer a change: the form goes back to following the profile.
-      const { baseCurrency, timeZone, locale, budgetWarningPercent } = outcome.profile
-      form.reset({ baseCurrency, timeZone, locale: locale ?? values.locale, budgetWarningPercent: String(budgetWarningPercent) })
+      const { baseCurrency, timeZone, locale, budgetWarningPercent, emailBudgetNotifications } = outcome.profile
+      form.reset({ baseCurrency, timeZone, locale: locale ?? values.locale, budgetWarningPercent: String(budgetWarningPercent), emailBudgetNotifications })
       return
     }
     for (const field of outcome.fields) form.setError(field, { message: serverErrors[field] }, { shouldFocus: true })
@@ -92,7 +95,8 @@ export function ProfileSettingsPage() {
     lastSaved.baseCurrency === settings.baseCurrency &&
     lastSaved.timeZone === settings.timeZone &&
     lastSaved.locale === settings.locale &&
-    Number(lastSaved.budgetWarningPercent) === settings.budgetWarningPercent
+    Number(lastSaved.budgetWarningPercent) === settings.budgetWarningPercent &&
+    lastSaved.emailBudgetNotifications === settings.emailBudgetNotifications
 
   return (
     <form id={formId} noValidate aria-labelledby={headingId} onSubmit={onSubmit} className="max-w-md space-y-4">
@@ -133,6 +137,16 @@ export function ProfileSettingsPage() {
         step={1}
         {...form.register('budgetWarningPercent')}
       />
+
+      <div className="space-y-1.5">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" aria-describedby={emailHintId} {...form.register('emailBudgetNotifications')} />
+          {t('settings.profile.emailBudgetNotifications')}
+        </label>
+        <p id={emailHintId} className="text-sm text-muted-foreground">
+          {t('settings.profile.emailBudgetNotificationsHint')}
+        </p>
+      </div>
 
       <p className="text-sm text-muted-foreground">
         {t('settings.profile.amountExample')}{' '}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, todayIn } from './formatDate'
+import { formatDate, shiftDate, todayIn } from './formatDate'
 
 describe('formatDate', () => {
   it.each([
@@ -23,5 +23,17 @@ describe('todayIn', () => {
 
     expect(todayIn('Asia/Ho_Chi_Minh', now)).toBe('2026-11-20')
     expect(todayIn('Europe/London', now)).toBe('2026-11-19')
+  })
+})
+
+describe('shiftDate', () => {
+  it.each([
+    ['2026-11-26', -89, '2026-08-29'],
+    ['2026-03-01', -1, '2026-02-28'],
+    ['2024-03-01', -1, '2024-02-29'],
+    ['2026-12-31', 1, '2027-01-01'],
+    ['2026-03-29', 0, '2026-03-29'],
+  ] as const)('moves %s by %i days to %s', (date, days, expected) => {
+    expect(shiftDate(date, days)).toBe(expected)
   })
 })

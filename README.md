@@ -99,7 +99,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the balance.
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
-  that feature to refresh it; it never touches the other's query keys.
+  that feature to refresh it; it never touches the other's query keys. Two features may import each other this
+  way: merging a category refreshes transactions and recurring rules, which both name categories. Such a cycle is
+  allowed while one side only calls the other's `refresh…` at run time, never at import.
 - **A transfer is two transactions in the list.** The API lists a transfer as its two legs (`transferOut`,
   `transferIn`), each on its own account and carrying the `transferId` they share; the list marks them as a
   transfer. A leg is never edited or deleted as a transaction: either leg opens the transfer form, which loads
@@ -131,6 +133,13 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   `useRestoreTransaction`). Each shows when it can be restored until, the date the API answers, on the user's calendar.
   Restoring a leg of a transfer restores the whole transfer; the API decides what can still be restored, and its
   worker removes the rest for good. Restoring loads the lists, balances, budgets and reports again, like any change.
+- **Merging categories** (spec CAT-3; see the glossary). Each category on the categories screen offers Merge
+  (`MergeCategoryForm`): the user picks the category to merge into, of the same kind and not archived, never the
+  category itself or one of its own subcategories, and only a top-level one for a category with subcategories, so
+  the tree stays two levels deep. Once one is picked, the screen says how many transactions and budgets will move,
+  as the API counts them (`categoryMergePreviewQuery`), and merges only when the user confirms
+  (`useMergeCategory`). The API checks it all again; a refusal on `targetId` (a budget on the category and its parent
+  in the same month) is said in the form. Merged, the categories, lists, balances, budgets and reports load again.
 - **Reconciliation** (spec ACC-7, section 3 rule 11; see the glossary). Each account on the accounts screen links to
   `/accounts/:accountId/reconcile` (`features/reconciliations`), which works on the account's latest reconciliation
   (`latestReconciliationQuery`): the user enters the statement date and closing balance, ticks the transactions
@@ -173,6 +182,12 @@ longer matches the API, when a dependency has a known vulnerability of high seve
 - **A change to a transaction moves what was spent,** too, so the same hooks load the budgets again through
   `refreshBudgets` from `@/features/budgets`. Setting the first budget locks the base currency and removing the
   last one unlocks it, so the budget hooks load the profile again (`refreshProfile` from `@/features/settings`).
+- **Budget notifications** (spec BUD-7; see the glossary) are raised by the API after a change that moves what was
+  spent; the SPA only shows them. `BudgetNotifications` from `@/features/budgets`, a bell in the sidebar (atop the
+  screen on phones), says how many are unread and opens a drawer listing them the newest first, a page at a time
+  (`budgetNotificationsQuery`). Choosing one opens its budget month and marks it read; "Mark all as read" reads
+  them all (`useReadBudgetNotification` and `useReadAllBudgetNotifications`, after the API's use cases). Their key is under the budgets', so `refreshBudgets` after any change
+  loads them again. Whether they are also emailed is a profile setting (`emailBudgetNotifications`).
 - **A budget is set, not created or edited:** `useSetBudget(month)` sends `PUT /budgets/{month}/{categoryId}`
   with the budget's `rowVersion` as `If-Match` when the category already has one that month and without it when
   it has none; `useRemoveBudget(month)` removes it.
@@ -185,7 +200,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   Every figure is the API's, worked out as the accounts screen and the reports work it out; the screen adds nothing
   up, and signs an amount only as the transaction list does. Each card links to what is behind it: the accounts,
   income vs expenses and spending by category for this month (`period=thisMonth`), the budgets, the transactions and
-  the recurring rules. Skeletons stand in for the cards while it loads, and a user with no account that is not
+  the recurring rules. The budget card shows this month's overall budget and its pace (`PaceLabel` from
+  `@/features/budgets`, as the budget screen shows it) above the category budgets, and the overall budget alone to a
+  user with no category budget. Skeletons stand in for the cards while it loads, and a user with no account that is not
   archived (`hasAccounts`) is shown how to add one instead. Nearly anything done elsewhere moves something on it, so
   it is loaded again every time it opens (`staleTime: 0`), and a change to a transaction made on it (quick add) loads it
   again through `refreshDashboard`.
@@ -206,7 +223,16 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   month end, and on the period's last day when it ends inside a month, as stacked areas or a table, with the latest
   net worth above; it takes no category filter and is not compared. Budget vs actual
   (`budgetVsActual/BudgetVsActualReport`) sets each category's budget against what was spent as horizontal bars or a
-  table with the totals, and lists apart what was spent with no budget.
+  table with the totals, and lists apart what was spent with no budget. Cash flow (`cashFlow/CashFlowReport`,
+  `cashFlowQuery`) shows the running balance at the end of every day, or of every week once Weekly is chosen (kept in
+  the address as `interval=week`), as a line or a table: of one account in its own currency with the account filter,
+  otherwise of all of them in the base currency. It takes no category filter and is not compared.
+- **The account detail page** (`/accounts/:accountId`, spec section 12) lives in `features/transactions`, since it is
+  an account's transactions and balance, and the accounts feature depends on neither. Each account's name on the
+  accounts screen links to it. It shows the account's balance, its running balance over the last 90 days as a line or
+  a table (`AccountBalance` from `@/features/reports`, loaded with the charting library when first shown), its
+  transactions newest first, edited in a drawer as on the transactions screen, and links on to reconciling it (not
+  when archived), to the transactions screen filtered by it, and to its cash flow report.
 - **Every report downloads as CSV** (spec section 7, export), from the answer already on screen, in either view:
   `ExportCsv` in `features/reports/frame` saves the numbers of the report's table view (`saveCsv` from
   `@/shared/lib/csv`, RFC 4180 and UTF-8 with a byte order mark, as the API writes its own), named for the report
@@ -312,14 +338,15 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeDataApi` | The full export and deleting the user (`/api/v1/export/all.zip`, `/api/v1/me/deletion`) |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
-| `fakeCategoriesApi` | `/api/v1/categories` |
+| `fakeCategoriesApi` | `/api/v1/categories`, and merging one (`moving` says what each moves, `refuseMergeInto` the targets it refuses) |
 | `fakeTransactionsApi` | `/api/v1/transactions` (a test stands in for `/api/v1/export/transactions.csv` itself, in `transactionExport.test.tsx`), bulk actions (`/api/v1/transactions/bulk`, kept in `bulkRequests`), and marking and unmarking a transfer (`/api/v1/transfers/mark`, `/api/v1/transfers/{id}/unmark`); it moves the balances `fakeAccountsApi` holds, and can hold or fail an answer |
 | `fakeAttachmentsApi` | `/api/v1/transactions/{id}/attachments` and `/api/v1/attachments/{id}`; it tells a file by its first bytes, as the API does, and hands out a new signed URL each time |
 | `fakeRecurringRulesApi` | `/api/v1/recurring-rules`, with pausing and resuming, reminders to confirm or dismiss and the upcoming list (worked out from each rule's dates as the API does, from `today`, the test user's by default); nothing posts there, so a rule's next run date stays its start date until a reminder is answered |
 | `fakeReconciliationsApi` | `/api/v1/accounts/{accountId}/reconciliations` and `/api/v1/reconciliations`: starting, ticking, completing, reopening and cancelling, over the accounts and transactions the other fakes hold; completing sets `isReconciled` on what is ticked, which `fakeTransactionsApi` then locks |
-| `fakeBudgetsApi` | `/api/v1/budgets`; it works out spent, remaining and state from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
+| `fakeBudgetsApi` | `/api/v1/budgets` and the month's overall budget (`/api/v1/budgets/{month}/overall`); it works out spent, remaining, state and, in the current month, pace from the spending a test gives it, copies a month as the API does, and locks the base currency `fakeProfileApi` holds |
+| `fakeBudgetNotificationsApi` | `/api/v1/budget-notifications` and reading one or all (`/{id}/read`, `/read`): the newest first, a page at a time, with how many are unread; `raise` adds one, as a change that moved spent would on the API, and `reads` counts how often the list was asked for |
 | `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
-| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual` and `/api/v1/reports/net-worth` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, …), and can fail an answer |
+| `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual`, `/api/v1/reports/net-worth` and `/api/v1/reports/cash-flow` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, `cashFlowAsked`, …), and can fail an answer |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
@@ -362,7 +389,8 @@ src/
   navigation in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
   shell and the other screens working; so does each section nested in a screen (Settings > Profile).
 - **Shared components** (`src/shared/components`): `TextField` and `SelectField` for labelled inputs,
-  `ToggleField` for a choice of a few values side by side, `Drawer` for a form in a side drawer,
+  `ToggleField` for a choice of a few values side by side in a form, `SegmentedControl` for the same held by
+  the screen (a report's chart or table), `Drawer` for a form in a side drawer,
   `ErrorMessage` for an alert that something went wrong, `FailureToast` for a change that failed.
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.
@@ -435,6 +463,14 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   has a row with its amount edited in place (Enter or Save; an emptied amount removes the budget). A category
   whose parent or subcategory is budgeted that month offers no amount and says whose budget its spending counts
   toward. Expenses that are not converted are left out of spent and counted in a note, on the row and the totals.
+- **The overall budget** (BUD-5) caps all of a month's spending, independent of the category budgets. The budget
+  screen shows it above the category budgets (`overall` in `budgetsQuery(month)`, null when the month has none),
+  set, changed from its row version and removed like a category's (`useSetOverallBudget(month)`,
+  `useRemoveOverallBudget(month)`). Its spent counts every expense of the month, as the API works it out; it is
+  not in the totals of the category budgets.
+- **Pace** (BUD-6): in the current month each budget and the overall budget say whether they are on pace or ahead of
+  pace (`pace`), and the screen says how much of the month has passed (`percentOfMonthElapsed`), both the API's.
+  A past month shows its final result and no pace; the SPA never works out either.
 - **A budget's state is never colour alone** (spec section 8): on track, warning and over budget are each said
   in words beside an icon of their own shape, and the progress bar names its percentage; colour only adds to that.
   The warning threshold is the user's (`budgetWarningPercent`, Settings > Profile).

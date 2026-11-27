@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
 import { http } from 'msw'
+import { fakeBudgetNotificationsApi } from '@/test/fakeBudgetNotificationsApi'
 import { fakeProfileApi } from '@/test/fakeProfileApi'
 import { apiUrl, problem, server } from '@/test/server'
 
@@ -27,7 +28,7 @@ describe('profile settings', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
-    expect(api.changes).toEqual([{ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en', budgetWarningPercent: 80 }])
+    expect(api.changes).toEqual([{ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en', budgetWarningPercent: 80, emailBudgetNotifications: true }])
     expect(api.profile).toMatchObject({ baseCurrency: 'EUR', timeZone: 'Europe/Berlin', locale: 'en' })
   })
 
@@ -46,6 +47,41 @@ describe('profile settings', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
     expect(api.profile.budgetWarningPercent).toBe(90)
     expect(threshold).toHaveValue(90)
+  })
+
+  it('show the budget notifications a lower warning threshold raises once it is saved', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const notifications = fakeBudgetNotificationsApi()
+    const { user } = renderApp('/settings/profile')
+
+    const threshold = await screen.findByRole('spinbutton', { name: 'Budget warning threshold (%)' })
+    expect(await screen.findByRole('button', { name: 'Budget notifications' })).toBeInTheDocument()
+    await user.clear(threshold)
+    await user.type(threshold, '60')
+    notifications.raise({
+      id: 'n-1', month: '2026-11', categoryName: 'Transport', state: 'warning', budgeted: '1000000.00', spent: '700000.00', percentSpent: 70,
+    })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('button', { name: 'Budget notifications, 1 unread' })).toBeInTheDocument()
+    expect(api.profile.budgetWarningPercent).toBe(60)
+  })
+
+  it('email budget notifications until the user switches that off, and save it', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const { user } = renderApp('/settings/profile')
+
+    const email = await screen.findByRole('checkbox', { name: 'Email me budget notifications' })
+    expect(email).toBeChecked()
+    expect(email).toHaveAccessibleDescription('When a category’s spending reaches its warning threshold or goes over budget. They are always shown in the app.')
+
+    await user.click(email)
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
+    expect(api.changes).toEqual([{ timeZone: 'Asia/Ho_Chi_Minh', locale: 'en', budgetWarningPercent: 80, emailBudgetNotifications: false, baseCurrency: 'VND' }])
+    expect(api.profile.emailBudgetNotifications).toBe(false)
+    expect(email).not.toBeChecked()
   })
 
   it.each(['0', '101', '12.5', ''])('refuse a budget warning threshold of "%s": it is a whole percentage from 1 to 100', async (percent) => {
@@ -75,7 +111,7 @@ describe('profile settings', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
-    expect(api.changes).toEqual([{ timeZone: 'Europe/Berlin', locale: 'en', budgetWarningPercent: 80 }])
+    expect(api.changes).toEqual([{ timeZone: 'Europe/Berlin', locale: 'en', budgetWarningPercent: 80, emailBudgetNotifications: true }])
     expect(api.profile).toMatchObject({ baseCurrency: 'VND', timeZone: 'Europe/Berlin' })
   })
 
