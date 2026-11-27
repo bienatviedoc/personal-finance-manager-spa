@@ -103,6 +103,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         transferId: null,
         rowVersion: '1',
         recurringRuleId: null,
+        importBatchId: null,
         // One line with the whole amount, unless the test seeds a split.
         lines: categoryId === null ? [] : [{ categoryId, amount: transaction.amount ?? '1.00', note: null }],
         isRefund: false,
@@ -648,6 +649,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         rowVersion: '1',
         // Only the worker posts for a rule; what a user records is linked to none.
         recurringRuleId: null,
+        importBatchId: null,
         isReconciled: false,
         ...result.fields,
       }
@@ -717,6 +719,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         rowVersion: '1',
         type,
         transferId,
+        importBatchId: null,
         isReconciled: false,
         ...(type === 'transferOut' ? result.out : result.into),
       }))
