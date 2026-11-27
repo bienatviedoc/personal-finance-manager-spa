@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
+import { maxSkippedStatementRows } from '@/shared/api/limits'
 import { SelectField } from '@/shared/components/SelectField'
 import { TextField } from '@/shared/components/TextField'
 import { cn, focusRingWithin } from '@/shared/lib/utils'
@@ -32,7 +33,7 @@ export function MappingForm({ mapping, onChange, columns, separate, onSeparateCh
   const amountsName = useId()
   const set = (change: Partial<Mapping>) => onChange({ ...mapping, ...change })
   const column = (value: string) => (value === '' ? null : Number(value))
-  const rows = (value: string) => Math.max(0, Math.min(1000, Number.parseInt(value, 10) || 0))
+  const rows = (value: string) => Math.max(0, Math.min(maxSkippedStatementRows, Number.parseInt(value, 10) || 0))
   const choose = [{ value: '', label: t('imports.mapping.chooseColumn') }, ...columns]
 
   return (
@@ -48,7 +49,7 @@ export function MappingForm({ mapping, onChange, columns, separate, onSeparateCh
         <TextField
           type="number"
           min={0}
-          max={1000}
+          max={maxSkippedStatementRows}
           label={t('imports.mapping.skipFirstRows')}
           hint={t('imports.mapping.skipFirstRowsHint')}
           value={mapping.skipFirstRows}
@@ -61,7 +62,7 @@ export function MappingForm({ mapping, onChange, columns, separate, onSeparateCh
         <TextField
           type="number"
           min={0}
-          max={1000}
+          max={maxSkippedStatementRows}
           label={t('imports.mapping.skipLastRows')}
           hint={t('imports.mapping.skipLastRowsHint')}
           value={mapping.skipLastRows}

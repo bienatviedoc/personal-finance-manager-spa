@@ -6,14 +6,12 @@ import { accountsQuery, useAccountChoices } from '@/features/accounts'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { SelectField } from '@/shared/components/SelectField'
+import { maxStatementFileSize } from '@/shared/api/limits'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { useUploadStatement, type StartAgain, type UploadField } from '../api/imports'
-
-/** The largest statement the API takes. */
-const maxFileSize = 5 * 1024 * 1024
 
 /** What the file picker offers: CSV files, which some systems call plain text. */
 const accepted = '.csv,text/csv,text/plain'
@@ -44,7 +42,7 @@ export function ImportPage() {
     const found: Partial<Record<UploadField, string>> = {}
     if (!accountId) found.accountId = t('imports.errors.account')
     if (!file || file.size === 0) found.file = t('imports.errors.noFile')
-    else if (file.size > maxFileSize) found.file = t('imports.errors.tooLarge')
+    else if (file.size > maxStatementFileSize) found.file = t('imports.errors.tooLarge')
     setErrors(found)
     if (Object.keys(found).length > 0 || !file) return
     const outcome = await upload.mutateAsync({ accountId, file })
