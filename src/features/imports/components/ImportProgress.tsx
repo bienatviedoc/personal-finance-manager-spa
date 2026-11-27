@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { refreshTransactions } from '@/features/transactions'
 import type { ImportBatch, StartAgain } from '../api/imports'
+import { UndoImport } from './UndoImport'
 
 /**
  * A committed statement while the API's worker imports it, a few rows at a time, and once it is done (spec
@@ -36,6 +37,18 @@ export function ImportProgress({ batch }: { batch: ImportBatch }) {
           <div className="h-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
         </div>
         <p aria-live="polite">{t('imports.progress.count', { imported, count })}</p>
+        <UndoImport batch={batch} />
+      </div>
+    )
+  }
+
+  if (batch.status === 'undone') {
+    return (
+      <div role="status" className="max-w-2xl space-y-2 rounded-lg border p-4">
+        <p>{t('imports.done.undone')}</p>
+        <Link className="underline" to="/transactions/deleted">
+          {t('imports.recentlyDeleted')}
+        </Link>
       </div>
     )
   }
@@ -68,6 +81,7 @@ export function ImportProgress({ batch }: { batch: ImportBatch }) {
           </Link>
         )}
       </div>
+      <UndoImport batch={batch} />
     </div>
   )
 }
