@@ -1276,7 +1276,11 @@
         "skipped": "Skipped",
         "header": "Column names",
         "blank": "Blank"
-      }
+      },
+      "pages": "Pages of the statement",
+      "previous": "Previous rows",
+      "next": "Next rows",
+      "page": "Rows {{from}}–{{to}} of {{count}}"
     },
     "problems": {
       "missingColumns": "The row has fewer cells than the columns chosen.",

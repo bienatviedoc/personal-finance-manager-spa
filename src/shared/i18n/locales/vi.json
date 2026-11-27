@@ -1276,7 +1276,11 @@
         "skipped": "Bỏ qua",
         "header": "Tên cột",
         "blank": "Trống"
-      }
+      },
+      "pages": "Các trang của sao kê",
+      "previous": "Các dòng trước",
+      "next": "Các dòng sau",
+      "page": "Dòng {{from}}–{{to}} trên {{count}}"
     },
     "problems": {
       "missingColumns": "Dòng có ít ô hơn số cột đã chọn.",

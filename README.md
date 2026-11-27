@@ -178,7 +178,8 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   separator (`MappingForm`). No bank's layout is built in (spec section 15). Each change asks the API for the
   preview again (`importPreviewQuery`, the mapping in its key, the last answer shown meanwhile); the SPA reads no
   CSV itself. Until the date and amount columns are mapped it shows the first rows cut into cells, named by the
-  header row (`RawRows`); then every row (`PreviewTable`): the transactions, each ticked unless the API marks it a
+  header row (`RawRows`); then every row (`PreviewTable`, 100 to a page, as a statement may have 10,000; the API
+  answers them all at once, and what is ticked is kept from page to page): the transactions, each ticked unless the API marks it a
   likely duplicate, the rows that cannot be read with why (translated from the API's `problem`), and the rows
   passed over. A new mapping is a new preview, so the ticks start again from the API's. The screen says how many
   rows will be imported, how many likely duplicates skipped and how many rows cannot be read, counting the rows the

@@ -223,6 +223,34 @@ describe('importing a statement', () => {
     expect(screen.getByLabelText('Decimal separator')).toHaveValue('comma')
   })
 
+  it('shows a long statement a page at a time, keeping what is ticked and unticked from page to page', async () => {
+    const lines = Array.from({ length: 250 }, (_, index) => `01-11-2026;SHOP ${index + 2};-1.000,00`)
+    const importsApi = fakeApis({ batches: [{ accountId: everyday, text: ['Ngày;Mô tả;Số tiền', ...lines, ''].join('\n') }] })
+    const { user } = renderApp(`/import/${firstBatch}`)
+    await mapStatement(user)
+
+    const rows = await previewRows()
+    expect(await rows.findByRole('checkbox', { name: 'Import row 100' })).toBeChecked()
+    expect(rows.queryByRole('checkbox', { name: 'Import row 101' })).not.toBeInTheDocument()
+    expect(screen.getByText('Rows 1–100 of 251')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous rows' })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Next rows' }))
+    await user.click(rows.getByRole('checkbox', { name: 'Import row 150' }))
+    await user.click(screen.getByRole('button', { name: 'Next rows' }))
+    expect(screen.getByText('Rows 201–251 of 251')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next rows' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Previous rows' }))
+
+    expect(rows.getByRole('checkbox', { name: 'Import row 150' })).not.toBeChecked()
+    expect(rows.getByRole('checkbox', { name: 'Import row 151' })).toBeChecked()
+    expect(rows.getAllByRole('row')).toHaveLength(101)
+    await user.selectOptions(screen.getByLabelText('Category for money going out'), 'c-food')
+    await user.click(screen.getByRole('button', { name: 'Import 249 transactions' }))
+    await waitFor(() => expect(importsApi.commitRequests[0]?.rows).toHaveLength(249))
+    expect(importsApi.commitRequests[0]?.rows).not.toContain(150)
+  })
+
   it('says another statement is being imported into the account, and imports nothing until it is done', async () => {
     const importsApi = fakeApis({ batches: [{ accountId: everyday, text: statement }, { accountId: everyday, text: statement }] })
     Object.assign(importsApi.batches[0]!, { status: 'committing' })
