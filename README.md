@@ -387,7 +387,8 @@ src/
   navigation in `src/app/navigation.ts`. Every screen gets its own error boundary, so a failing screen leaves the
   shell and the other screens working; so does each section nested in a screen (Settings > Profile).
 - **Shared components** (`src/shared/components`): `TextField` and `SelectField` for labelled inputs,
-  `ToggleField` for a choice of a few values side by side, `Drawer` for a form in a side drawer,
+  `ToggleField` for a choice of a few values side by side in a form, `SegmentedControl` for the same held by
+  the screen (a report's chart or table), `Drawer` for a form in a side drawer,
   `ErrorMessage` for an alert that something went wrong, `FailureToast` for a change that failed.
 - **UI primitives** come from [shadcn/ui](https://ui.shadcn.com) and are owned in `src/shared/ui`. Add one with
   `npx shadcn@latest add <component>`; `components.json` points the CLI at `src/shared`.

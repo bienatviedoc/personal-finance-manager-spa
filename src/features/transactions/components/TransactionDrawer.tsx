@@ -8,7 +8,7 @@ import { EditTransaction } from './EditTransaction'
 import { AddTransfer, OpenTransfer } from './TransferDrawer'
 
 type Props = {
-  drawer: DrawerFor
+  openFor: DrawerFor
   /** The transaction being edited, as `useTransactionDrawer` follows it. */
   editing: Transaction | undefined
   /** Every account and category, archived ones too; nothing opens until both are loaded. */
@@ -18,17 +18,17 @@ type Props = {
 }
 
 /** The drawer itself: the transaction form, a new transfer, or a transfer opened from one of its legs. */
-export function TransactionDrawer({ drawer, editing, accounts, categories, onClose }: Props) {
+export function TransactionDrawer({ openFor, editing, accounts, categories, onClose }: Props) {
   const { t } = useTranslation()
   const title =
-    drawer && 'transferId' in drawer ? t('transfers.editTitle') : drawer && 'transferring' in drawer ? t('transfers.new') : t('transactions.editTitle')
+    openFor && 'transferId' in openFor ? t('transfers.editTitle') : openFor && 'transferring' in openFor ? t('transfers.new') : t('transactions.editTitle')
   const loaded = accounts !== undefined && categories !== undefined
 
   return (
-    <Drawer open={drawer !== null} onOpenChange={(open) => !open && onClose()} title={title}>
+    <Drawer open={openFor !== null} onOpenChange={(open) => !open && onClose()} title={title}>
       {loaded && editing && <EditTransaction transaction={editing} accounts={accounts} categories={categories} onClose={onClose} />}
-      {loaded && drawer && 'transferring' in drawer && <AddTransfer accounts={accounts} onClose={onClose} />}
-      {loaded && drawer && 'transferId' in drawer && <OpenTransfer id={drawer.transferId} accounts={accounts} categories={categories} onClose={onClose} />}
+      {loaded && openFor && 'transferring' in openFor && <AddTransfer accounts={accounts} onClose={onClose} />}
+      {loaded && openFor && 'transferId' in openFor && <OpenTransfer id={openFor.transferId} accounts={accounts} categories={categories} onClose={onClose} />}
     </Drawer>
   )
 }

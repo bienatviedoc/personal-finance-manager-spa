@@ -36,7 +36,8 @@ export function AccountDetailPage() {
   // Archived accounts are loaded too: an archived account keeps its page and history.
   const accounts = useQuery(accountsQuery({ includeArchived: true }))
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
-  const account = accounts.data ? findAccount(accounts.data.accounts, accountId) : undefined
+  const allAccounts = accounts.data?.accounts
+  const account = allAccounts ? findAccount(allAccounts, accountId) : undefined
   useDocumentTitle(account?.name ?? t('screens.accountDetail'))
   const to = todayIn(timeZone)
   const from = shiftDate(to, -(chartedDays - 1))
@@ -93,7 +94,9 @@ export function AccountDetailPage() {
 
           {/* The transactions are named by category, so without them there is no list to show. */}
           {categories.isError && <ErrorMessage>{t('accountDetail.errors.transactionsNotLoaded')}</ErrorMessage>}
-          {categories.data && <AccountTransactions accountId={account.id} name={account.name} categories={categories.data} accounts={accounts.data!.accounts} />}
+          {categories.data && allAccounts && (
+            <AccountTransactions accountId={account.id} name={account.name} categories={categories.data} accounts={allAccounts} />
+          )}
         </>
       )}
     </section>
@@ -150,7 +153,7 @@ function AccountTransactions({ accountId, name, categories, accounts }: Transact
         </Button>
       )}
 
-      <TransactionDrawer drawer={drawer.drawer} editing={drawer.editing} accounts={accounts} categories={categories} onClose={drawer.close} />
+      <TransactionDrawer openFor={drawer.openFor} editing={drawer.editing} accounts={accounts} categories={categories} onClose={drawer.close} />
     </section>
   )
 }

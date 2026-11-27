@@ -14,13 +14,13 @@ export type DrawerFor = { editing: Transaction } | { transferring: true } | { tr
  * keeps the one it was opened for, so the form and what its save answers are not lost.
  */
 export function useTransactionDrawer(items: ListedTransaction[] | undefined) {
-  const [drawer, setDrawer] = useState<DrawerFor>(null)
+  const [openFor, setOpenFor] = useState<DrawerFor>(null)
   const editing =
-    drawer && 'editing' in drawer
-      ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === drawer.editing.id) ?? drawer.editing)
+    openFor && 'editing' in openFor
+      ? (items?.find((transaction): transaction is Transaction => !isPending(transaction) && transaction.id === openFor.editing.id) ?? openFor.editing)
       : undefined
   /** Opens a row: a leg of a transfer opens its transfer, anything else the transaction. */
-  const edit = useCallback((chosen: Transaction) => setDrawer(isTransferLeg(chosen) ? { transferId: chosen.transferId } : { editing: chosen }), [])
-  const close = useCallback(() => setDrawer(null), [])
-  return { drawer, editing, edit, open: setDrawer, close }
+  const edit = useCallback((chosen: Transaction) => setOpenFor(isTransferLeg(chosen) ? { transferId: chosen.transferId } : { editing: chosen }), [])
+  const close = useCallback(() => setOpenFor(null), [])
+  return { openFor, editing, edit, open: setOpenFor, close }
 }

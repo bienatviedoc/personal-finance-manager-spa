@@ -1,14 +1,14 @@
 import type { ParseKeys } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { budgetStates, PaceLabel } from '@/features/budgets'
+import { budgetStates, PaceLabel, type BudgetState } from '@/features/budgets'
 import { takesFromBalance, titleOf } from '@/features/transactions'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { joinDetails } from '@/shared/lib/details'
 import { formatShare } from '@/shared/lib/formatShare'
 import { cn } from '@/shared/lib/utils'
-import { formatMoney, inCurrencyOrder, Money, signedAmount, type Currency } from '@/shared/money'
-import type { BudgetState, Dashboard, DashboardOccurrence } from '../api/dashboard'
+import { formatMoney, inCurrencyOrder, Money, signedAmount, type Currency, type DecimalString } from '@/shared/money'
+import type { Dashboard, DashboardOccurrence } from '../api/dashboard'
 import { Card } from './Card'
 
 /** Where the screens and reports behind the cards are. A report is of this month: a preset the reports screen works out again on the day it is opened. */
@@ -106,11 +106,7 @@ export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
             <StateLabel state={budgets.overall.state} />
             {budgets.overall.pace && <PaceLabel pace={budgets.overall.pace} />}
           </div>
-          {Number(budgets.overall.notConverted) > 0 && (
-            <p role="note" className="text-sm font-medium text-warning">
-              {t('budgets.notConverted', { count: Number(budgets.overall.notConverted) })}
-            </p>
-          )}
+          <NotConvertedNote count={Number(budgets.overall.notConverted)} />
         </div>
       )}
       {hasCategoryBudgets && (
@@ -131,19 +127,26 @@ export function BudgetsCard({ dashboard }: { dashboard: Dashboard }) {
               ))}
             </ul>
           )}
-          {notConverted > 0 && (
-            <p role="note" className="text-sm font-medium text-warning">
-              {t('budgets.notConverted', { count: notConverted })}
-            </p>
-          )}
+          <NotConvertedNote count={notConverted} />
         </>
       )}
     </Card>
   )
 }
 
+/** How many expenses spent leaves out because they are not converted yet; nothing when there are none. */
+function NotConvertedNote({ count }: { count: number }) {
+  const { t } = useTranslation()
+  if (count === 0) return null
+  return (
+    <p role="note" className="text-sm font-medium text-warning">
+      {t('budgets.notConverted', { count })}
+    </p>
+  )
+}
+
 /** Spent of budgeted, with a bar that fills up to the budget and no further, coloured by `state`. */
-function SpentOf({ spent, budgeted, percentSpent, state, currency }: { spent: string; budgeted: string; percentSpent: number | string | null; state: BudgetState; currency: Currency }) {
+function SpentOf({ spent, budgeted, percentSpent, state, currency }: { spent: DecimalString; budgeted: DecimalString; percentSpent: number | string | null; state: BudgetState; currency: Currency }) {
   const { t } = useTranslation()
   const locale = useLocale()
   // A percentage is a count, not money.

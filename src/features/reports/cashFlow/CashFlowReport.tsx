@@ -3,9 +3,10 @@ import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
+import { SegmentedControl } from '@/shared/components/SegmentedControl'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
-import { cn, focusRingWithin } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { balanceIntervals, cashFlowQuery, type BalanceInterval, type CashFlow } from '../api/cashFlow'
 import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
@@ -42,7 +43,14 @@ export function CashFlowReport({ filters }: { filters: ReportFilters }) {
 
   return (
     <>
-      <IntervalToggle interval={interval} onChange={choose} />
+      {/* Daily or weekly: how often the balance is shown. */}
+      <SegmentedControl
+        legend={t('reports.cashFlow.interval')}
+        options={balanceIntervals.map((each) => ({ value: each, label: t(`reports.cashFlow.intervals.${each}`) }))}
+        value={interval}
+        onChange={choose}
+        className="inline-block"
+      />
       {cashFlow.isError ? (
         <ErrorMessage>{t('reports.errors.notLoaded')}</ErrorMessage>
       ) : cashFlow.data ? (
@@ -51,31 +59,6 @@ export function CashFlowReport({ filters }: { filters: ReportFilters }) {
         <ReportLoading />
       )}
     </>
-  )
-}
-
-/** Daily or weekly: how often the balance is shown. */
-function IntervalToggle({ interval, onChange }: { interval: BalanceInterval; onChange: (interval: BalanceInterval) => void }) {
-  const { t } = useTranslation()
-  const name = useId()
-  return (
-    <fieldset>
-      <legend className="sr-only">{t('reports.cashFlow.interval')}</legend>
-      <div className="inline-grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-        {balanceIntervals.map((each) => (
-          <label
-            key={each}
-            className={cn(
-              'cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-muted-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
-              focusRingWithin,
-            )}
-          >
-            <input type="radio" name={name} value={each} checked={interval === each} onChange={() => onChange(each)} className="sr-only" />
-            {t(`reports.cashFlow.intervals.${each}`)}
-          </label>
-        ))}
-      </div>
-    </fieldset>
   )
 }
 

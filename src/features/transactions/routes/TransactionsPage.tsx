@@ -203,7 +203,7 @@ export function TransactionsPage() {
         </Button>
       )}
 
-      <TransactionDrawer drawer={drawer.drawer} editing={drawer.editing} accounts={accounts.data?.accounts} categories={categories.data} onClose={drawer.close} />
+      <TransactionDrawer openFor={drawer.openFor} editing={drawer.editing} accounts={accounts.data?.accounts} categories={categories.data} onClose={drawer.close} />
     </section>
   )
 }
