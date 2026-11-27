@@ -169,6 +169,26 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   itself and sent to the URL once the API answers, or browsers would block it as a pop-up. The file is served
   by the storage, another origin, so nothing in the content security policy changes; showing a file inside the
   app (a thumbnail) would mean adding the storage's address to the policy on purpose.
+- **Importing a statement** (spec IMP-1, IMP-3; see the glossary: import batch, statement file, mapping, preview,
+  likely duplicate) is `features/imports`, at `/import`. The user picks an account and a CSV file, which is uploaded as
+  a form (`useUploadStatement`) and opens `/import/:batchId`; nothing is imported yet. The mapping starts from the
+  API's guess at the layout (`suggestedMapping`: the separator, and the header row after any preamble) and every
+  choice is the user's: the separator, the rows to skip at the start and end, whether a row names the columns, the
+  date, description and amount columns (one signed amount, or a debit and a credit), the date format and the decimal
+  separator (`MappingForm`). No bank's layout is built in (spec section 15). Each change asks the API for the
+  preview again (`importPreviewQuery`, the mapping in its key, the last answer shown meanwhile); the SPA reads no
+  CSV itself. Until the date and amount columns are mapped it shows the first rows cut into cells, named by the
+  header row (`RawRows`); then every row (`PreviewTable`): the transactions, each ticked unless the API marks it a
+  likely duplicate, the rows that cannot be read with why (translated from the API's `problem`), and the rows
+  passed over. A new mapping is a new preview, so the ticks start again from the API's. The screen says how many
+  rows will be imported, how many likely duplicates skipped and how many rows cannot be read, counting the rows the
+  API answered; it adds up no amount. Committing sends the mapping, the rows ticked and a category for money going
+  out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`).
+  The API's worker then imports in the background: the batch is asked for every second while it is `committing`
+  (`importBatchQuery`), and `ImportProgress` shows how many are imported as a progress bar, then what was imported
+  and skipped, or that it stopped, and loads the lists, balances, budgets and reports again
+  (`refreshTransactions`). Every imported transaction carries its `importBatchId`. Saving the mapping per account,
+  undoing a batch and auto-categorisation are still to come (#23, #24).
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
   edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
   date, and works out every date (`nextRunDate`). The SPA never computes a due date. A transaction a rule posted
@@ -347,6 +367,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeBudgetNotificationsApi` | `/api/v1/budget-notifications` and reading one or all (`/{id}/read`, `/read`): the newest first, a page at a time, with how many are unread; `raise` adds one, as a change that moved spent would on the API, and `reads` counts how often the list was asked for |
 | `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual`, `/api/v1/reports/net-worth` and `/api/v1/reports/cash-flow` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, `cashFlowAsked`, …), and can fail an answer |
+| `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch, its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds) and committing it (`commitRequests`); nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.

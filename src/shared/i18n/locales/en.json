@@ -230,7 +230,7 @@
     "noTransactions": "No transactions on this account yet.",
     "errors": {
       "notLoaded": "The account could not be loaded.",
-        "transactionsNotLoaded": "The account's transactions could not be loaded."
+      "transactionsNotLoaded": "The account's transactions could not be loaded."
     }
   },
   "transactions": {
@@ -1198,6 +1198,138 @@
       "title": "Coming up",
       "empty": "Nothing is due in the next 30 days.",
       "link": "See recurring rules"
+    }
+  },
+  "imports": {
+    "intro": "Upload a bank statement saved as CSV to add its transactions to an account. You will map its columns and check every row before anything is saved.",
+    "upload": "Upload",
+    "account": "Account",
+    "chooseAccount": "Choose an account",
+    "file": "Statement file (CSV)",
+    "fileHint": "A CSV file of at most 5 MB, as your bank exports it.",
+    "loading": "Loading the statement",
+    "batchTitle": "Import {{fileName}}",
+    "another": "Import another statement",
+    "mapIntro": "Say how the file is laid out. The preview below changes with each choice; nothing is saved until you import.",
+    "mapFirst": "Choose the date column and the amount column (or the debit and credit columns) to see the transactions.",
+    "rawTable": "The statement as uploaded",
+    "rawMore_one": "The first {{shown}} rows of {{count}}.",
+    "rawMore_other": "The first {{shown}} rows of {{count}}.",
+    "previewTable": "Rows of the statement",
+    "commit": "Import the rows ticked",
+    "categoriesIntro": "Imported transactions are recorded on these categories. You can change any of them afterwards.",
+    "expenseCategory": "Category for money going out",
+    "incomeCategory": "Category for money coming in",
+    "chooseCategory": "Choose a category",
+    "importCount_one": "Import {{count}} transaction",
+    "importCount_other": "Import {{count}} transactions",
+    "mapping": {
+      "title": "How to read the file",
+      "separator": "Separator",
+      "separators": {
+        "comma": "Comma (,)",
+        "semicolon": "Semicolon (;)",
+        "tab": "Tab",
+        "pipe": "Vertical bar (|)"
+      },
+      "skipFirstRows": "Rows to skip at the start",
+      "skipFirstRowsHint": "Rows before the column names or the first transaction, such as the bank's name and the account.",
+      "hasHeaderRow": "The next row names the columns",
+      "skipLastRows": "Rows to skip at the end",
+      "skipLastRowsHint": "Rows after the last transaction, such as a total.",
+      "dateColumn": "Date column",
+      "descriptionColumn": "Description column",
+      "noDescription": "No description",
+      "chooseColumn": "Choose a column",
+      "column": "Column {{number}}",
+      "amounts": "Amounts",
+      "amountChoices": {
+        "one": "One amount column",
+        "separate": "Debit and credit columns"
+      },
+      "amountColumn": "Amount column",
+      "amountColumnHint": "Money going out is below zero.",
+      "debitColumn": "Debit column (money out)",
+      "creditColumn": "Credit column (money in)",
+      "dateFormat": "Date format",
+      "dateFormats": {
+        "dayMonthYear": "Day, month, year (31/12/2026)",
+        "monthDayYear": "Month, day, year (12/31/2026)",
+        "yearMonthDay": "Year, month, day (2026-12-31)"
+      },
+      "decimalSeparator": "Decimal separator",
+      "decimalSeparators": {
+        "dot": "Dot (1,234.56)",
+        "comma": "Comma (1.234,56)"
+      }
+    },
+    "preview": {
+      "import": "Import",
+      "row": "Row",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "status": "Status",
+      "importRow": "Import row {{number}}",
+      "likelyDuplicate": "Likely duplicate",
+      "kinds": {
+        "skipped": "Skipped",
+        "header": "Column names",
+        "blank": "Blank"
+      }
+    },
+    "problems": {
+      "missingColumns": "The row has fewer cells than the columns chosen.",
+      "noDate": "The row has no date.",
+      "dateUnreadable": "The date cannot be read.",
+      "dateInFuture": "The date is after today.",
+      "noAmount": "The row has no amount.",
+      "amountUnreadable": "The amount cannot be read.",
+      "zeroAmount": "The amount is zero.",
+      "tooManyDecimals": "The amount has more decimals than the account's currency.",
+      "debitAndCredit": "The row has both a debit and a credit."
+    },
+    "summary": {
+      "title": "What will be imported",
+      "toImport_one": "{{count}} row to import",
+      "toImport_other": "{{count}} rows to import",
+      "skippedDuplicates_one": "{{count}} likely duplicate will be skipped",
+      "skippedDuplicates_other": "{{count}} likely duplicates will be skipped",
+      "failed_one": "{{count}} row cannot be read and will not be imported",
+      "failed_other": "{{count}} rows cannot be read and will not be imported"
+    },
+    "progress": {
+      "label": "Importing transactions",
+      "count": "{{imported}} of {{count}} transactions imported"
+    },
+    "done": {
+      "imported_one": "{{count}} transaction imported.",
+      "imported_other": "{{count}} transactions imported.",
+      "skippedDuplicates_one": "{{count}} likely duplicate was skipped.",
+      "skippedDuplicates_other": "{{count}} likely duplicates were skipped.",
+      "failed_one": "{{count}} row could not be read and was not imported.",
+      "failed_other": "{{count}} rows could not be read and were not imported.",
+      "stopped": "The import stopped after {{imported}} of {{count}} transactions. Those stay; the account or a category chosen may have been archived since.",
+      "seeTransactions": "See them in the transactions"
+    },
+    "errors": {
+      "generic": "The import could not be loaded. Try again in a moment.",
+      "account": "Choose one of your accounts that is not archived.",
+      "noFile": "Choose a statement file to upload.",
+      "tooLarge": "The file is over 5 MB. Upload a CSV file of at most 5 MB.",
+      "notText": "This is not a CSV file saved as text. Save the statement as CSV (UTF-8) and upload it again.",
+      "notUploaded": "The statement could not be uploaded.",
+      "preview": "The statement could not be previewed. Try again in a moment.",
+      "expenseCategory": "Choose the category money going out is recorded on.",
+      "incomeCategory": "Choose the category money coming in is recorded on.",
+      "notCommitted": "The statement could not be imported.",
+      "refused": {
+        "rows": "The rows have changed since the preview. Check them and import again.",
+        "expenseCategoryId": "Choose one of your expense categories that is not archived.",
+        "incomeCategoryId": "Choose one of your income categories that is not archived.",
+        "mapping": "Choose the date column and the amount column, or the debit and credit columns.",
+        "accountId": "The account has been archived since the statement was uploaded."
+      }
     }
   }
 }
