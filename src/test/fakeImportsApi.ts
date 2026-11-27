@@ -21,8 +21,8 @@ type Options = {
   categories: FakeCategory[]
   /** The transactions already on the accounts, as `fakeTransactionsApi` keeps them: what a likely duplicate is matched against. */
   transactions?: Transaction[]
-  /** Statements uploaded before the test starts. */
-  batches?: { accountId: string; fileName?: string; text: string }[]
+  /** Statements uploaded before the test starts, and how far each got: uploaded unless said otherwise. */
+  batches?: { accountId: string; fileName?: string; text: string; past?: Partial<Pick<Batch, 'status' | 'createdAt' | 'importedCount' | 'selectedCount' | 'duplicateCount' | 'failedCount' | 'rowCount' | 'failure'>> }[]
   /** Today for the user: a row dated after it cannot be imported. */
   today?: string
 }
@@ -87,6 +87,10 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
     commitRequests: [] as CommitRequest[],
     /** Every query a preview was asked with. */
     previews: [] as Record<string, string>[],
+    /** The mapping saved for each account: the one its last statement was committed with. */
+    savedMappings: new Map<string, Mapping>(),
+    /** How many transactions of a batch are reconciled, which refuses its undo. */
+    reconciled: new Map<string, number>(),
   }
 
   const keep = (accountId: string, fileName: string, text: string) => {
@@ -105,18 +109,21 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       committedAt: null,
       mapping: null,
       suggestedMapping: suggest(text),
+      savedMapping: null,
+      undoneAt: null,
       text,
     }
     state.batches.push(batch)
     return batch
   }
-  for (const batch of batches) keep(batch.accountId, batch.fileName ?? 'statement.csv', batch.text)
+  for (const batch of batches) Object.assign(keep(batch.accountId, batch.fileName ?? 'statement.csv', batch.text), batch.past)
 
   /** The batch as the API answers it: the file it keeps is not part of that. */
   const answer = (kept: Kept): Batch => {
     const batch: Partial<Kept> = { ...kept }
     delete batch.text
-    return { ...(batch as Batch), suggestedMapping: kept.status === 'uploaded' ? kept.suggestedMapping : null }
+    const uploaded = kept.status === 'uploaded'
+    return { ...(batch as Batch), suggestedMapping: uploaded ? kept.suggestedMapping : null, savedMapping: uploaded ? (state.savedMappings.get(kept.accountId) ?? null) : null }
   }
   const find = (id: unknown) => state.batches.find((batch) => batch.id === id)
 
@@ -292,6 +299,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
 
   const committed = () => problem(409, { type: 'urn:pfm:problem:import-committed' })
   const importing = () => problem(409, { type: 'urn:pfm:problem:import-in-progress' })
+  const order = (a: Kept, b: Kept) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)
 
   server.use(
     http.post(apiUrl('/api/v1/imports'), async ({ request }) => {
@@ -314,6 +322,32 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       if (Object.keys(errors).length > 0) return problem(400, { errors })
       const batch = keep(account!.id, (file as File).name, text)
       return HttpResponse.json(answer(batch), { status: 201, headers: { Location: `/api/v1/imports/${batch.id}` } })
+    }),
+    http.get(apiUrl('/api/v1/imports'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const accountId = query.get('accountId')
+      const limit = Number(query.get('limit') ?? 50)
+      const past = state.batches.filter((batch) => batch.status !== 'uploaded' && (!accountId || batch.accountId === accountId)).sort(order)
+      const after = query.get('cursor')
+      const start = after === null ? 0 : past.findIndex((batch) => batch.id === after) + 1
+      const page = past.slice(start, start + limit)
+      return HttpResponse.json({ items: page.map(answer), nextCursor: start + limit < past.length ? page.at(-1)!.id : null })
+    }),
+    http.delete(apiUrl('/api/v1/imports/:id'), ({ request, params }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const batch = find(params.id)
+      if (!batch) return problem(404)
+      if (batch.status === 'uploaded') return problem(409, { type: 'urn:pfm:problem:import-not-committed' })
+      const reconciled = state.reconciled.get(batch.id) ?? 0
+      if (reconciled > 0) {
+        return problem(409, { type: 'urn:pfm:problem:import-reconciled', title: 'This statement cannot be undone while any of its transactions is reconciled.', reconciledCount: reconciled })
+      }
+      if (batch.status !== 'undone') {
+        Object.assign(batch, { status: 'undone', undoneAt: '2026-11-20T10:00:00Z', text: null })
+        for (let at = transactions.length - 1; at >= 0; at--) if (transactions[at]!.importBatchId === batch.id) transactions.splice(at, 1)
+      }
+      return HttpResponse.json(answer(batch))
     }),
     http.get(apiUrl('/api/v1/imports/:id'), ({ params }) => {
       const batch = find(params.id)
@@ -358,6 +392,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       }
       if (Object.keys(errors).length > 0) return problem(400, { errors })
       if (state.batches.some((other) => other !== batch && other.accountId === batch.accountId && other.status === 'committing')) return importing()
+      state.savedMappings.set(batch.accountId, mapping as Mapping)
       Object.assign(batch, {
         status: 'committing',
         mapping,
