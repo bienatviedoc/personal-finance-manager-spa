@@ -325,7 +325,7 @@ describe('the budget screen', () => {
 
     const food = await row('Food & drink')
     expect(within(food).getByText('Spent').parentElement).toHaveTextContent('Spent₫1,850,000')
-    await user.click(within(food).getByRole('link', { name: 'Transactions behind Food & drink in November 2026' }))
+    await user.click(within(food).getByRole('link', { name: 'See transactions behind Food & drink in November 2026' }))
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Transactions' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/transactions')

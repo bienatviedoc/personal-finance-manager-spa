@@ -3,3 +3,5 @@ dist
 .git
 .github
 *.md
+test-results
+playwright-report

@@ -639,7 +639,7 @@
     "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "transactions": "Xem giao dịch",
-    "transactionsBehind": "Các giao dịch của {{name}} trong {{month}}",
+    "transactionsBehind": "Xem giao dịch của {{name}} trong {{month}}",
     "overall": {
       "name": "Ngân sách tổng",
       "for": "Ngân sách tổng {{month}}",
