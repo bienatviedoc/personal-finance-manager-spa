@@ -390,8 +390,8 @@ its estimate. A test of the virtualisation itself gives the screen and the rows 
 (`transactionList.test.tsx`); one that needs a list with a page still to load makes the screen short
 (`window.innerHeight = 768`).
 
-To upload in a test, hand `user.upload` a `new File([...])` whose first bytes are a real JPEG, PNG or PDF
-signature. `src/test/setup.ts` makes `File` and `FormData` Node's own, because the request leaves through
+To upload an attachment in a test, hand `user.upload` a `new File([...])` whose first bytes are a real JPEG, PNG
+or PDF signature; a statement is a `new File(['...'])` of its CSV text. `src/test/setup.ts` makes `File` and `FormData` Node's own, because the request leaves through
 Node's `fetch`, which cannot read jsdom's. `window.open` is not implemented in jsdom: spy on it and answer a
 stand-in tab (see `attachments.test.tsx`).
 

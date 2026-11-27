@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { Money, signedAmount } from '@/shared/money'
-import { cn } from '@/shared/lib/utils'
+import { cn, focusRing } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import type { ImportPreview, PreviewRow } from '../api/imports'
 import type { ColumnChoice } from './MappingForm'
@@ -110,7 +110,7 @@ export function PreviewTable({ preview, selection, onToggle }: Props) {
                   {row.kind === 'parsed' && (
                     <input
                       type="checkbox"
-                      className="size-4"
+                      className={cn('size-4', focusRing)}
                       aria-label={t('imports.preview.importRow', { number: row.number })}
                       checked={selection.has(Number(row.number))}
                       onChange={() => onToggle(Number(row.number))}
