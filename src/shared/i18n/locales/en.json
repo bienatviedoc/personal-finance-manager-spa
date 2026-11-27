@@ -642,7 +642,7 @@
     "overall": {
       "name": "Overall budget",
       "for": "Overall budget for {{month}}",
-      "intro": "A cap on everything you spend this month, whether or not its category has a budget.",
+      "intro": "A spending limit on all of {{month}}'s expenses together, whether or not their category has a budget of its own.",
       "save": "Save the overall budget",
       "remove": "Remove the overall budget",
       "stale": "The overall budget was changed somewhere else. The latest amount is shown; check it and save again."

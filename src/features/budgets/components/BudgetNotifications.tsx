@@ -36,7 +36,7 @@ export function BudgetNotifications() {
       >
         <Bell aria-hidden className="size-5" />
         {unread > 0 && (
-          <span aria-hidden className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-destructive px-1 text-center text-[10px] leading-4 text-white">
+          <span aria-hidden className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] leading-4 text-primary-foreground">
             {unread}
           </span>
         )}

@@ -271,7 +271,7 @@ function OverallBudgetCard({ budget, month, monthName, currency }: { budget: Ove
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-24 flex-1">
           <p className="font-medium">{name}</p>
-          <p className="text-sm text-muted-foreground">{t('budgets.overall.intro')}</p>
+          <p className="text-sm text-muted-foreground">{t('budgets.overall.intro', { month: monthName })}</p>
         </div>
         {budget && <StateBadge state={budget.state} />}
         <form id={formId} noValidate onSubmit={save} className="flex flex-wrap items-center gap-2">

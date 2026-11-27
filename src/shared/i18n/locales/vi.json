@@ -642,7 +642,7 @@
     "overall": {
       "name": "Ngân sách tổng",
       "for": "Ngân sách tổng {{month}}",
-      "intro": "Giới hạn cho mọi khoản chi trong tháng, dù danh mục của nó có ngân sách riêng hay không.",
+      "intro": "Hạn mức chi tiêu cho tất cả các khoản chi {{month}}, dù danh mục của chúng có ngân sách riêng hay không.",
       "save": "Lưu ngân sách tổng",
       "remove": "Xóa ngân sách tổng",
       "stale": "Ngân sách tổng đã được thay đổi ở nơi khác. Số tiền mới nhất đang được hiển thị; hãy kiểm tra và lưu lại."
