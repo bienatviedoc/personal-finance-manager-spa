@@ -62,6 +62,19 @@ describe('budget notifications', () => {
     expect(await screen.findByRole('button', { name: 'Budget notifications' })).toBeInTheDocument()
   })
 
+  it('open the budgets screen for one whose month cannot be read, rather than a made-up address', async () => {
+    fakeProfileApi({ locale: 'en' })
+    const categories = fakeCategoriesApi()
+    fakeBudgetsApi({ categories: categories.categories })
+    fakeBudgetNotificationsApi([{ ...transportOver, month: 'November' }])
+    const { user, router } = renderApp('/settings/profile')
+
+    const dialog = await open(user)
+    await user.click(within(dialog).getByRole('link', { name: /Transport went over its budget for November/ }))
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/budgets'))
+  })
+
   it('are all marked read at once', async () => {
     fakeProfileApi({ locale: 'en' })
     const api = fakeBudgetNotificationsApi([transportOver, { ...shoppingWarning, readAt: null }])

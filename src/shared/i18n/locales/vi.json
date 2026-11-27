@@ -1017,6 +1017,7 @@
       "transactions_other": "{{count}} giao dịch",
       "budgets_one": "{{count}} ngân sách",
       "budgets_other": "{{count}} ngân sách",
+      "targetGone": "Không thể gộp vào {{target}} nữa: danh mục này đã được lưu trữ hoặc chuyển đi nơi khác. Hãy chọn danh mục khác.",
       "refused": "Không thể gộp {{name}} vào {{target}}: một danh mục và danh mục cha, hoặc một danh mục con của nó, sẽ cùng có ngân sách trong một tháng. Hãy xóa một trong các ngân sách đó trước."
     },
     "name": "Tên",

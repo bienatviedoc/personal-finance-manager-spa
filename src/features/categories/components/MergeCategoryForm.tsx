@@ -27,7 +27,9 @@ type Props = {
 export function MergeCategoryForm({ category, tree, onMerge, onCancel, id }: Props) {
   const { t } = useTranslation()
   const [targetId, setTargetId] = useState('')
-  const [refused, setRefused] = useState(false)
+  // The target the API refused, as it was chosen: once the categories are loaded again, whether it is still offered
+  // says why. Still offered, a budget rule refused it; no longer, it was archived or moved since the list loaded.
+  const [refused, setRefused] = useState<Category | null>(null)
   const titleId = useId()
   const hasSubcategories = category.subcategories.length > 0
   const offered = useCategoryChoices(tree).filter(
@@ -45,7 +47,7 @@ export function MergeCategoryForm({ category, tree, onMerge, onCancel, id }: Pro
     if (!target) return
     // Whoever merges says that it failed; the form stays open to try again.
     const outcome = await onMerge(target.id).catch(() => undefined)
-    if (outcome && !outcome.saved && outcome.fields.includes('targetId')) setRefused(true)
+    if (outcome && !outcome.saved && outcome.fields.includes('targetId')) setRefused(target)
   }
 
   return (
@@ -61,7 +63,7 @@ export function MergeCategoryForm({ category, tree, onMerge, onCancel, id }: Pro
         value={targetId}
         onChange={(value) => {
           setTargetId(value)
-          setRefused(false)
+          setRefused(null)
         }}
       />
       {target && preview.data && (
@@ -75,7 +77,13 @@ export function MergeCategoryForm({ category, tree, onMerge, onCancel, id }: Pro
         </p>
       )}
       {target && preview.isError && <ErrorMessage>{t('categories.errors.generic')}</ErrorMessage>}
-      {refused && target && <ErrorMessage>{t('categories.merge.refused', { name: category.name, target: target.name })}</ErrorMessage>}
+      {refused && (
+        <ErrorMessage>
+          {target?.id === refused.id
+            ? t('categories.merge.refused', { name: category.name, target: refused.name })
+            : t('categories.merge.targetGone', { target: refused.name })}
+        </ErrorMessage>
+      )}
       <div className="flex gap-2">
         <Button type="submit" variant="destructive" size="sm" disabled={!target || !preview.data}>
           {t('categories.merge.confirm')}

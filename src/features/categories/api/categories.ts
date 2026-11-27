@@ -83,7 +83,8 @@ export const categoryMergePreviewQuery = (id: string) =>
 /**
  * Merges a category into another of the same kind (spec CAT-3): its transactions, budgets, recurring rules and
  * subcategories move there, and it is archived. `{ saved: false, fields: ['targetId'] }` when the API refuses the target, which it
- * does for a merge that would make three levels or budget a category and its parent in the same month.
+ * does for a merge that would make three levels or budget a category and its parent in the same month, or a target archived or
+ * moved since the list loaded; the categories are then loaded again.
  */
 export function useMergeCategory() {
   const queryClient = useQueryClient()
@@ -96,7 +97,9 @@ export function useMergeCategory() {
       throw new Error(`Merging a category failed: ${response.status}`)
     },
     onSuccess: (outcome) => {
-      if (!outcome.saved) return
+      // A target refused may have been archived or moved since the list loaded: the form tells which from the list
+      // loaded again, before the merge answers.
+      if (!outcome.saved) return queryClient.invalidateQueries({ queryKey: categoriesKey })
       // Every transaction, budget and recurring rule on it now shows under the category merged into.
       return Promise.all([queryClient.invalidateQueries({ queryKey: categoriesKey }), refreshTransactions(queryClient), refreshRecurringRules(queryClient)])
     },

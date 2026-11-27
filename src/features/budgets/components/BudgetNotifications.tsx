@@ -76,14 +76,16 @@ function Item({ notification, onChoose }: { notification: BudgetNotification; on
   const { t } = useTranslation()
   const locale = useLocale()
   const { icon: Icon, text } = budgetStates[notification.state]
-  // The API writes a budget month as 2026-11; anything else is shown as it came rather than misread.
-  const month = isCalendarMonth(notification.month) ? formatMonth(notification.month, locale) : notification.month
+  // The API writes a budget month as 2026-11; anything else is shown as it came rather than misread, and opens the
+  // budgets screen on its own month rather than an address it was never meant for.
+  const calendarMonth = isCalendarMonth(notification.month) ? notification.month : null
+  const month = calendarMonth ? formatMonth(calendarMonth, locale) : notification.month
   const values = { name: notification.category.name, month, percent: notification.percentSpent }
   const unread = notification.readAt === null
 
   return (
     <li className={cn('p-3', unread && 'bg-muted/50')}>
-      <Link to={`/budgets/${notification.month}`} onClick={onChoose} className={cn('flex gap-2 rounded-sm', focusRing)}>
+      <Link to={calendarMonth ? `/budgets/${calendarMonth}` : '/budgets'} onClick={onChoose} className={cn('flex gap-2 rounded-sm', focusRing)}>
         <Icon aria-hidden className={cn('mt-0.5 size-4 shrink-0', text)} />
         <span className="space-y-0.5">
           <span className={cn('block text-sm', unread && 'font-medium')}>

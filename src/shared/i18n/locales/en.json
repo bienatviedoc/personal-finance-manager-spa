@@ -1017,6 +1017,7 @@
       "transactions_other": "{{count}} transactions",
       "budgets_one": "{{count}} budget",
       "budgets_other": "{{count}} budgets",
+      "targetGone": "{{target}} can no longer be merged into: it was archived or moved somewhere else. Choose another category.",
       "refused": "{{name}} cannot be merged into {{target}}: a category and its parent, or one of its subcategories, would then both have a budget in the same month. Remove one of those budgets first."
     },
     "name": "Name",

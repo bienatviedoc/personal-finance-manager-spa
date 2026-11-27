@@ -186,6 +186,20 @@ describe('the categories screen', () => {
     expect(queryClient.getQueryState(['recurring-rules'])?.isInvalidated).toBe(true)
   })
 
+  it('says when the category chosen to merge into was archived since the list loaded, rather than blaming a budget', async () => {
+    const api = fakeCategoriesApi()
+    const { user } = renderApp('/settings/categories')
+
+    await user.click(await screen.findByRole('button', { name: 'Merge Groceries' }))
+    const form = screen.getByRole('form', { name: 'Merge Groceries' })
+    await choose(user, within(form).getByRole('combobox', { name: 'Merge into' }), 'Transport')
+    api.categories.find((category) => category.id === 'c-transport')!.isArchived = true
+    await user.click(await within(form).findByRole('button', { name: 'Merge' }))
+
+    expect(await within(form).findByText('Transport can no longer be merged into: it was archived or moved somewhere else. Choose another category.')).toBeInTheDocument()
+    expect(within(form).queryByText(/Remove one of those budgets first/)).not.toBeInTheDocument()
+  })
+
   it('says in a toast when a merge failed, and says why the API refused it when the user tries again', async () => {
     fakeCategoriesApi({ refuseMergeInto: ['c-transport'] })
     const { user } = renderApp('/settings/categories')

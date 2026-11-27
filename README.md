@@ -99,7 +99,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the balance.
 - **A change to a transaction moves a balance,** so saving or deleting one also loads the accounts again,
   through `refreshAccountBalances` from `@/features/accounts`. A feature that changes what another shows asks
-  that feature to refresh it; it never touches the other's query keys.
+  that feature to refresh it; it never touches the other's query keys. Two features may import each other this
+  way: merging a category refreshes transactions and recurring rules, which both name categories. Such a cycle is
+  allowed while one side only calls the other's `refresh…` at run time, never at import.
 - **A transfer is two transactions in the list.** The API lists a transfer as its two legs (`transferOut`,
   `transferIn`), each on its own account and carrying the `transferId` they share; the list marks them as a
   transfer. A leg is never edited or deleted as a transaction: either leg opens the transfer form, which loads
