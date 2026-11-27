@@ -8,9 +8,17 @@ import type { Mapping } from '../api/imports'
 
 export type ColumnChoice = { value: string; label: string }
 
-const separators = ['comma', 'semicolon', 'tab', 'pipe'] as const
-const dateFormats = ['dayMonthYear', 'monthDayYear', 'yearMonthDay'] as const
-const decimalSeparators = ['dot', 'comma'] as const
+// Each lists every choice the API has: one it adds and these lack fails typecheck, as `currencies` does.
+const separators = ['comma', 'semicolon', 'tab', 'pipe'] as const satisfies readonly Mapping['separator'][]
+const dateFormats = ['dayMonthYear', 'monthDayYear', 'yearMonthDay'] as const satisfies readonly Mapping['dateFormat'][]
+const decimalSeparators = ['dot', 'comma'] as const satisfies readonly Mapping['decimalSeparator'][]
+
+type Missing =
+  | Exclude<Mapping['separator'], (typeof separators)[number]>
+  | Exclude<Mapping['dateFormat'], (typeof dateFormats)[number]>
+  | Exclude<Mapping['decimalSeparator'], (typeof decimalSeparators)[number]>
+// Fails to compile while a list lacks a choice the API has.
+export const everyMappingChoiceListed: Missing extends never ? true : Missing = true
 const amountChoices = ['one', 'separate'] as const
 
 type Props = {
