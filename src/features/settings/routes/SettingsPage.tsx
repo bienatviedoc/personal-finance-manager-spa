@@ -6,6 +6,7 @@ import { cn, focusRing } from '@/shared/lib/utils'
 const sections: { to: string; label: ParseKeys }[] = [
   { to: 'profile', label: 'settings.profile.title' },
   { to: 'categories', label: 'settings.categories' },
+  { to: 'rules', label: 'settings.rules' },
   { to: 'security', label: 'settings.security.title' },
   { to: 'data', label: 'settings.data.title' },
 ]

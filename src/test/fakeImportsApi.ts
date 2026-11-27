@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type { components } from '@/shared/api/schema'
 import type { FakeCategory } from './fakeCategoriesApi'
+import { categoriseWith, type FakeRule } from './fakeCategorisationRulesApi'
 import { apiUrl, problem, refuseWithoutToken, server } from './server'
 
 type Batch = components['schemas']['ImportBatchResponse']
@@ -25,6 +26,8 @@ type Options = {
   batches?: { accountId: string; fileName?: string; text: string }[]
   /** Today for the user: a row dated after it cannot be imported. */
   today?: string
+  /** The user's categorisation rules: the preview suggests the category of the one each parsed row's description matches. */
+  rules?: FakeRule[]
 }
 
 /** A CSV text cut into rows and cells, as RFC 4180 has it, with any separator. */
@@ -75,7 +78,7 @@ const normalised = (description: string | null | undefined) =>
  * `import-in-progress` while another batch is committing into the account, 400 on `id` once its account is archived). Nothing
  * imports by itself: `importNext` moves a committing batch on, as the worker would.
  */
-export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20' }: Options) {
+export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20', rules = [] }: Options) {
   type Kept = Batch & { text: string | null }
   let uploaded = 0
   // Previews answered at once, unless held back for a test of what shows while one loads.
@@ -227,7 +230,10 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
     const footer = last + 1 - mapping.skipLastRows
     const header = mapping.hasHeaderRow ? (all[mapping.skipFirstRows] ?? []) : []
     const rows: Row[] = all.map((cells, index) => {
-      const row: Row = { number: index + 1, cells, kind: 'unmapped', date: null, type: null, amount: null, description: null, problem: null, likelyDuplicate: false, selected: false }
+      const row: Row = {
+        number: index + 1, cells, kind: 'unmapped', date: null, type: null, amount: null, description: null, problem: null, likelyDuplicate: false, selected: false,
+        suggestedCategoryId: null,
+      }
       if (mapping.hasHeaderRow && index === mapping.skipFirstRows) return { ...row, kind: 'header' }
       if (index < mapping.skipFirstRows || (index >= footer && index <= last)) return { ...row, kind: 'skipped' }
       if (cells.every((cell) => cell.trim() === '')) return { ...row, kind: 'blank' }
@@ -257,7 +263,9 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       const amount = Math.abs(signed)
       if (Number(amount.toFixed(decimals[account.currency])) !== amount) return failed('tooManyDecimals')
       const description = mapping.descriptionColumn === null ? null : cells[mapping.descriptionColumn]!.trim().split(/\s+/).join(' ').slice(0, 200) || null
-      return { ...row, kind: 'parsed', date, type: signed < 0 ? 'expense' : 'income', amount: amount.toFixed(2), description, selected: true }
+      const type = signed < 0 ? 'expense' : 'income'
+      const suggestedCategoryId = categoriseWith(rules, categories, description, type)
+      return { ...row, kind: 'parsed', date, type, amount: amount.toFixed(2), description, selected: true, suggestedCategoryId }
     })
 
     // Income and expenses match on the description too; a transfer leg, which has none, on the date, amount and direction alone.
@@ -350,8 +358,19 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       const parsed = new Map(read.rows.filter((row) => row.kind === 'parsed').map((row) => [row.number, row]))
       if (chosen.length === 0 || chosen.some((row) => !parsed.has(row))) return problem(400, { errors: { rows: ['Choose rows the preview reads as transactions.'] } })
       const errors: Record<string, string[]> = {}
+      // A row's own category is of its kind, not archived, given once, and for a row chosen; the batch's are for the rest.
+      const own = new Map<number, string>()
+      for (const { row, categoryId } of body.rowCategories ?? []) {
+        const number = Number(row)
+        const category = categories.find((candidate) => candidate.id === categoryId)
+        const kind = parsed.get(number)?.type
+        if (own.has(number)) errors.rowCategories = [`Give row ${number} one category.`]
+        else if (!chosen.includes(number)) errors.rowCategories = [`Row ${number} is not chosen to import.`]
+        else if (!category || category.isArchived || category.kind !== kind) errors.rowCategories = [`Row ${number} takes one of your ${kind} categories that is not archived.`]
+        own.set(number, categoryId)
+      }
       for (const [field, kind] of [['expenseCategoryId', 'expense'], ['incomeCategoryId', 'income']] as const) {
-        const needed = chosen.some((row) => parsed.get(row)!.type === kind)
+        const needed = chosen.some((row) => !own.has(Number(row)) && parsed.get(row)!.type === kind)
         const id = body[field]
         const category = categories.find((candidate) => candidate.id === id)
         if ((needed && !id) || (id && (!category || category.isArchived || category.kind !== kind))) errors[field] = [`Choose one of your ${kind} categories that is not archived.`]
