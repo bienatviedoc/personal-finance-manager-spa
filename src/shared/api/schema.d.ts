@@ -68,6 +68,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in user's audit log, the newest entry first, a page at a time: each sign-in, statement committed or import undone, bulk edit, bulk delete and delete of a transaction or transfer, with what it affected, when, and a short summary in the user's locale when it was written. Entries cannot be changed or deleted. */
+        get: operations["ListAuditEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/export/transactions.csv": {
         parameters: {
             query?: never;
@@ -1320,6 +1337,25 @@ export interface components {
             expiresAt: string;
         };
         /** @enum {unknown} */
+        AuditAction: "signIn" | "importCommit" | "importUndo" | "bulkEdit" | "bulkDelete" | "delete";
+        /** @enum {unknown} */
+        AuditEntityType: "user" | "importBatch" | "transaction" | "transfer";
+        AuditEntryResponse: {
+            /** Format: uuid */
+            id: string;
+            action: components["schemas"]["AuditAction"];
+            entityType: components["schemas"]["AuditEntityType"];
+            /** Format: uuid */
+            entityId: null | string;
+            /** Format: date-time */
+            at: string;
+            summary: string;
+        };
+        AuditLogResponse: {
+            items: components["schemas"]["AuditEntryResponse"][];
+            nextCursor: null | string;
+        };
+        /** @enum {unknown} */
         BalanceInterval: "day" | "week";
         BaseCurrencyTotalResponse: {
             currency: components["schemas"]["Currency"];
@@ -2525,6 +2561,47 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListAuditEntries: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
