@@ -364,8 +364,8 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       batch.importedCount = Math.min(Number(batch.selectedCount), Number(batch.importedCount) + (rows ?? Number(batch.selectedCount)))
       if (batch.importedCount === Number(batch.selectedCount)) Object.assign(batch, { status: 'committed', committedAt: '2026-11-20T09:01:00Z', text: null })
     },
-    /** Stops a committing batch, as the worker does when its rows can no longer be recorded. */
-    fail(id: string, failure: string) {
+    /** Stops a batch, as the worker does when its rows can no longer be recorded, for the reason given. */
+    fail(id: string, failure: NonNullable<Batch['failure']>) {
       Object.assign(find(id)!, { status: 'failed', failure, text: null })
     },
   }

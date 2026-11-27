@@ -3,12 +3,13 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { refreshTransactions } from '@/features/transactions'
-import type { ImportBatch } from '../api/imports'
+import type { ImportBatch, StartAgain } from '../api/imports'
 
 /**
  * A committed statement while the API's worker imports it, a few rows at a time, and once it is done (spec
  * section 5: a background job with progress). The batch is asked for every second meanwhile; once it is done or
- * stopped, everything its transactions show in is loaded again: the lists, balances, budgets and reports.
+ * stopped, everything its transactions show in is loaded again: the lists, balances, budgets and reports. A stopped
+ * import says why, from the API's code, and offers to start again with a new upload, keeping the account and mapping.
  */
 export function ImportProgress({ batch }: { batch: ImportBatch }) {
   const { t } = useTranslation()
@@ -48,11 +49,25 @@ export function ImportProgress({ batch }: { batch: ImportBatch }) {
           {Number(batch.failedCount) > 0 && <p>{t('imports.done.failed', { count: batch.failedCount })}</p>}
         </>
       ) : (
-        <p className="text-destructive">{t('imports.done.stopped', { imported: batch.importedCount, count: batch.selectedCount })}</p>
+        <>
+          <p className="text-destructive">{t('imports.done.stopped', { imported: batch.importedCount, count: batch.selectedCount })}</p>
+          {batch.failure && <p>{t(`imports.failures.${batch.failure}`)}</p>}
+        </>
       )}
-      <Link className="underline" to={`/transactions?accountId=${batch.accountId}`}>
-        {t('imports.done.seeTransactions')}
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        <Link className="underline" to={`/transactions?accountId=${batch.accountId}`}>
+          {t('imports.done.seeTransactions')}
+        </Link>
+        {batch.status === 'failed' && (
+          <Link
+            className="underline"
+            to="/import"
+            state={{ accountId: batch.failure === 'accountArchived' ? undefined : batch.accountId, mapping: batch.mapping } satisfies StartAgain}
+          >
+            {t('imports.done.startAgain')}
+          </Link>
+        )}
+      </div>
     </div>
   )
 }

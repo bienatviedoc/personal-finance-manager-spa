@@ -1309,8 +1309,9 @@
       "skippedDuplicates_other": "{{count}} likely duplicates were skipped.",
       "failed_one": "{{count}} row could not be read and was not imported.",
       "failed_other": "{{count}} rows could not be read and were not imported.",
-      "stopped": "The import stopped after {{imported}} of {{count}} transactions. Those stay; the account or a category chosen may have been archived since.",
-      "seeTransactions": "See them in the transactions"
+      "stopped": "The import stopped after {{imported}} of {{count}} transactions. Those stay.",
+      "seeTransactions": "See them in the transactions",
+      "startAgain": "Start again"
     },
     "errors": {
       "generic": "The import could not be loaded. Try again in a moment.",
@@ -1330,6 +1331,13 @@
         "mapping": "Choose the date column and the amount column, or the debit and credit columns.",
         "accountId": "The account has been archived since the statement was uploaded."
       }
+    },
+    "failures": {
+      "accountArchived": "The account was archived after you imported the statement.",
+      "categoryArchived": "A category chosen for the statement was archived after you imported it.",
+      "accountCurrencyChanged": "The account's currency changed after you imported the statement, so its rows no longer read the same.",
+      "transactionRefused": "A row could not be recorded as a transaction.",
+      "unexpected": "Something went wrong while importing it. Start again, and if it happens again, tell us."
     }
   }
 }

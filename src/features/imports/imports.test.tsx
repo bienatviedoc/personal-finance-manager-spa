@@ -9,6 +9,7 @@ import { renderApp } from '@/test/renderApp'
 
 const everyday = '01970000-0000-7000-8000-200000000000'
 const firstBatch = '01970000-0000-7000-8000-600000000000'
+const secondBatch = '01970000-0000-7000-8000-600000000001'
 
 /** A Techcombank-like statement: a preamble, a header, one signed amount with dot thousands and comma decimals, and a total. */
 const statement = [
@@ -182,9 +183,9 @@ describe('importing a statement', () => {
     expect(screen.getByRole('link', { name: 'See them in the transactions' })).toHaveAttribute('href', `/transactions?accountId=${everyday}`)
   })
 
-  it('says an import stopped, keeping what it imported', async () => {
+  it('says why an import stopped, keeping what it imported, and starts again with the same account and mapping', async () => {
     const importsApi = fakeApis({ batches: [{ accountId: everyday, text: statement }] })
-    const { user } = renderApp(`/import/${firstBatch}`)
+    const { user, router } = renderApp(`/import/${firstBatch}`)
     await mapStatement(user)
     await (await previewRows()).findByRole('checkbox', { name: 'Import row 4' })
     await user.selectOptions(screen.getByLabelText('Category for money going out'), 'c-food')
@@ -193,10 +194,28 @@ describe('importing a statement', () => {
     await screen.findByRole('progressbar', { name: 'Importing transactions' })
 
     importsApi.importNext(firstBatch, 1)
-    importsApi.fail(firstBatch, 'The account has been archived since the statement was committed.')
+    importsApi.fail(firstBatch, 'categoryArchived')
 
-    expect(
-      await screen.findByText('The import stopped after 1 of 3 transactions. Those stay; the account or a category chosen may have been archived since.', undefined, { timeout: 3000 }),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('The import stopped after 1 of 3 transactions. Those stay.', undefined, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.getByText('A category chosen for the statement was archived after you imported it.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: 'Start again' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/import'))
+    await screen.findByRole('option', { name: 'Everyday (VND)' })
+    expect(screen.getByLabelText('Account')).toHaveValue(everyday)
+    await user.upload(screen.getByLabelText('Statement file (CSV)'), new File([statement], 'tcb-november.csv', { type: 'text/csv' }))
+    await user.click(screen.getByRole('button', { name: 'Upload' }))
+
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/import/${secondBatch}`))
+    expect(await (await previewRows()).findByRole('checkbox', { name: 'Import row 4' })).toBeChecked()
+    expect(screen.getByLabelText('Decimal separator')).toHaveValue('comma')
+  })
+
+  it('says each reason an import can stop in words of its own', async () => {
+    const importsApi = fakeApis({ batches: [{ accountId: everyday, text: statement }] })
+    importsApi.fail(firstBatch, 'unexpected')
+    renderApp(`/import/${firstBatch}`)
+
+    expect(await screen.findByText('Something went wrong while importing it. Start again, and if it happens again, tell us.')).toBeInTheDocument()
   })
 })

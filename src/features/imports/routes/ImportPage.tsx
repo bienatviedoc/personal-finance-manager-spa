@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useId, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { accountsQuery, useAccountChoices } from '@/features/accounts'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
@@ -10,7 +10,7 @@ import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
-import { useUploadStatement, type UploadField } from '../api/imports'
+import { useUploadStatement, type StartAgain, type UploadField } from '../api/imports'
 
 /** The largest statement the API takes. */
 const maxFileSize = 5 * 1024 * 1024
@@ -26,12 +26,14 @@ export function ImportPage() {
   const { t } = useTranslation()
   useDocumentTitle(t('screens.import'))
   const navigate = useNavigate()
+  // Starting again after an import stopped: the account and mapping it had.
+  const again = useLocation().state as StartAgain | null
   const formId = useId()
   const fileId = useId()
   const accounts = useQuery(accountsQuery())
   const choices = useAccountChoices(accounts.data?.accounts ?? [])
   const upload = useUploadStatement()
-  const [accountId, setAccountId] = useState('')
+  const [accountId, setAccountId] = useState(again?.accountId ?? '')
   const [file, setFile] = useState<File | null>(null)
   const [errors, setErrors] = useState<Partial<Record<UploadField, string>>>({})
 
@@ -47,7 +49,7 @@ export function ImportPage() {
     if (Object.keys(found).length > 0 || !file) return
     const outcome = await upload.mutateAsync({ accountId, file })
     if (outcome.saved) {
-      await navigate(`/import/${outcome.batch.id}`)
+      await navigate(`/import/${outcome.batch.id}`, { state: { mapping: again?.mapping } satisfies StartAgain })
       return
     }
     setErrors(Object.fromEntries(outcome.fields.map((field) => [field, t(field === 'file' ? 'imports.errors.notText' : 'imports.errors.account')])))

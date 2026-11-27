@@ -11,6 +11,12 @@ export type Mapping = components['schemas']['MappingResponse']
 export type ImportPreview = components['schemas']['ImportPreviewResponse']
 export type PreviewRow = components['schemas']['PreviewRowResponse']
 
+/**
+ * What starting again after a failed import carries, as router state: to the upload screen the account (unless it is
+ * the reason the import stopped), and on to the next batch the mapping, to start from instead of the API's guess.
+ */
+export type StartAgain = { accountId?: string; mapping?: Mapping | null }
+
 const uploadFields = ['accountId', 'file'] as const
 export type UploadField = (typeof uploadFields)[number]
 /** What uploading answers: the batch, to map and preview, or the fields the API refused. */

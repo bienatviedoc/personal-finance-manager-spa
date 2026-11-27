@@ -186,8 +186,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`).
   The API's worker then imports in the background: the batch is asked for every second while it is `committing`
   (`importBatchQuery`), and `ImportProgress` shows how many are imported as a progress bar, then what was imported
-  and skipped, or that it stopped, and loads the lists, balances, budgets and reports again
-  (`refreshTransactions`). Every imported transaction carries its `importBatchId`. Saving the mapping per account,
+  and skipped, or that it stopped and why (translated from the API's `failure` code), and loads the lists, balances,
+  budgets and reports again (`refreshTransactions`). A stopped import offers to start again: the upload screen
+  opens with the account chosen (unless it was archived) and the next file starts from the stopped batch's mapping
+  rather than the API's guess (`StartAgain`, carried as router state). Every imported transaction carries its `importBatchId`. Saving the mapping per account,
   undoing a batch and auto-categorisation are still to come (#23, #24).
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
   edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
