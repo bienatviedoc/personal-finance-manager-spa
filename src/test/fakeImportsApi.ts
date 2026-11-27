@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { components } from '@/shared/api/schema'
+import type { FakeCategory } from './fakeCategoriesApi'
 import { apiUrl, problem, refuseWithoutToken, server } from './server'
 
 type Batch = components['schemas']['ImportBatchResponse']
@@ -9,7 +10,6 @@ type Preview = components['schemas']['ImportPreviewResponse']
 type CommitRequest = components['schemas']['CommitImportRequest']
 type Account = components['schemas']['AccountResponse']
 type Transaction = components['schemas']['TransactionResponse']
-type Category = { id: string; kind: string; isArchived: boolean }
 
 const separators: Record<string, string> = { comma: ',', semicolon: ';', tab: '\t', pipe: '|' }
 const decimals: Record<string, number> = { VND: 0, USD: 2, EUR: 2 }
@@ -18,7 +18,7 @@ type Options = {
   /** The accounts a statement may be uploaded for, as `fakeAccountsApi` keeps them. */
   accounts: Account[]
   /** The categories a commit may name, as `fakeCategoriesApi` keeps them. */
-  categories: Category[]
+  categories: FakeCategory[]
   /** The transactions already on the accounts, as `fakeTransactionsApi` keeps them: what a likely duplicate is matched against. */
   transactions?: Transaction[]
   /** Statements uploaded before the test starts. */
@@ -78,6 +78,9 @@ const normalised = (description: string | null | undefined) =>
 export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20' }: Options) {
   type Kept = Batch & { text: string | null }
   let uploaded = 0
+  // Previews answered at once, unless held back for a test of what shows while one loads.
+  let previewsAnswered: Promise<void> = Promise.resolve()
+  let releasePreviews = () => {}
   const state = {
     batches: [] as Kept[],
     /** Every body a commit sent, in the order they arrived. */
@@ -306,6 +309,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       else {
         text = (await file.text()).replace(/^\u{FEFF}/u, '')
         if (text.includes('\0') || text.includes('\u{FFFD}')) errors.file = ['Upload a CSV file saved as text (UTF-8).']
+        else if (text.split(/\r?\n/).filter((line) => line.trim() !== '').length > 10_000) errors.file = ['Upload a statement of at most 10,000 rows.']
       }
       if (Object.keys(errors).length > 0) return problem(400, { errors })
       const batch = keep(account!.id, (file as File).name, text)
@@ -315,7 +319,8 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       const batch = find(params.id)
       return batch ? HttpResponse.json(answer(batch)) : problem(404)
     }),
-    http.get(apiUrl('/api/v1/imports/:id/preview'), ({ request, params }) => {
+    http.get(apiUrl('/api/v1/imports/:id/preview'), async ({ request, params }) => {
+      await previewsAnswered
       const batch = find(params.id)
       if (!batch) return problem(404)
       const query = new URL(request.url).searchParams
@@ -367,6 +372,15 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
 
   return {
     ...state,
+    /** Holds back the answers to previews asked for from now until `releasePreviews`. */
+    holdPreviews() {
+      previewsAnswered = new Promise<void>((resolve) => (releasePreviews = resolve))
+    },
+    /** Answers the previews held back, and every later one at once. */
+    releasePreviews() {
+      releasePreviews()
+      previewsAnswered = Promise.resolve()
+    },
     /** Imports the next rows of a committing batch, as the worker does; all that are left when no count is given. */
     importNext(id: string, rows?: number) {
       const batch = find(id)!

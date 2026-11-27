@@ -10,6 +10,8 @@ export type Mapping = components['schemas']['MappingResponse']
 /** A statement read with a mapping, every row of it. */
 export type ImportPreview = components['schemas']['ImportPreviewResponse']
 export type PreviewRow = components['schemas']['PreviewRowResponse']
+/** What a commit sends: the mapping previewed with, the rows ticked and a category for each way money moves. */
+export type CommitRequest = components['schemas']['CommitImportRequest']
 
 /**
  * What starting again after a failed import carries, as router state: to the upload screen the account (unless it is
@@ -103,12 +105,11 @@ export function useUploadStatement() {
 export function useCommitImport(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { mapping: Mapping; rows: number[]; expenseCategoryId: string | null; incomeCategoryId: string | null }): Promise<CommitOutcome> => {
+    mutationFn: async (body: CommitRequest): Promise<CommitOutcome> => {
       const { data, error, response } = await api.POST('/api/v1/imports/{id}/commit', { params: { path: { id } }, body })
       if (data) return { saved: true, batch: data }
       if (response.status === 409) {
-        const type = (error as { type?: string } | undefined)?.type
-        return type === importInProgress ? { saved: false, importInProgress: true } : { saved: false, committed: true }
+        return error && 'type' in error && error.type === importInProgress ? { saved: false, importInProgress: true } : { saved: false, committed: true }
       }
       const fields = refusedFields(response, error, commitFields)
       if (fields) return { saved: false, fields }
@@ -117,6 +118,8 @@ export function useCommitImport(id: string) {
     onSuccess: (outcome) => {
       if (outcome.saved) queryClient.setQueryData(batchKey(id), outcome.batch)
       else if ('committed' in outcome) return queryClient.invalidateQueries({ queryKey: batchKey(id) })
+      // Read the file again: what the other statement has imported meanwhile now shows as likely duplicates, unticked.
+      else if ('importInProgress' in outcome) return queryClient.invalidateQueries({ queryKey: [...batchKey(id), 'preview'] })
     },
   })
 }

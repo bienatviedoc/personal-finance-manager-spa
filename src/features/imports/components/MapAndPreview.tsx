@@ -32,7 +32,7 @@ export function MapAndPreview({ batch, suggested }: { batch: ImportBatch; sugges
       {preview.isError && <ErrorMessage>{t('imports.errors.preview')}</ErrorMessage>}
       {preview.data &&
         (complete ? (
-          <Check batch={batch} mapping={mapping} preview={preview.data} />
+          <Check batch={batch} mapping={mapping} preview={preview.data} reading={preview.isPlaceholderData} />
         ) : (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">{t('imports.mapFirst')}</p>
@@ -56,8 +56,11 @@ function useColumns(preview: ImportPreview | undefined): ColumnChoice[] {
   )
 }
 
-/** The previewed rows to tick, what will and will not be imported, the categories, and committing. */
-function Check({ batch, mapping, preview }: { batch: ImportBatch; mapping: Mapping; preview: ImportPreview }) {
+/**
+ * The previewed rows to tick, what will and will not be imported, the categories, and committing. While `reading`,
+ * the preview shown is of the mapping before, so nothing is committed until the new one answers.
+ */
+function Check({ batch, mapping, preview, reading }: { batch: ImportBatch; mapping: Mapping; preview: ImportPreview; reading: boolean }) {
   const { t } = useTranslation()
   const formId = useId()
   const commit = useCommitImport(batch.id)
@@ -88,12 +91,16 @@ function Check({ batch, mapping, preview }: { batch: ImportBatch; mapping: Mappi
     if (bringsIn && !incomeCategoryId) found.incomeCategoryId = t('imports.errors.incomeCategory')
     setErrors(found)
     if (Object.keys(found).length > 0) return
-    const outcome = await commit.mutateAsync({
-      mapping,
-      rows: chosen.map((row) => Number(row.number)),
-      expenseCategoryId: takesOut ? expenseCategoryId : null,
-      incomeCategoryId: bringsIn ? incomeCategoryId : null,
-    })
+    // A request that failed is shown by the toast below.
+    const outcome = await commit
+      .mutateAsync({
+        mapping,
+        rows: chosen.map((row) => Number(row.number)),
+        expenseCategoryId: takesOut ? expenseCategoryId : null,
+        incomeCategoryId: bringsIn ? incomeCategoryId : null,
+      })
+      .catch(() => undefined)
+    if (!outcome) return
     setInProgress(!outcome.saved && 'importInProgress' in outcome)
     if (!outcome.saved && 'fields' in outcome) {
       setErrors(Object.fromEntries(outcome.fields.map((field) => [field, t(`imports.errors.refused.${field}`)])))
@@ -142,7 +149,7 @@ function Check({ batch, mapping, preview }: { batch: ImportBatch; mapping: Mappi
         </div>
         {(errors.rows ?? errors.mapping ?? errors.id) && <ErrorMessage>{errors.rows ?? errors.mapping ?? errors.id}</ErrorMessage>}
         {inProgress && <ErrorMessage>{t('imports.errors.importInProgress')}</ErrorMessage>}
-        <Button type="submit" disabled={chosen.length === 0 || commit.isPending}>
+        <Button type="submit" disabled={chosen.length === 0 || commit.isPending || reading}>
           {t('imports.importCount', { count: chosen.length })}
         </Button>
         <FailureToast failed={commit.isError} message={t('imports.errors.notCommitted')} retry={{ form: formId }} onDismiss={commit.reset} />

@@ -45,12 +45,14 @@ export function ImportPage() {
     else if (file.size > maxStatementFileSize) found.file = t('imports.errors.tooLarge')
     setErrors(found)
     if (Object.keys(found).length > 0 || !file) return
-    const outcome = await upload.mutateAsync({ accountId, file })
+    // A request that failed is shown by the toast below.
+    const outcome = await upload.mutateAsync({ accountId, file }).catch(() => undefined)
+    if (!outcome) return
     if (outcome.saved) {
       await navigate(`/import/${outcome.batch.id}`, { state: { mapping: again?.mapping } satisfies StartAgain })
       return
     }
-    setErrors(Object.fromEntries(outcome.fields.map((field) => [field, t(field === 'file' ? 'imports.errors.notText' : 'imports.errors.account')])))
+    setErrors(Object.fromEntries(outcome.fields.map((field) => [field, t(field === 'file' ? 'imports.errors.unreadable' : 'imports.errors.account')])))
   }
 
   return (

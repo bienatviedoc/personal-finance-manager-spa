@@ -31,6 +31,7 @@ function fakeApis({ batches = [] as { accountId: string; text: string }[], trans
   return {
     ...fakeImportsApi({ accounts: accountsApi.accounts, categories: categoriesApi.categories, transactions: transactionsApi.transactions, batches }),
     accounts: accountsApi.accounts,
+    transactions: transactionsApi.transactions,
   }
 }
 
@@ -85,7 +86,21 @@ describe('importing a statement', () => {
     await user.upload(screen.getByLabelText('Statement file (CSV)'), new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00])], 'statement.csv'))
     await user.click(screen.getByRole('button', { name: 'Upload' }))
 
-    expect(await screen.findByText('This is not a CSV file saved as text. Save the statement as CSV (UTF-8) and upload it again.')).toBeInTheDocument()
+    expect(await screen.findByText('This file cannot be read as a statement. Save it as CSV (UTF-8), with at most 10,000 rows, and upload it again.')).toBeInTheDocument()
+  })
+
+  it('refuses a statement of more than 10,000 rows, saying how many it may have', async () => {
+    fakeApis()
+    const { user } = renderApp('/import')
+    expect(await screen.findByText('A CSV file of at most 5 MB and 10,000 rows, as your bank exports it.')).toBeInTheDocument()
+
+    await screen.findByRole('option', { name: 'Everyday (VND)' })
+    await user.selectOptions(screen.getByLabelText('Account'), everyday)
+    const rows = Array.from({ length: 10_001 }, (_, row) => `02-11-2026;ROW ${row};-1.000,00`).join('\n')
+    await user.upload(screen.getByLabelText('Statement file (CSV)'), new File([rows], 'statement.csv'))
+    await user.click(screen.getByRole('button', { name: 'Upload' }))
+
+    expect(await screen.findByText(/with at most 10,000 rows/)).toBeInTheDocument()
   })
 
   it('previews the transactions once the date and amount columns are mapped, with the rows that cannot be read and why', async () => {
@@ -263,6 +278,44 @@ describe('importing a statement', () => {
     ).toBeInTheDocument()
     expect(importsApi.batches[1]!.status).toBe('uploaded')
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+
+  it('previews the statement again once a commit is refused while another is importing, unticking the rows that one brought in', async () => {
+    const importsApi = fakeApis({
+      batches: [{ accountId: everyday, text: statement }, { accountId: everyday, text: statement }],
+      transactions: [{ type: 'expense', accountId: everyday, amount: '55000.00', date: '2026-10-02', categoryId: 'c-food', payee: 'Highlands Coffee' }],
+    })
+    Object.assign(importsApi.batches[0]!, { status: 'committing' })
+    const { user } = renderApp(`/import/${secondBatch}`)
+    await mapStatement(user)
+    const rows = await previewRows()
+    expect(await rows.findByRole('checkbox', { name: 'Import row 4' })).toBeChecked()
+
+    // The other statement imports a row this one has too.
+    Object.assign(importsApi.transactions[0]!, { date: '2026-11-02' })
+    await user.selectOptions(screen.getByLabelText('Category for money going out'), 'c-food')
+    await user.selectOptions(screen.getByLabelText('Category for money coming in'), 'c-salary')
+    await user.click(screen.getByRole('button', { name: 'Import 3 transactions' }))
+
+    await waitFor(() => expect(rows.getByRole('checkbox', { name: 'Import row 4' })).not.toBeChecked())
+    expect(screen.getByText('1 likely duplicate will be skipped')).toBeInTheDocument()
+    expect(screen.getByText(/Another statement is being imported into this account/)).toBeInTheDocument()
+  })
+
+  it('does not import while the preview of a changed mapping is still loading', async () => {
+    const importsApi = fakeApis({ batches: [{ accountId: everyday, text: statement }] })
+    const { user } = renderApp(`/import/${firstBatch}`)
+    await mapStatement(user)
+    await (await previewRows()).findByRole('checkbox', { name: 'Import row 4' })
+    await user.selectOptions(screen.getByLabelText('Category for money going out'), 'c-food')
+    await user.selectOptions(screen.getByLabelText('Category for money coming in'), 'c-salary')
+    importsApi.holdPreviews()
+
+    await user.selectOptions(screen.getByLabelText('Description column'), 'Ngày')
+
+    expect(screen.getByRole('button', { name: 'Import 3 transactions' })).toBeDisabled()
+    importsApi.releasePreviews()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Import 3 transactions' })).toBeEnabled())
   })
 
   it('says the account was archived since the statement was uploaded when the commit is refused for it', async () => {
