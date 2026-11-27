@@ -75,7 +75,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description The signed-in user's audit log, the newest entry first, a page at a time: each sign-in, statement committed or import undone, bulk edit, bulk delete and delete of a transaction or transfer, with what it affected, when, and a short summary in the user's locale when it was written. Entries cannot be changed or deleted. */
+        /** @description The signed-in user's audit log, the newest entry first, a page at a time: each sign-in, statement committed or import undone, bulk edit, bulk delete, delete of a transaction, a transfer, an attachment, a budget, a recurring rule or a categorisation rule, and the user asking to be deleted, with what it affected, when, and a short summary in the user's locale when it was written. Entries cannot be changed or deleted. */
         get: operations["ListAuditEntries"];
         put?: never;
         post?: never;
