@@ -451,18 +451,20 @@ with `e2e/compose.yaml` on top, which adds this repository's nginx image in fron
 http://localhost:8081. It runs as its own Compose project, `pfm-e2e`, publishing only the SPA and Mailpit (on 8026),
 so a development stack can keep running. It seeds a user with a year of sample data, runs the tests, and takes the
 stack down with its data. The API is the clone next to this one (`../personal-finance-manager-api`), or
-`PFM_API_DIR`; CI checks out the API's main branch, as it does for the client's types. Arguments go to Playwright
+`PFM_API_DIR` (a worktree of this repository must set it: the clone next to a worktree is not the API's); CI
+checks out the API's main branch, as it does for the client's types, so a wave that needs API changes not yet merged
+fails e2e until the API merges, as the client check does: merge the API first. Arguments go to Playwright
 (`npm run e2e -- e2e/journey.spec.ts`), and `PFM_E2E_KEEP=1` leaves the stack running afterwards.
 
 | File | What it proves |
 | --- | --- |
 | `journey.spec.ts` | One new user, step by step: registers and confirms the email address from the link Mailpit caught, signs in, adds two accounts, an income and an expense, makes a transfer and checks both balances, sets a budget and sees its spent, reads spending by category, and imports the Vietcombank stand-in statement from the API repository (`tests/statements/synthetic-stand-ins`), mapping every column itself, through to the worker's import |
-| `accessibility.spec.ts` | [axe](https://github.com/dequelabs/axe-core) finds no WCAG 2.1 AA violation on the signed-out screens, every screen of the shell, each report as a chart and as a table, the transaction and transfer drawers, and a statement's mapping and preview, in the light and the dark theme, signed in as the seeded user so the screens are full |
+| `accessibility.spec.ts` | [axe](https://github.com/dequelabs/axe-core) finds no WCAG 2.1 AA violation on the signed-out screens, every screen of the shell (the reports' and recently deleted among them), an account and reconciling it, each report as a chart and as a table, the transaction and transfer drawers, a categorisation rule being set up, and a statement's mapping, preview, import screen and place among past imports with its undo open, in the light and the dark theme, signed in as the seeded user so the screens are full. Each screen must have loaded first: what it shows once it has is visible, and no alert says it could not, so a screen whose endpoint the API lacks fails rather than being checked in its error state |
 
 Find things the way a user does, by role and accessible name (`getByRole`, `getByLabel`), never by class or test id:
 the suite then also checks the names a screen reader reads, and survives a change of layout. A radio drawn as a
 segmented control is chosen by its label (`choose`), a type-ahead picker by typing (`pick`), both in
-`e2e/support/ui.ts`. Each run registers its own user, so nothing depends on what an earlier run left. A violation
+`e2e/support/ui.ts`; a statement of the API's golden files is `syntheticStatement(name)` (`e2e/support/statements.ts`). Each run registers its own user, so nothing depends on what an earlier run left. A violation
 axe finds is fixed in the app, not excluded from the check.
 
 ## Layout
