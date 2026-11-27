@@ -330,9 +330,10 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   notice until the user dismisses it. The interface says "delete your profile", never "account": an account is
   where money sits (see the glossary), and a test checks both languages.
 - **The audit log** is Settings > Audit log (`/settings/audit-log`): the user's sign-ins, statements committed, imports
-  undone, bulk actions and deletes, the newest first, older ones a page at a time. The API writes every entry and its
-  summary (in the user's locale when it was written); the SPA names the action, writes when it happened in the user's
-  time zone, and shows the summary as it came. Entries cannot be changed or deleted, so the screen only reads.
+  undone, bulk actions, deletes (of transactions, transfers, attachments, budgets and rules) and requests to delete the
+  profile, the newest first, older ones a page at a time. The API writes every entry and its summary (in the user's
+  locale when it was written); the SPA names the action and the kind of thing it affected (`entityType`, or the
+  transactions a bulk action took), writes when it happened in the user's time zone, and shows the summary as it came. Entries cannot be changed or deleted, so the screen only reads.
 - **Lockout and rate limiting are the API's.** A locked user is answered like a wrong password, so the sign-in
   screen warns about the lock beside that message; a 429 becomes "too many attempts".
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which

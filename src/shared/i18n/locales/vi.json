@@ -958,7 +958,7 @@
     },
     "auditLog": {
       "title": "Nhật ký hoạt động",
-      "body": "Ghi lại mỗi lần đăng nhập, nhập sao kê, hoàn tác lần nhập, sửa hàng loạt và xóa, mới nhất ở trên cùng. Không thể sửa hay xóa các mục trong nhật ký.",
+      "body": "Ghi lại mỗi lần đăng nhập, nhập sao kê, hoàn tác lần nhập, sửa hàng loạt, xóa và yêu cầu xóa hồ sơ, mới nhất ở trên cùng. Không thể sửa hay xóa các mục trong nhật ký.",
       "empty": "Chưa có gì được ghi lại.",
       "notLoaded": "Không tải được nhật ký hoạt động. Hãy thử lại sau ít phút.",
       "more": "Xem các mục cũ hơn",
@@ -970,6 +970,17 @@
         "bulkDelete": "Xóa hàng loạt",
         "delete": "Đã xóa",
         "deletionRequest": "Yêu cầu xóa hồ sơ"
+      },
+      "entities": {
+        "user": "Hồ sơ",
+        "importBatch": "Lần nhập",
+        "transaction": "Giao dịch",
+        "transactions": "Các giao dịch",
+        "transfer": "Chuyển khoản",
+        "attachment": "Tệp đính kèm",
+        "budget": "Ngân sách",
+        "recurringRule": "Quy tắc định kỳ",
+        "categorisationRule": "Quy tắc phân loại"
       }
     },
     "data": {

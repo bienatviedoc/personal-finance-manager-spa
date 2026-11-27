@@ -6,7 +6,7 @@ import { formatMoment } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
-import { auditLogQuery, type AuditAction, type AuditEntry } from '../api/auditLog'
+import { auditLogQuery, type AuditAction, type AuditEntityType, type AuditEntry } from '../api/auditLog'
 import { useUserSettings } from '../api/profile'
 
 /** What each action is called in the log; the API's summary says the rest. */
@@ -20,9 +20,22 @@ const actionLabels: Record<AuditAction, ParseKeys> = {
   deletionRequest: 'settings.auditLog.actions.deletionRequest',
 }
 
+/** What kind of thing each entry affected. */
+const entityLabels: Record<AuditEntityType, ParseKeys> = {
+  user: 'settings.auditLog.entities.user',
+  importBatch: 'settings.auditLog.entities.importBatch',
+  transaction: 'settings.auditLog.entities.transaction',
+  transfer: 'settings.auditLog.entities.transfer',
+  attachment: 'settings.auditLog.entities.attachment',
+  budget: 'settings.auditLog.entities.budget',
+  recurringRule: 'settings.auditLog.entities.recurringRule',
+  categorisationRule: 'settings.auditLog.entities.categorisationRule',
+}
+
 /**
- * The user's audit log (spec section 8, Auditability): each sign-in, statement committed, import undone, bulk action
- * and delete, the newest first, with when it happened in the user's time zone and the API's summary of it. Read only.
+ * The user's audit log (spec section 8, Auditability): each sign-in, statement committed, import undone, bulk action,
+ * delete and request to delete the profile, the newest first, with when it happened in the user's time zone, what kind
+ * of thing it affected and the API's summary of it. Read only.
  */
 export function AuditLogSettingsPage() {
   const { t } = useTranslation()
@@ -52,6 +65,11 @@ export function AuditLogSettingsPage() {
   )
 }
 
+/** What the entry affected: one thing of its kind, or, for a bulk action, the transactions it took. */
+function affected(entry: AuditEntry): ParseKeys {
+  return entry.entityId === null && entry.entityType === 'transaction' ? 'settings.auditLog.entities.transactions' : entityLabels[entry.entityType]
+}
+
 function Entry({ entry }: { entry: AuditEntry }) {
   const { t } = useTranslation()
   const locale = useLocale()
@@ -64,7 +82,10 @@ function Entry({ entry }: { entry: AuditEntry }) {
         {at}
       </time>
       <span className="space-y-0.5">
-        <span className="block text-sm font-medium">{t(actionLabels[entry.action])}</span>
+        <span data-testid="affected" className="block text-sm font-medium">
+          {t(actionLabels[entry.action])}
+          <span className="font-normal text-muted-foreground"> · {t(affected(entry))}</span>
+        </span>
         <span className="block text-sm">{entry.summary}</span>
       </span>
     </li>

@@ -36,6 +36,27 @@ describe('the audit log', () => {
     expect(screen.queryByRole('button', { name: /delete|edit|remove/i })).not.toBeInTheDocument()
   })
 
+  it('says what kind of thing each entry affected', async () => {
+    fakeAuditLogApi([
+      auditEntry({ id: 'e5', action: 'deletionRequest', entityType: 'user', entityId: 'u1', summary: 'Asked for their user to be deleted.' }),
+      auditEntry({ id: 'e4', action: 'delete', entityType: 'categorisationRule', entityId: 'r1', summary: 'Deleted the categorisation rule for "grab".' }),
+      auditEntry({ id: 'e3', action: 'delete', entityType: 'attachment', entityId: 'a1', summary: 'Removed the attachment receipt.pdf from a transaction.' }),
+      auditEntry({ id: 'e2', action: 'bulkDelete', entityType: 'transaction', entityId: null, summary: 'Deleted 3 transactions.' }),
+      auditEntry({ id: 'e1', action: 'importCommit', entityType: 'importBatch', entityId: 'b1', summary: 'Committed the statement august.csv: 2 rows to import.' }),
+    ])
+    renderApp('/settings/audit-log')
+
+    const rows = within(await screen.findByRole('list', { name: 'Audit log' })).getAllByRole('listitem')
+
+    expect(rows.map((row) => within(row).getByTestId('affected').textContent)).toEqual([
+      'Asked to delete the profile · Profile',
+      'Deleted · Categorisation rule',
+      'Deleted · Attachment',
+      'Bulk delete · Transactions',
+      'Statement committed · Import',
+    ])
+  })
+
   it('loads older entries a page at a time', async () => {
     fakeAuditLogApi(Array.from({ length: 60 }, (_, index) => auditEntry({ id: `e${60 - index}`, summary: `Entry ${60 - index}.` })))
     const { user } = renderApp('/settings/audit-log')

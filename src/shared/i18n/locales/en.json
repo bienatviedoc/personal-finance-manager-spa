@@ -958,7 +958,7 @@
     },
     "auditLog": {
       "title": "Audit log",
-      "body": "A record of each sign-in, statement imported, import undone, bulk edit and delete, the newest first. Entries cannot be changed or deleted.",
+      "body": "A record of each sign-in, statement imported, import undone, bulk edit, delete and request to delete your profile, the newest first. Entries cannot be changed or deleted.",
       "empty": "Nothing has been recorded yet.",
       "notLoaded": "The audit log could not be loaded. Try again in a little while.",
       "more": "Show older entries",
@@ -970,6 +970,17 @@
         "bulkDelete": "Bulk delete",
         "delete": "Deleted",
         "deletionRequest": "Asked to delete the profile"
+      },
+      "entities": {
+        "user": "Profile",
+        "importBatch": "Import",
+        "transaction": "Transaction",
+        "transactions": "Transactions",
+        "transfer": "Transfer",
+        "attachment": "Attachment",
+        "budget": "Budget",
+        "recurringRule": "Recurring rule",
+        "categorisationRule": "Categorisation rule"
       }
     },
     "data": {
