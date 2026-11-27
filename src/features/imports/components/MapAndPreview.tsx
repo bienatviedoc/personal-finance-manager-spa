@@ -69,6 +69,7 @@ function Check({ batch, mapping, preview }: { batch: ImportBatch; mapping: Mappi
   const [expenseCategoryId, setExpenseCategoryId] = useState('')
   const [incomeCategoryId, setIncomeCategoryId] = useState('')
   const [errors, setErrors] = useState<Partial<Record<CommitField, string>>>({})
+  const [inProgress, setInProgress] = useState(false)
 
   const chosen = preview.rows.filter((row) => selection.has(Number(row.number)))
   const takesOut = chosen.some((row) => row.type === 'expense')
@@ -93,6 +94,7 @@ function Check({ batch, mapping, preview }: { batch: ImportBatch; mapping: Mappi
       expenseCategoryId: takesOut ? expenseCategoryId : null,
       incomeCategoryId: bringsIn ? incomeCategoryId : null,
     })
+    setInProgress(!outcome.saved && 'importInProgress' in outcome)
     if (!outcome.saved && 'fields' in outcome) {
       setErrors(Object.fromEntries(outcome.fields.map((field) => [field, t(`imports.errors.refused.${field}`)])))
     }
@@ -138,7 +140,8 @@ function Check({ batch, mapping, preview }: { batch: ImportBatch; mapping: Mappi
             error={errors.incomeCategoryId}
           />
         </div>
-        {(errors.rows ?? errors.mapping ?? errors.accountId) && <ErrorMessage>{errors.rows ?? errors.mapping ?? errors.accountId}</ErrorMessage>}
+        {(errors.rows ?? errors.mapping ?? errors.id) && <ErrorMessage>{errors.rows ?? errors.mapping ?? errors.id}</ErrorMessage>}
+        {inProgress && <ErrorMessage>{t('imports.errors.importInProgress')}</ErrorMessage>}
         <Button type="submit" disabled={chosen.length === 0 || commit.isPending}>
           {t('imports.importCount', { count: chosen.length })}
         </Button>

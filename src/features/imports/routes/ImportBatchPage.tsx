@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
-import { importBatchQuery } from '../api/imports'
+import { importBatchQuery, type StartAgain } from '../api/imports'
 import { ImportProgress } from '../components/ImportProgress'
 import { MapAndPreview } from '../components/MapAndPreview'
 
@@ -15,6 +15,9 @@ export function ImportBatchPage() {
   const { t } = useTranslation()
   const { batchId = '' } = useParams()
   const batch = useQuery(importBatchQuery(batchId))
+  // Started again after an import stopped: its mapping, rather than the API's guess at the layout.
+  const kept = (useLocation().state as StartAgain | null)?.mapping
+  const startFrom = kept ?? batch.data?.suggestedMapping
   const title = batch.data ? t('imports.batchTitle', { fileName: batch.data.fileName }) : t('screens.import')
   useDocumentTitle(title)
 
@@ -33,8 +36,8 @@ export function ImportBatchPage() {
         </p>
       )}
       {batch.data &&
-        (batch.data.status === 'uploaded' && batch.data.suggestedMapping ? (
-          <MapAndPreview batch={batch.data} suggested={batch.data.suggestedMapping} />
+        (batch.data.status === 'uploaded' && startFrom ? (
+          <MapAndPreview batch={batch.data} suggested={startFrom} />
         ) : (
           <ImportProgress batch={batch.data} />
         ))}

@@ -1035,7 +1035,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Uploads a bank statement to import into one of the user's accounts: a CSV file of at most 5 MB, saved as text (UTF-8, or UTF-16 with a byte order mark), sent as the file field of a multipart/form-data body beside accountId. Nothing is imported yet: the answer is the import batch, with a first guess at how to read the file (suggestedMapping) for the user to confirm or change in the preview. */
+        /** @description Uploads a bank statement to import into one of the user's accounts: a CSV file of at most 5 MB and 10,000 rows, saved as text (UTF-8, or UTF-16 with a byte order mark), sent as the file field of a multipart/form-data body beside accountId. Nothing is imported yet: the answer is the import batch, with a first guess at how to read the file (suggestedMapping) for the user to confirm or change in the preview. */
         post: operations["UploadStatement"];
         delete?: never;
         options?: never;
@@ -1086,7 +1086,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Commits the statement: the rows chosen (rows the preview reads as transactions, with the same mapping) are imported in the background as income (on incomeCategoryId) or expenses (on expenseCategoryId) on the batch's account, each belonging to the batch, and the answer is 202 with the batch, committing. A likely duplicate is imported only when it is chosen; those left out are counted in duplicateCount. A batch committed already answers 409 with the problem type urn:pfm:problem:import-committed. */
+        /** @description Commits the statement: the rows chosen (rows the preview reads as transactions, with the same mapping) are imported in the background as income (on incomeCategoryId) or expenses (on expenseCategoryId) on the batch's account, each belonging to the batch, and the answer is 202 with the batch, committing. A likely duplicate is imported only when it is chosen; those left out are counted in duplicateCount. A batch whose account has been archived since it was uploaded is refused on id. A batch committed already answers 409 with the problem type urn:pfm:problem:import-committed. While another statement is being imported into the same account it answers 409 with the problem type urn:pfm:problem:import-in-progress and changes nothing: once that one is imported, preview again, and the rows it brought in are likely duplicates. */
         post: operations["CommitImport"];
         delete?: never;
         options?: never;
@@ -1730,7 +1730,7 @@ export interface components {
             duplicateCount: number | string;
             /** Format: int32 */
             failedCount: number | string;
-            failure: null | string;
+            failure: null | components["schemas"]["ImportFailure"];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1740,6 +1740,8 @@ export interface components {
         };
         /** @enum {unknown} */
         ImportBatchStatus: "uploaded" | "committing" | "committed" | "failed";
+        /** @enum {unknown} */
+        ImportFailure: "accountArchived" | "categoryArchived" | "accountCurrencyChanged" | "transactionRefused" | "unexpected" | null;
         ImportPreviewResponse: {
             header: string[];
             /** Format: int32 */

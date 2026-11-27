@@ -1276,7 +1276,11 @@
         "skipped": "Bỏ qua",
         "header": "Tên cột",
         "blank": "Trống"
-      }
+      },
+      "pages": "Các trang của sao kê",
+      "previous": "Các dòng trước",
+      "next": "Các dòng sau",
+      "page": "Dòng {{from}}–{{to}} trên {{count}}"
     },
     "problems": {
       "missingColumns": "Dòng có ít ô hơn số cột đã chọn.",
@@ -1309,8 +1313,9 @@
       "skippedDuplicates_other": "Đã bỏ qua {{count}} dòng có thể trùng.",
       "failed_one": "{{count}} dòng không đọc được và không được nhập.",
       "failed_other": "{{count}} dòng không đọc được và không được nhập.",
-      "stopped": "Việc nhập đã dừng sau {{imported}} trên {{count}} giao dịch. Những giao dịch đó vẫn được giữ; tài khoản hoặc một danh mục đã chọn có thể đã được lưu trữ.",
-      "seeTransactions": "Xem trong danh sách giao dịch"
+      "stopped": "Việc nhập đã dừng sau {{imported}} trên {{count}} giao dịch. Những giao dịch đó vẫn được giữ.",
+      "seeTransactions": "Xem trong danh sách giao dịch",
+      "startAgain": "Bắt đầu lại"
     },
     "errors": {
       "generic": "Không tải được việc nhập. Hãy thử lại sau giây lát.",
@@ -1328,8 +1333,16 @@
         "expenseCategoryId": "Chọn một danh mục chi tiêu của bạn chưa được lưu trữ.",
         "incomeCategoryId": "Chọn một danh mục thu nhập của bạn chưa được lưu trữ.",
         "mapping": "Chọn cột ngày và cột số tiền, hoặc cột ghi nợ và ghi có.",
-        "accountId": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên."
-      }
+        "id": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên."
+      },
+      "importInProgress": "Một sao kê khác đang được nhập vào tài khoản này. Hãy đợi nó xong rồi kiểm tra lại các dòng: những dòng nó đã nhập sẽ hiện là có thể trùng."
+    },
+    "failures": {
+      "accountArchived": "Tài khoản đã được lưu trữ sau khi bạn nhập sao kê.",
+      "categoryArchived": "Một danh mục đã chọn cho sao kê đã được lưu trữ sau khi bạn nhập.",
+      "accountCurrencyChanged": "Loại tiền của tài khoản đã thay đổi sau khi bạn nhập sao kê, nên các dòng không còn đọc như trước.",
+      "transactionRefused": "Một dòng không thể ghi thành giao dịch.",
+      "unexpected": "Đã có lỗi khi nhập. Hãy bắt đầu lại, và nếu lỗi lặp lại, hãy báo cho chúng tôi."
     }
   }
 }

@@ -1276,7 +1276,11 @@
         "skipped": "Skipped",
         "header": "Column names",
         "blank": "Blank"
-      }
+      },
+      "pages": "Pages of the statement",
+      "previous": "Previous rows",
+      "next": "Next rows",
+      "page": "Rows {{from}}–{{to}} of {{count}}"
     },
     "problems": {
       "missingColumns": "The row has fewer cells than the columns chosen.",
@@ -1309,8 +1313,9 @@
       "skippedDuplicates_other": "{{count}} likely duplicates were skipped.",
       "failed_one": "{{count}} row could not be read and was not imported.",
       "failed_other": "{{count}} rows could not be read and were not imported.",
-      "stopped": "The import stopped after {{imported}} of {{count}} transactions. Those stay; the account or a category chosen may have been archived since.",
-      "seeTransactions": "See them in the transactions"
+      "stopped": "The import stopped after {{imported}} of {{count}} transactions. Those stay.",
+      "seeTransactions": "See them in the transactions",
+      "startAgain": "Start again"
     },
     "errors": {
       "generic": "The import could not be loaded. Try again in a moment.",
@@ -1328,8 +1333,16 @@
         "expenseCategoryId": "Choose one of your expense categories that is not archived.",
         "incomeCategoryId": "Choose one of your income categories that is not archived.",
         "mapping": "Choose the date column and the amount column, or the debit and credit columns.",
-        "accountId": "The account has been archived since the statement was uploaded."
-      }
+        "id": "The account has been archived since the statement was uploaded."
+      },
+      "importInProgress": "Another statement is being imported into this account. Wait for it to finish, then check the rows again: those it imported will show as likely duplicates."
+    },
+    "failures": {
+      "accountArchived": "The account was archived after you imported the statement.",
+      "categoryArchived": "A category chosen for the statement was archived after you imported it.",
+      "accountCurrencyChanged": "The account's currency changed after you imported the statement, so its rows no longer read the same.",
+      "transactionRefused": "A row could not be recorded as a transaction.",
+      "unexpected": "Something went wrong while importing it. Start again, and if it happens again, tell us."
     }
   }
 }

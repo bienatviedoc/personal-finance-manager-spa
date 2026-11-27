@@ -69,9 +69,10 @@ const normalised = (description: string | null | undefined) =>
  * as the real API (see the API's ImportTests): an upload is a form with `accountId` (an account not archived) and a
  * `file` that is text, answered with a first guess at the layout; the preview reads the file with the mapping in its
  * query, row by row (skipped, header, blank, parsed, failed with its problem, or unmapped), and marks a row with the
- * date, amount, direction and normalised description of a transaction on the account as a likely duplicate,
- * unticked, each transaction matching one row at most; a commit takes rows the preview parses, a category for each
- * direction chosen, and answers 202 with the batch committing (409 `import-committed` once committed). Nothing
+ * date, amount, direction and normalised description of a transaction on the account (or the date, amount and
+ * direction of a transfer leg on it) as a likely duplicate, unticked, each transaction matching one row at most; a commit takes rows the preview parses, a category for each
+ * direction chosen, and answers 202 with the batch committing (409 `import-committed` once committed, 409
+ * `import-in-progress` while another batch is committing into the account, 400 on `id` once its account is archived). Nothing
  * imports by itself: `importNext` moves a committing batch on, as the worker would.
  */
 export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20' }: Options) {
@@ -186,18 +187,21 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
     return date.toISOString().slice(0, 10)
   }
 
-  /** A signed amount, or null when it cannot be read. Test amounts are small, so a number holds them. */
+  /**
+   * A signed amount, or null when it is not one well-formed number: one sign before or after it, or brackets round
+   * it, the other mark (or a space) grouping thousands in threes. Test amounts are small, so a number holds them.
+   */
   function readAmount(text: string, separator: Mapping['decimalSeparator']) {
     let written = text.trim()
     let negative = false
-    if (written.startsWith('(') && written.endsWith(')')) {
-      negative = true
-      written = written.slice(1, -1)
-    }
-    if (written.includes('-')) negative = !negative
+    if (written.length >= 2 && written.startsWith('(') && written.endsWith(')')) [negative, written] = [true, written.slice(1, -1).trim()]
+    else if (/^[-+]/.test(written)) [negative, written] = [written.startsWith('-'), written.slice(1).trimStart()]
+    else if (/[-+]$/.test(written)) [negative, written] = [written.endsWith('-'), written.slice(0, -1).trimEnd()]
     const [decimalMark, groupMark] = separator === 'comma' ? [',', '.'] : ['.', ',']
-    const digits = written.replaceAll(groupMark, '').replace(/[-+\s\p{L}\p{Sc}]/gu, '').replace(decimalMark, '.')
-    if (!/^\d+(\.\d*)?$|^\.\d+$/.test(digits)) return null
+    const group = groupMark === '.' ? '[. ]' : '[, ]'
+    const decimal = decimalMark === '.' ? '\\.' : ','
+    if (!new RegExp('^(\\d+|\\d{1,3}(' + group + '\\d{3})+)(' + decimal + '\\d+)?$').test(written)) return null
+    const digits = written.replace(new RegExp(group, 'g'), '').replace(decimalMark, '.')
     return (negative ? -1 : 1) * Number(digits)
   }
 
@@ -253,15 +257,15 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       return { ...row, kind: 'parsed', date, type: signed < 0 ? 'expense' : 'income', amount: amount.toFixed(2), description, selected: true }
     })
 
-    const unmatched = transactions.filter((transaction) => transaction.accountId === batch.accountId && (transaction.type === 'income' || transaction.type === 'expense'))
+    // Income and expenses match on the description too; a transfer leg, which has none, on the date, amount and direction alone.
+    const unmatched = transactions.filter((transaction) => transaction.accountId === batch.accountId)
+    const leg = (transaction: Transaction) => transaction.type === 'transferIn' || transaction.type === 'transferOut'
+    const moneyIn = (transaction: Transaction) => transaction.type === 'income' || transaction.type === 'transferIn' || transaction.isRefund
     for (const row of rows.filter((candidate) => candidate.kind === 'parsed')) {
-      const match = unmatched.findIndex(
-        (transaction) =>
-          transaction.date === row.date &&
-          Number(transaction.amount) === Number(row.amount) &&
-          (transaction.type === 'income' || transaction.isRefund ? 'income' : 'expense') === row.type &&
-          normalised(transaction.payee) === normalised(row.description),
-      )
+      const same = (transaction: Transaction) =>
+        transaction.date === row.date && Number(transaction.amount) === Number(row.amount) && (moneyIn(transaction) ? 'income' : 'expense') === row.type
+      const exact = unmatched.findIndex((transaction) => !leg(transaction) && same(transaction) && normalised(transaction.payee) === normalised(row.description))
+      const match = exact >= 0 ? exact : unmatched.findIndex((transaction) => leg(transaction) && same(transaction))
       if (match >= 0) {
         unmatched.splice(match, 1)
         Object.assign(row, { likelyDuplicate: true, selected: false })
@@ -284,6 +288,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
   }
 
   const committed = () => problem(409, { type: 'urn:pfm:problem:import-committed' })
+  const importing = () => problem(409, { type: 'urn:pfm:problem:import-in-progress' })
 
   server.use(
     http.post(apiUrl('/api/v1/imports'), async ({ request }) => {
@@ -328,6 +333,9 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       const batch = find(params.id)
       if (!batch) return problem(404)
       if (batch.status !== 'uploaded') return committed()
+      if (accounts.find((account) => account.id === batch.accountId)?.isArchived) {
+        return problem(400, { errors: { id: ["The statement's account has been archived: upload it again for one of your accounts that is not."] } })
+      }
       const query = new URLSearchParams(Object.entries(body.mapping ?? {}).filter(([, value]) => value !== null).map(([name, value]) => [name, String(value)]))
       const mapping = mappingOf(query)
       if (!('separator' in mapping) || typeof mapping.separator !== 'string') return problem(400, { errors: { mapping: ['Send the mapping.'] } })
@@ -344,6 +352,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
         if ((needed && !id) || (id && (!category || category.isArchived || category.kind !== kind))) errors[field] = [`Choose one of your ${kind} categories that is not archived.`]
       }
       if (Object.keys(errors).length > 0) return problem(400, { errors })
+      if (state.batches.some((other) => other !== batch && other.accountId === batch.accountId && other.status === 'committing')) return importing()
       Object.assign(batch, {
         status: 'committing',
         mapping,
@@ -364,8 +373,8 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       batch.importedCount = Math.min(Number(batch.selectedCount), Number(batch.importedCount) + (rows ?? Number(batch.selectedCount)))
       if (batch.importedCount === Number(batch.selectedCount)) Object.assign(batch, { status: 'committed', committedAt: '2026-11-20T09:01:00Z', text: null })
     },
-    /** Stops a committing batch, as the worker does when its rows can no longer be recorded. */
-    fail(id: string, failure: string) {
+    /** Stops a batch, as the worker does when its rows can no longer be recorded, for the reason given. */
+    fail(id: string, failure: NonNullable<Batch['failure']>) {
       Object.assign(find(id)!, { status: 'failed', failure, text: null })
     },
   }

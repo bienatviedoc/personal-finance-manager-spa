@@ -178,16 +178,21 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   separator (`MappingForm`). No bank's layout is built in (spec section 15). Each change asks the API for the
   preview again (`importPreviewQuery`, the mapping in its key, the last answer shown meanwhile); the SPA reads no
   CSV itself. Until the date and amount columns are mapped it shows the first rows cut into cells, named by the
-  header row (`RawRows`); then every row (`PreviewTable`): the transactions, each ticked unless the API marks it a
+  header row (`RawRows`); then every row (`PreviewTable`, 100 to a page, as a statement may have 10,000; the API
+  answers them all at once, and what is ticked is kept from page to page): the transactions, each ticked unless the API marks it a
   likely duplicate, the rows that cannot be read with why (translated from the API's `problem`), and the rows
   passed over. A new mapping is a new preview, so the ticks start again from the API's. The screen says how many
   rows will be imported, how many likely duplicates skipped and how many rows cannot be read, counting the rows the
   API answered; it adds up no amount. Committing sends the mapping, the rows ticked and a category for money going
-  out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`).
+  out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`). A
+  commit refused because another statement is being imported into the account (409 `import-in-progress`) says to
+  wait and check the rows again; one refused on `id` says the account was archived after the upload.
   The API's worker then imports in the background: the batch is asked for every second while it is `committing`
   (`importBatchQuery`), and `ImportProgress` shows how many are imported as a progress bar, then what was imported
-  and skipped, or that it stopped, and loads the lists, balances, budgets and reports again
-  (`refreshTransactions`). Every imported transaction carries its `importBatchId`. Saving the mapping per account,
+  and skipped, or that it stopped and why (translated from the API's `failure` code), and loads the lists, balances,
+  budgets and reports again (`refreshTransactions`). A stopped import offers to start again: the upload screen
+  opens with the account chosen (unless it was archived) and the next file starts from the stopped batch's mapping
+  rather than the API's guess (`StartAgain`, carried as router state). Every imported transaction carries its `importBatchId`. Saving the mapping per account,
   undoing a batch and auto-categorisation are still to come (#23, #24).
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
   edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
@@ -258,7 +263,9 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   `@/shared/lib/csv`, RFC 4180 and UTF-8 with a byte order mark, as the API writes its own), named for the report
   and its period (`net-worth-2026-01-01-2026-03-31.csv`). Columns take the API's names, amounts stay as the API
   answers them, plain decimals beside a `currency` column, and dates are `YYYY-MM-DD`; a report that compares adds
-  the period before. No report asks the API for a file.
+  the period before. No report asks the API for a file. Text that starts with `=`, `+`, `-`, `@`, a tab or a carriage
+  return (a category or account name, a payee) is written behind a single quote, so a spreadsheet shows it rather
+  than runs it (OWASP, CSV injection); an amount, even below zero, stays a number.
 - **A CSV file is the same in every language.** Nothing in it is translated: a report whose rows are of more than one
   kind starts each with a `row` column, a fixed code in English saying what the row is, and its other columns hold only
   numbers, codes, dates and what the user named. Income vs expenses: `month`, `total`, `previousMonth`,
