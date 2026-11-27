@@ -34,8 +34,10 @@ export function categoriseWith(rules: FakeRule[], categories: FakeCategory[], te
  * A stand-in for the API's categorisation rule endpoints, keeping state across requests and following the same rules
  * as the real API (see the API's CategorisationRuleTests): listed whole in the order they are tried; set up on a
  * category of the user's that is not archived, with match text and a known match type, without a priority one above the
- * highest; edited keeping a category archived since; reordered with every rule once, each taking its priority from its
- * place (the last 0); deleted for good.
+ * highest; edited keeping a category archived since, naming the row version in `If-Match` (412 when stale, 428 when
+ * missing); reordered with every rule once and the row version it was read at, each taking its priority from its place
+ * (the last 0): a rule named twice is a 400 on `rules`, and an order that is not every rule at its row version (one
+ * set up, edited or deleted since) a 412; deleted for good. Every change moves the row version on.
  */
 export function fakeCategorisationRulesApi({ rules = [], categories }: { rules?: Partial<FakeRule>[]; categories: FakeCategory[] }) {
   let made = 0
@@ -46,14 +48,25 @@ export function fakeCategorisationRulesApi({ rules = [], categories }: { rules?:
       matchType: 'contains',
       categoryId: 'c-transport',
       priority: 0,
+      rowVersion: '1',
       ...rule,
       order: index,
     })),
     requests: [] as { method: string; path: string; body: unknown }[],
+    /** The `If-Match` header of every edit, in the order they arrived. */
+    ifMatches: [] as (string | null)[],
   }
+  const changed = (rule: FakeRule) => (rule.rowVersion = String(Number(rule.rowVersion) + 1))
   made = state.rules.length
 
-  const view = (rule: FakeRule & { order: number }): FakeRule => ({ id: rule.id, matchText: rule.matchText, matchType: rule.matchType, categoryId: rule.categoryId, priority: rule.priority })
+  const view = (rule: FakeRule & { order: number }): FakeRule => ({
+    id: rule.id,
+    matchText: rule.matchText,
+    matchType: rule.matchType,
+    categoryId: rule.categoryId,
+    priority: rule.priority,
+    rowVersion: rule.rowVersion,
+  })
   const listed = () => inOrder(state.rules).map(view)
   const invalid = (field: string, message: string) => problem(400, { errors: { [field]: [message] } })
   const check = (body: RuleRequest, keeping?: string) => {
@@ -81,6 +94,7 @@ export function fakeCategorisationRulesApi({ rules = [], categories }: { rules?:
         matchType: body.matchType!,
         categoryId: body.categoryId,
         priority: body.priority ?? highest + 1,
+        rowVersion: '1',
         order: made++,
       } as FakeRule & { order: number }
       state.rules.push(rule)
@@ -89,13 +103,18 @@ export function fakeCategorisationRulesApi({ rules = [], categories }: { rules?:
     http.put(url('/api/v1/category-rules/order'), async ({ request }) => {
       const refused = refuseWithoutToken(request)
       if (refused) return refused
-      const body = (await request.json()) as { ids: string[] }
+      const body = (await request.json()) as components['schemas']['CategorisationRuleOrderRequest']
       state.requests.push({ method: 'PUT', path: '/api/v1/category-rules/order', body })
-      const ids = body.ids ?? []
-      if (ids.length !== state.rules.length || new Set(ids).size !== ids.length || ids.some((id) => !state.rules.some((rule) => rule.id === id))) {
-        return invalid('ids', 'List each of your rules once.')
-      }
-      ids.forEach((id, place) => (state.rules.find((rule) => rule.id === id)!.priority = ids.length - 1 - place))
+      const sent = body.rules ?? []
+      if (new Set(sent.map((rule) => rule.id)).size !== sent.length) return invalid('rules', 'List each of your rules once.')
+      const atVersion = sent.every((each) => state.rules.some((rule) => rule.id === each.id && rule.rowVersion === each.rowVersion))
+      if (sent.length !== state.rules.length || !atVersion) return problem(412)
+      sent.forEach(({ id }, place) => {
+        const rule = state.rules.find((candidate) => candidate.id === id)!
+        if (Number(rule.priority) === sent.length - 1 - place) return
+        rule.priority = sent.length - 1 - place
+        changed(rule)
+      })
       return HttpResponse.json({ items: listed() })
     }),
     http.put(url('/api/v1/category-rules/:id'), async ({ request, params }) => {
@@ -103,12 +122,17 @@ export function fakeCategorisationRulesApi({ rules = [], categories }: { rules?:
       if (refused) return refused
       const body = (await request.json()) as RuleRequest
       state.requests.push({ method: 'PUT', path: `/api/v1/category-rules/${String(params.id)}`, body })
+      const ifMatch = request.headers.get('If-Match')
+      state.ifMatches.push(ifMatch)
       const rule = state.rules.find((candidate) => candidate.id === params.id)
       if (!rule) return problem(404)
+      if (ifMatch === null) return problem(428)
+      if (ifMatch !== `"${rule.rowVersion}"`) return problem(412)
       const wrong = check(body, rule.categoryId)
       if (wrong) return wrong
       Object.assign(rule, { matchText: body.matchText.trim(), matchType: body.matchType, categoryId: body.categoryId, priority: body.priority ?? rule.priority })
-      return HttpResponse.json(view(rule))
+      changed(rule)
+      return HttpResponse.json(view(rule), { headers: { ETag: `"${rule.rowVersion}"` } })
     }),
     http.delete(url('/api/v1/category-rules/:id'), ({ request, params }) => {
       const refused = refuseWithoutToken(request)

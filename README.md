@@ -203,7 +203,9 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   statement is committed with for its account, and answers it with the next upload for that account
   (`savedMapping`). `ImportBatchPage` starts from it, ahead of the API's guess, and says so; every choice can still be
   changed, and what is committed is saved in its place. Starting again after a stopped import keeps that import's
-  mapping instead.
+  mapping instead. The expense and income categories the last statement was committed with are saved too
+  (`savedExpenseCategoryId`, `savedIncomeCategoryId`), and the commit form starts on them while they can still be
+  chosen (not archived since), so a repeat import of the same bank needs no choices; each can still be changed.
 - **Past imports and undo** (spec IMP-5; see the glossary: undo). Under the upload form, `PastImports` lists every
   statement committed, the last first, a page at a time (`pastImportsQuery`): its file name (opening its screen),
   account, the day it was uploaded on the user's calendar, where it got to and its counts, all as the API answers
@@ -212,11 +214,16 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   being imported; they can be restored from Recently deleted for 30 days, which the screen links to. While any of
   them is reconciled the API refuses (409 `import-reconciled`, with how many), and the screen says how many and to
   reopen the reconciliation first. Undone, the lists, balances, budgets and reports load again.
-- **Categorisation rules** (spec IMP-4; see the glossary) are `features/rules`, at Settings > Rules
-  (`/settings/rules`): the user's rules in the order the API tries them (`rulesQuery`, highest priority first), each
-  set up, edited and deleted there with its match text, match type, category and priority (`RuleForm`; a new rule
-  left without a priority goes first). Moving a rule up or down sends the whole new order (`useReorderRules`,
-  `PUT /category-rules/order`), which gives every rule its priority from its place. A rule whose category has been
+- **Categorisation rules** (spec IMP-4; see the glossary) are `features/categorisationRules` (types
+  `CategorisationRule`, messages `categorisationRules.*`, named so in full beside recurring rules), at Settings > Rules
+  (`/settings/categorisation-rules`): the user's rules in the order the API tries them (`categorisationRulesQuery`,
+  highest priority first), each set up, edited and deleted there with its match text, match type, category and
+  priority (`CategorisationRuleForm`; a new rule left without a priority goes first). Moving a rule up or down sends
+  the whole new order (`useReorderCategorisationRules`,
+  `PUT /category-rules/order`), which gives every rule its priority from its place. Like every edit, editing a rule
+  sends its `rowVersion` as `If-Match` (`useEditCategorisationRule(rule)`), and a reorder sends each rule's: a 412,
+  the rules changed somewhere else, saves nothing, loads them again and says so, an open form starting again from
+  the rule as it is now. A rule whose category has been
   archived says it categorises nothing, and its form still offers that category. The SPA applies no rule itself: the
   import preview and quick add answer the categories the rules give.
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
@@ -325,9 +332,10 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   notice until the user dismisses it. The interface says "delete your profile", never "account": an account is
   where money sits (see the glossary), and a test checks both languages.
 - **The audit log** is Settings > Audit log (`/settings/audit-log`): the user's sign-ins, statements committed, imports
-  undone, bulk actions and deletes, the newest first, older ones a page at a time. The API writes every entry and its
-  summary (in the user's locale when it was written); the SPA names the action, writes when it happened in the user's
-  time zone, and shows the summary as it came. Entries cannot be changed or deleted, so the screen only reads.
+  undone, bulk actions, deletes (of transactions, transfers, attachments, budgets and rules) and requests to delete the
+  profile, the newest first, older ones a page at a time. The API writes every entry and its summary (in the user's
+  locale when it was written); the SPA names the action and the kind of thing it affected (`entityType`, or the
+  transactions a bulk action took), writes when it happened in the user's time zone, and shows the summary as it came. Entries cannot be changed or deleted, so the screen only reads.
 - **Lockout and rate limiting are the API's.** A locked user is answered like a wrong password, so the sign-in
   screen warns about the lock beside that message; a 429 becomes "too many attempts".
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -404,8 +412,8 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeBudgetNotificationsApi` | `/api/v1/budget-notifications` and reading one or all (`/{id}/read`, `/read`): the newest first, a page at a time, with how many are unread; `raise` adds one, as a change that moved spent would on the API, and `reads` counts how often the list was asked for |
 | `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual`, `/api/v1/reports/net-worth` and `/api/v1/reports/cash-flow` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, `cashFlowAsked`, …), and can fail an answer |
-| `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch, its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds, and each row's `suggestedCategoryId` from the `rules` a test gives it) and committing it (`commitRequests`, with each row's own category); nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
-| `fakeCategorisationRulesApi` | `/api/v1/category-rules`: listing, setting up, editing, reordering (`/order`) and deleting rules, kept in `requests`; `categoriseWith` picks a category from rules as the API does, for `fakeImportsApi` and quick add in `fakeTransactionsApi` (each takes `rules`) |
+| `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch (with the mapping and categories saved for its account while it is uploaded: `savedMappings`, `savedCategories`, which a commit replaces, keeping a category it sends none of), its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds, and each row's `suggestedCategoryId` from the `rules` a test gives it) and committing it (`commitRequests`, with each row's own category); listing past imports (`GET /api/v1/imports`, every batch but those only uploaded, the last uploaded first, a page at a time, of one account with `accountId`; a test gives past ones as `batches` with `past`); and undoing one (`DELETE`, deleting its transactions, refused with 409 `import-reconciled` and its `reconciledCount` while `reconciled` says any is). Nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
+| `fakeCategorisationRulesApi` | `/api/v1/category-rules`: listing, setting up, editing (naming the `rowVersion` in `If-Match`, kept in `ifMatches`: 412 when stale, 428 when missing), reordering (`/order`, each rule with its `rowVersion`: 400 on `rules` for one named twice, 412 when the rules changed since) and deleting rules, kept in `requests`; every change moves a rule's `rowVersion` on, and a test changes one "somewhere else" by setting it in `rules`; `categoriseWith` picks a category from rules as the API does, for `fakeImportsApi` and quick add in `fakeTransactionsApi` (each takes `rules`) |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
@@ -443,18 +451,20 @@ with `e2e/compose.yaml` on top, which adds this repository's nginx image in fron
 http://localhost:8081. It runs as its own Compose project, `pfm-e2e`, publishing only the SPA and Mailpit (on 8026),
 so a development stack can keep running. It seeds a user with a year of sample data, runs the tests, and takes the
 stack down with its data. The API is the clone next to this one (`../personal-finance-manager-api`), or
-`PFM_API_DIR`; CI checks out the API's main branch, as it does for the client's types. Arguments go to Playwright
+`PFM_API_DIR` (a worktree of this repository must set it: the clone next to a worktree is not the API's); CI
+checks out the API's main branch, as it does for the client's types, so a wave that needs API changes not yet merged
+fails e2e until the API merges, as the client check does: merge the API first. Arguments go to Playwright
 (`npm run e2e -- e2e/journey.spec.ts`), and `PFM_E2E_KEEP=1` leaves the stack running afterwards.
 
 | File | What it proves |
 | --- | --- |
 | `journey.spec.ts` | One new user, step by step: registers and confirms the email address from the link Mailpit caught, signs in, adds two accounts, an income and an expense, makes a transfer and checks both balances, sets a budget and sees its spent, reads spending by category, and imports the Vietcombank stand-in statement from the API repository (`tests/statements/synthetic-stand-ins`), mapping every column itself, through to the worker's import |
-| `accessibility.spec.ts` | [axe](https://github.com/dequelabs/axe-core) finds no WCAG 2.1 AA violation on the signed-out screens, every screen of the shell, each report as a chart and as a table, the transaction and transfer drawers, and a statement's mapping and preview, in the light and the dark theme, signed in as the seeded user so the screens are full |
+| `accessibility.spec.ts` | [axe](https://github.com/dequelabs/axe-core) finds no WCAG 2.1 AA violation on the signed-out screens, every screen of the shell (the reports' and recently deleted among them), an account and reconciling it, each report as a chart and as a table, the transaction and transfer drawers, a categorisation rule being set up, and a statement's mapping, preview, import screen and place among past imports with its undo open, in the light and the dark theme, signed in as the seeded user so the screens are full. Each screen must have loaded first: what it shows once it has is visible, and no alert says it could not, so a screen whose endpoint the API lacks fails rather than being checked in its error state |
 
 Find things the way a user does, by role and accessible name (`getByRole`, `getByLabel`), never by class or test id:
 the suite then also checks the names a screen reader reads, and survives a change of layout. A radio drawn as a
 segmented control is chosen by its label (`choose`), a type-ahead picker by typing (`pick`), both in
-`e2e/support/ui.ts`. Each run registers its own user, so nothing depends on what an earlier run left. A violation
+`e2e/support/ui.ts`; a statement of the API's golden files is `syntheticStatement(name)` (`e2e/support/statements.ts`). Each run registers its own user, so nothing depends on what an earlier run left. A violation
 axe finds is fixed in the app, not excluded from the check.
 
 ## Layout
@@ -534,7 +544,10 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   the amount input takes the decimals of the chosen account's currency.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
-  (from `useUserSettings()` in `@/features/settings`), not the browser's. A month (`2026-11`, such as a budget month) is a
+  (from `useUserSettings()` in `@/features/settings`), not the browser's. A moment the API sends (an ISO timestamp,
+  such as `at` or `createdAt`) is written with `formatMoment(moment, locale, timeZone)`, its date and time in the
+  user's time zone, or its date alone with `{ time: false }`; nothing formats one with `Intl.DateTimeFormat` itself.
+  A month (`2026-11`, such as a budget month) is a
   `CalendarMonth`, made only by `isCalendarMonth`, `monthOf` or `shiftMonth` and written with `formatMonth`.
 - The user's base currency and time zone come from `useUserSettings()`.
 - **Not converted.** An amount the API could not convert, for want of an exchange rate, comes back under

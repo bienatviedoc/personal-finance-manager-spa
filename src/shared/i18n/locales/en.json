@@ -958,7 +958,7 @@
     },
     "auditLog": {
       "title": "Audit log",
-      "body": "A record of each sign-in, statement imported, import undone, bulk edit and delete, the newest first. Entries cannot be changed or deleted.",
+      "body": "A record of each sign-in, statement imported, import undone, bulk edit, delete and request to delete your profile, the newest first. Entries cannot be changed or deleted.",
       "empty": "Nothing has been recorded yet.",
       "notLoaded": "The audit log could not be loaded. Try again in a little while.",
       "more": "Show older entries",
@@ -968,7 +968,19 @@
         "importUndo": "Import undone",
         "bulkEdit": "Bulk edit",
         "bulkDelete": "Bulk delete",
-        "delete": "Deleted"
+        "delete": "Deleted",
+        "deletionRequest": "Asked to delete the profile"
+      },
+      "entities": {
+        "user": "Profile",
+        "importBatch": "Import",
+        "transaction": "Transaction",
+        "transactions": "Transactions",
+        "transfer": "Transfer",
+        "attachment": "Attachment",
+        "budget": "Budget",
+        "recurringRule": "Recurring rule",
+        "categorisationRule": "Categorisation rule"
       }
     },
     "data": {
@@ -991,7 +1003,7 @@
         "submit": "Delete my profile"
       }
     },
-    "rules": "Rules"
+    "categorisationRules": "Rules"
   },
   "categories": {
     "option": "{{parent}} › {{name}}",
@@ -1109,7 +1121,7 @@
       "more": "More"
     }
   },
-  "rules": {
+  "categorisationRules": {
     "title": "Categorisation rules",
     "intro": "A rule gives a category to a payee or a statement row’s description that contains, starts with or is exactly its text, whatever its case, accents or spaces. Statement imports and quick add start from it, and you can still change the category. A rule only categorises transactions of its category’s kind. When several rules match, the one higher in this list wins.",
     "add": "Add rule",
@@ -1156,7 +1168,9 @@
       "matchType": "Choose how the text is matched.",
       "categoryRequired": "Choose a category.",
       "categoryRefused": "This category cannot be chosen: it may have been archived. Choose another.",
-      "priority": "Enter a whole number from 0 to 1,000,000, or leave it empty."
+      "priority": "Enter a whole number from 0 to 1,000,000, or leave it empty.",
+      "stale": "This rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "orderStale": "The rules were changed somewhere else. They are shown as they are now; move the rule again."
     }
   },
   "colors": {

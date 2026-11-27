@@ -4,6 +4,7 @@ import type { components } from '@/shared/api/schema'
 
 export type AuditEntry = components['schemas']['AuditEntryResponse']
 export type AuditAction = components['schemas']['AuditAction']
+export type AuditEntityType = components['schemas']['AuditEntityType']
 
 /**
  * The signed-in user's audit log, the newest entry first, a page at a time. The API writes every entry, in the same

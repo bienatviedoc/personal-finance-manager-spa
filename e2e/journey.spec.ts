@@ -1,5 +1,5 @@
-import path from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
+import { syntheticStatement } from './support/statements.ts'
 import { choose, pick, registerAndVerify, signIn } from './support/ui.ts'
 
 // The journey of spec section 13, from the outside, against the whole stack: one new user signs up, records money
@@ -9,7 +9,6 @@ test.describe.configure({ mode: 'serial' })
 
 const email = `journey-${Date.now()}@example.com`
 const password = 'a journey password'
-const statements = path.resolve(process.env.PFM_API_DIR ?? '../personal-finance-manager-api', 'tests/statements/synthetic-stand-ins')
 
 let page: Page
 
@@ -111,7 +110,7 @@ test('views the spending by category report', async () => {
 test('imports a bank statement saved as CSV', async () => {
   await page.goto('/import')
   await page.getByLabel('Account').selectOption({ label: 'Everyday (VND)' })
-  await page.getByLabel('Statement file (CSV)').setInputFiles(path.join(statements, 'vietcombank-sample.csv'))
+  await page.getByLabel('Statement file (CSV)').setInputFiles(syntheticStatement('vietcombank-sample.csv'))
   await page.getByRole('button', { name: 'Upload' }).click()
   await expect(page.getByRole('heading', { name: 'Import vietcombank-sample.csv' })).toBeVisible()
 

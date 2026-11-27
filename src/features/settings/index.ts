@@ -1,6 +1,6 @@
 import { redirect, type RouteObject } from 'react-router'
 import { CategoriesPage } from '@/features/categories'
-import { RulesPage } from '@/features/rules'
+import { CategorisationRulesPage } from '@/features/categorisationRules'
 import { AuditLogSettingsPage } from './routes/AuditLogSettingsPage'
 import { DataSettingsPage } from './routes/DataSettingsPage'
 import { ProfileSettingsPage } from './routes/ProfileSettingsPage'
@@ -15,7 +15,7 @@ export const settingsRoutes: RouteObject[] = [
       { index: true, loader: () => redirect('/settings/profile') },
       { path: 'profile', Component: ProfileSettingsPage },
       { path: 'categories', Component: CategoriesPage },
-      { path: 'rules', Component: RulesPage },
+      { path: 'categorisation-rules', Component: CategorisationRulesPage },
       { path: 'security', Component: SecuritySettingsPage },
       { path: 'audit-log', Component: AuditLogSettingsPage },
       { path: 'data', Component: DataSettingsPage },

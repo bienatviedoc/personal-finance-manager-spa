@@ -948,7 +948,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** @description Puts the rules in a new order: ids lists every one of the user's rules once, the one to try first first, and each takes its priority from its place (the last 0, the one before it 1, and so on). Any other list is refused on ids and changes nothing. Answers the rules in their new order. */
+        /** @description Puts the rules in a new order: rules lists every one of the user's rules once, the one to try first first, each with the row version it was read at, and each takes its priority from its place (the last 0, the one before it 1, and so on). A list that names a rule twice is refused on rules; one that is not the user's rules as they are now, because a rule was set up, edited or deleted since they were read, answers 412. Either changes nothing. Answers the rules in their new order. */
         put: operations["ReorderCategorisationRules"];
         post?: never;
         delete?: never;
@@ -965,7 +965,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** @description Changes a rule's match text, match type, category and priority (left out, it keeps its own). It may keep a category that has been archived since, but not move to one. */
+        /** @description Changes a rule's match text, match type, category and priority (left out, it keeps its own). It may keep a category that has been archived since, but not move to one. Send the row version last read as If-Match: a stale one answers 412, none answers 428. Reordering the rules and merging a rule's category change the row version too. */
         put: operations["EditCategorisationRule"];
         post?: never;
         /** @description Deletes the rule: it categorises nothing more. What it categorised keeps its category. */
@@ -1392,9 +1392,9 @@ export interface components {
             expiresAt: string;
         };
         /** @enum {unknown} */
-        AuditAction: "signIn" | "importCommit" | "importUndo" | "bulkEdit" | "bulkDelete" | "delete";
+        AuditAction: "signIn" | "importCommit" | "importUndo" | "bulkEdit" | "bulkDelete" | "delete" | "deletionRequest";
         /** @enum {unknown} */
-        AuditEntityType: "user" | "importBatch" | "transaction" | "transfer";
+        AuditEntityType: "user" | "importBatch" | "transaction" | "transfer" | "attachment" | "budget" | "recurringRule" | "categorisationRule";
         AuditEntryResponse: {
             /** Format: uuid */
             id: string;
@@ -1583,8 +1583,13 @@ export interface components {
         CategorisationRuleListResponse: {
             items: components["schemas"]["CategorisationRuleResponse"][];
         };
+        CategorisationRuleOrderEntry: {
+            /** Format: uuid */
+            id: string;
+            rowVersion: string;
+        };
         CategorisationRuleOrderRequest: {
-            ids: null | string[];
+            rules: null | components["schemas"]["CategorisationRuleOrderEntry"][];
         };
         CategorisationRuleRequest: {
             matchText: string;
@@ -1603,6 +1608,7 @@ export interface components {
             categoryId: string;
             /** Format: int32 */
             priority: number | string;
+            rowVersion: string;
         };
         CategoryChangeRequest: {
             name: string;
@@ -1864,6 +1870,10 @@ export interface components {
             savedMapping: null | components["schemas"]["MappingResponse"];
             /** Format: date-time */
             undoneAt: null | string;
+            /** Format: uuid */
+            savedExpenseCategoryId: null | string;
+            /** Format: uuid */
+            savedIncomeCategoryId: null | string;
         };
         /** @enum {unknown} */
         ImportBatchStatus: "uploaded" | "committing" | "committed" | "failed" | "undone";
@@ -6160,7 +6170,9 @@ export interface operations {
     EditCategorisationRule: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: string;
             };
