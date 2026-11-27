@@ -991,7 +991,7 @@
         "submit": "Delete my profile"
       }
     },
-    "rules": "Rules"
+    "categorisationRules": "Rules"
   },
   "categories": {
     "option": "{{parent}} › {{name}}",
@@ -1109,7 +1109,7 @@
       "more": "More"
     }
   },
-  "rules": {
+  "categorisationRules": {
     "title": "Categorisation rules",
     "intro": "A rule gives a category to a payee or a statement row’s description that contains, starts with or is exactly its text, whatever its case, accents or spaces. Statement imports and quick add start from it, and you can still change the category. A rule only categorises transactions of its category’s kind. When several rules match, the one higher in this list wins.",
     "add": "Add rule",

@@ -19,7 +19,7 @@ const names = async () => within(await ruleList()).getAllByRole('listitem').map(
 describe('the categorisation rules screen', () => {
   it('lists the rules in the order they are tried, highest priority first, each with its match and category', async () => {
     fakeApis()
-    renderApp('/settings/rules')
+    renderApp('/settings/categorisation-rules')
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Categorisation rules' })).toBeInTheDocument()
     expect(await names()).toEqual(['Starts with “grabfood”', 'Contains “grab”', 'Is exactly “ACME LTD”'])
@@ -39,14 +39,14 @@ describe('the categorisation rules screen', () => {
 
   it('says when there are no rules yet', async () => {
     fakeApis([])
-    renderApp('/settings/rules')
+    renderApp('/settings/categorisation-rules')
 
     expect(await screen.findByText('No rules yet. Add one to have imports and quick add pick a category for you.')).toBeInTheDocument()
   })
 
   it('adds a rule with its match text, match type, category and priority', async () => {
     const api = fakeApis([grab])
-    const { user } = renderApp('/settings/rules')
+    const { user } = renderApp('/settings/categorisation-rules')
 
     await user.click(await screen.findByRole('button', { name: 'Add rule' }))
     const form = screen.getByRole('form', { name: 'New rule' })
@@ -69,7 +69,7 @@ describe('the categorisation rules screen', () => {
 
   it('puts a new rule left without a priority above every other', async () => {
     const api = fakeApis([grab])
-    const { user } = renderApp('/settings/rules')
+    const { user } = renderApp('/settings/categorisation-rules')
 
     await user.click(await screen.findByRole('button', { name: 'Add rule' }))
     const form = screen.getByRole('form', { name: 'New rule' })
@@ -83,7 +83,7 @@ describe('the categorisation rules screen', () => {
 
   it('asks for the text to look for and a category before saving', async () => {
     const api = fakeApis([])
-    const { user } = renderApp('/settings/rules')
+    const { user } = renderApp('/settings/categorisation-rules')
 
     await user.click(await screen.findByRole('button', { name: 'Add rule' }))
     const form = screen.getByRole('form', { name: 'New rule' })
@@ -96,7 +96,7 @@ describe('the categorisation rules screen', () => {
 
   it('edits a rule', async () => {
     const api = fakeApis()
-    const { user } = renderApp('/settings/rules')
+    const { user } = renderApp('/settings/categorisation-rules')
 
     await user.click(await screen.findByRole('button', { name: 'Edit Contains “grab”' }))
     const form = screen.getByRole('form', { name: 'Edit rule' })
@@ -115,7 +115,7 @@ describe('the categorisation rules screen', () => {
 
   it('moves a rule up or down, which reorders them all', async () => {
     const api = fakeApis()
-    const { user } = renderApp('/settings/rules')
+    const { user } = renderApp('/settings/categorisation-rules')
 
     await user.click(await screen.findByRole('button', { name: 'Move Is exactly “ACME LTD” up' }))
 
@@ -129,7 +129,7 @@ describe('the categorisation rules screen', () => {
 
   it('deletes a rule once the user confirms', async () => {
     const api = fakeApis()
-    const { user } = renderApp('/settings/rules')
+    const { user } = renderApp('/settings/categorisation-rules')
 
     await user.click(await screen.findByRole('button', { name: 'Delete Contains “grab”' }))
     await user.click(screen.getByRole('button', { name: 'Delete rule' }))
@@ -140,7 +140,7 @@ describe('the categorisation rules screen', () => {
 
   it('says a rule whose category is archived categorises nothing', async () => {
     fakeApis([grab], defaultTestCategories.map((category) => (category.id === 'c-transport' ? { ...category, isArchived: true } : category)))
-    renderApp('/settings/rules')
+    renderApp('/settings/categorisation-rules')
 
     const rule = within(await ruleList()).getByRole('listitem', { name: 'Contains “grab”' })
 

@@ -991,7 +991,7 @@
         "submit": "Xóa hồ sơ của tôi"
       }
     },
-    "rules": "Quy tắc"
+    "categorisationRules": "Quy tắc"
   },
   "categories": {
     "option": "{{parent}} › {{name}}",
@@ -1109,7 +1109,7 @@
       "more": "Khác"
     }
   },
-  "rules": {
+  "categorisationRules": {
     "title": "Quy tắc phân loại",
     "intro": "Một quy tắc gán danh mục cho người nhận hoặc mô tả của một dòng sao kê có chứa, bắt đầu bằng hoặc đúng bằng nội dung của nó, không phân biệt hoa thường, dấu hay khoảng trắng. Nhập sao kê và thêm nhanh sẽ bắt đầu từ danh mục đó, và bạn vẫn có thể đổi. Một quy tắc chỉ phân loại giao dịch cùng loại với danh mục của nó. Khi nhiều quy tắc cùng khớp, quy tắc đứng cao hơn trong danh sách này được áp dụng.",
     "add": "Thêm quy tắc",

@@ -79,7 +79,7 @@ test.describe('signed in', () => {
     ['Import', '/import'],
     ['Settings: profile', '/settings/profile'],
     ['Settings: categories', '/settings/categories'],
-    ['Settings: rules', '/settings/rules'],
+    ['Settings: categorisation rules', '/settings/categorisation-rules'],
     ['Settings: security', '/settings/security'],
     ['Settings: audit log', '/settings/audit-log'],
     ['Settings: data', '/settings/data'],

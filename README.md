@@ -212,10 +212,12 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   being imported; they can be restored from Recently deleted for 30 days, which the screen links to. While any of
   them is reconciled the API refuses (409 `import-reconciled`, with how many), and the screen says how many and to
   reopen the reconciliation first. Undone, the lists, balances, budgets and reports load again.
-- **Categorisation rules** (spec IMP-4; see the glossary) are `features/rules`, at Settings > Rules
-  (`/settings/rules`): the user's rules in the order the API tries them (`rulesQuery`, highest priority first), each
-  set up, edited and deleted there with its match text, match type, category and priority (`RuleForm`; a new rule
-  left without a priority goes first). Moving a rule up or down sends the whole new order (`useReorderRules`,
+- **Categorisation rules** (spec IMP-4; see the glossary) are `features/categorisationRules` (types
+  `CategorisationRule`, messages `categorisationRules.*`, named so in full beside recurring rules), at Settings > Rules
+  (`/settings/categorisation-rules`): the user's rules in the order the API tries them (`categorisationRulesQuery`,
+  highest priority first), each set up, edited and deleted there with its match text, match type, category and
+  priority (`CategorisationRuleForm`; a new rule left without a priority goes first). Moving a rule up or down sends
+  the whole new order (`useReorderCategorisationRules`,
   `PUT /category-rules/order`), which gives every rule its priority from its place. A rule whose category has been
   archived says it categorises nothing, and its form still offers that category. The SPA applies no rule itself: the
   import preview and quick add answer the categories the rules give.
