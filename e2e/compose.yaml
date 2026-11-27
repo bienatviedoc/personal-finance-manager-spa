@@ -1,0 +1,43 @@
+# The stack the end-to-end tests run against: the API repository's compose.yaml, with this file layered on top by
+# scripts/e2e.sh. It adds the SPA's own nginx image in front of the API, as it is deployed, and runs as its own
+# Compose project (pfm-e2e) that publishes only the SPA and Mailpit, so it never clashes with a development stack.
+# Paths here are resolved from the API repository (the first file), so the SPA is named by PFM_SPA_DIR.
+services:
+  spa:
+    build: ${PFM_SPA_DIR:?Run the end-to-end tests with npm run e2e}
+    image: pfm-e2e-spa
+    ports: !override
+      - "${PFM_E2E_PORT:-8081}:8080"
+    depends_on:
+      api:
+        condition: service_started
+
+  # Images of their own, so a development stack's (or another clone's) are never picked up instead.
+  migrate:
+    image: pfm-e2e-api
+
+  api:
+    image: pfm-e2e-api
+    environment:
+      # Links in emails point at the SPA served above.
+      App__PublicUrl: http://localhost:${PFM_E2E_PORT:-8081}
+      # Every request comes from the one browser; the sign-in limit is not what these tests are about.
+      RateLimiting__Auth__PermitLimit: "1000"
+    ports: !reset []
+
+  worker:
+    image: pfm-e2e-worker
+    environment:
+      App__PublicUrl: http://localhost:${PFM_E2E_PORT:-8081}
+
+  # The tests read the verification email from Mailpit's API.
+  mailpit:
+    ports: !override
+      - "${PFM_E2E_MAIL_PORT:-8026}:8025"
+
+  db:
+    ports: !reset []
+  storage:
+    ports: !reset []
+  dashboard:
+    ports: !reset []

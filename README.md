@@ -25,12 +25,14 @@ http://localhost:8025.
 | `npm run lint` | ESLint, failing on any warning |
 | `npm run typecheck` | `tsc` with no output |
 | `npm test` | Unit and component tests (Vitest) |
+| `npm run e2e` | End-to-end and accessibility tests (Playwright and axe) against the whole stack in Docker; see [below](#end-to-end-and-accessibility-tests) |
 | `npm run build` | Typecheck and production build into `dist/` |
 | `npm run preview` | Serve the production build locally, with the headers the nginx image sends |
 | `npm run api:sync` | Copy the API's OpenAPI document and regenerate the client's types |
 
-CI runs lint, typecheck, tests and the build on every pull request, and fails when the generated API client no
-longer matches the API, when a dependency has a known vulnerability of high severity, or when the image does.
+CI runs lint, typecheck, tests, the build and the end-to-end and accessibility tests on every pull request, and
+fails when the generated API client no longer matches the API, when a dependency has a known vulnerability of high
+severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
 
 ## Talking to the API
 
@@ -398,6 +400,34 @@ stand-in tab (see `attachments.test.tsx`).
 jsdom has no `matchMedia`, so `src/test/mediaQueries.ts` stands in for it: every test starts on a light-themed
 desktop, and `setScreenWidth(360)` or `setSystemTheme('dark')` changes the pretend device mid-test.
 
+### End-to-end and accessibility tests
+
+`e2e/` holds a [Playwright](https://playwright.dev) suite that drives the real app in Chromium against the whole
+stack (spec section 13):
+
+```bash
+npm run e2e        # needs Docker; the first run builds every image and takes a few minutes
+```
+
+`scripts/e2e.sh` starts the API repository's `compose.yaml` (PostgreSQL, migrations, the API, the worker, Mailpit)
+with `e2e/compose.yaml` on top, which adds this repository's nginx image in front of the API, as deployed, on
+http://localhost:8081. It runs as its own Compose project, `pfm-e2e`, publishing only the SPA and Mailpit (on 8026),
+so a development stack can keep running. It seeds a user with a year of sample data, runs the tests, and takes the
+stack down with its data. The API is the clone next to this one (`../personal-finance-manager-api`), or
+`PFM_API_DIR`; CI checks out the API's main branch, as it does for the client's types. Arguments go to Playwright
+(`npm run e2e -- e2e/journey.spec.ts`), and `PFM_E2E_KEEP=1` leaves the stack running afterwards.
+
+| File | What it proves |
+| --- | --- |
+| `journey.spec.ts` | One new user, step by step: registers and confirms the email address from the link Mailpit caught, signs in, adds two accounts, an income and an expense, makes a transfer and checks both balances, sets a budget and sees its spent, reads spending by category, and imports the Vietcombank stand-in statement from the API repository (`tests/statements/synthetic-stand-ins`), mapping every column itself, through to the worker's import |
+| `accessibility.spec.ts` | [axe](https://github.com/dequelabs/axe-core) finds no WCAG 2.1 AA violation on the signed-out screens, every screen of the shell, each report as a chart and as a table, the transaction and transfer drawers, and a statement's mapping and preview, in the light and the dark theme, signed in as the seeded user so the screens are full |
+
+Find things the way a user does, by role and accessible name (`getByRole`, `getByLabel`), never by class or test id:
+the suite then also checks the names a screen reader reads, and survives a change of layout. A radio drawn as a
+segmented control is chosen by its label (`choose`), a type-ahead picker by typing (`pick`), both in
+`e2e/support/ui.ts`. Each run registers its own user, so nothing depends on what an earlier run left. A violation
+axe finds is fixed in the app, not excluded from the check.
+
 ## Layout
 
 ```
@@ -526,6 +556,12 @@ next to a currency code; the SPA keeps it a string from the response to the scre
 The target is WCAG 2.1 AA (spec section 8).
 
 - Lint runs `jsx-a11y-x`, the ESLint 10 compatible fork of `eslint-plugin-jsx-a11y`.
+- `npm run e2e` runs axe on the main screens in both themes, and CI fails on any WCAG 2.1 AA violation (see
+  [End-to-end and accessibility tests](#end-to-end-and-accessibility-tests)).
+- A control's accessible name starts with the words it shows (WCAG 2.5.3, label in name): a "See transactions"
+  link is named "See transactions behind Groceries in November 2026", not "Transactions behind …".
+- Text keeps a contrast of 4.5:1 on whatever it sits on, tints included: the unpicked options of a segmented control
+  are `text-foreground/70` on `bg-muted`, not `text-muted-foreground`, which falls just short there.
 - Every screen names itself in the browser tab with `useDocumentTitle`.
 - Controls styled by hand take the `focusRing` class from `src/shared/lib/utils.ts`, so keyboard focus is
   always visible; a label wrapping a visually hidden radio or checkbox takes `focusRingWithin` instead. shadcn primitives bring their own.
