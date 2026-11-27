@@ -81,9 +81,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the shell: pressing N anywhere opens the drawer that records a transaction (not while typing, and not over
   another drawer or dialog), and nothing is loaded until it first opens. The transactions screen's own button
   opens the same drawer through `useQuickAdd()`. The form starts on the account the API says was used last
-  (`lastAccountQuery`), and a new transaction takes the category its payee most often had
-  (`suggestedCategoryQuery`, asked once the payee has been left alone for a moment) until the user picks one
-  themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
+  (`lastAccountQuery`), and a new transaction takes the category its payee most often had, or for a payee with no
+  history the category of the categorisation rule it matches (`suggestedCategoryQuery`, asked once the payee has
+  been left alone for a moment; the hint under the picker says which, from the API's `suggestedBy`) until the user
+  picks one themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
 - **A type-ahead picker** is `<ComboboxField>` from `@/shared/components`: typing narrows the options, whatever
   the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
   the form's. In a `Drawer`, Escape closes its list before the drawer (`escapeClosesPickerFirst`). Tests choose from
@@ -183,8 +184,11 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   likely duplicate, the rows that cannot be read with why (translated from the API's `problem`), and the rows
   passed over. A new mapping is a new preview, so the ticks start again from the API's. The screen says how many
   rows will be imported, how many likely duplicates skipped and how many rows cannot be read, counting the rows the
-  API answered; it adds up no amount. Committing sends the mapping, the rows ticked and a category for money going
-  out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`). A
+  API answered; it adds up no amount. Each transaction has a category picker of its kind, starting on the category
+  the API's categorisation rules suggest for it (`suggestedCategoryId`, spec IMP-4, saying so until changed) or on
+  "the category chosen below". Committing sends the mapping, the rows ticked, the rows' own categories
+  (`rowCategories`, only when there are some) and a category for money going out and one for money coming in, each
+  asked for only when a row ticked without a category of its own moves money that way (`useCommitImport`). A
   commit refused because another statement is being imported into the account (409 `import-in-progress`) says to
   wait and check the rows again; one refused on `id` says the account was archived after the upload.
   The API's worker then imports in the background: the batch is asked for every second while it is `committing`
@@ -205,8 +209,14 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   own screen: once confirmed, the API deletes every transaction it created, edited or not, and stops it if it is still
   being imported; they can be restored from Recently deleted for 30 days, which the screen links to. While any of
   them is reconciled the API refuses (409 `import-reconciled`, with how many), and the screen says how many and to
-  reopen the reconciliation first. Undone, the lists, balances, budgets and reports load again. Auto-categorisation is
-  still to come (#24).
+  reopen the reconciliation first. Undone, the lists, balances, budgets and reports load again.
+- **Categorisation rules** (spec IMP-4; see the glossary) are `features/rules`, at Settings > Rules
+  (`/settings/rules`): the user's rules in the order the API tries them (`rulesQuery`, highest priority first), each
+  set up, edited and deleted there with its match text, match type, category and priority (`RuleForm`; a new rule
+  left without a priority goes first). Moving a rule up or down sends the whole new order (`useReorderRules`,
+  `PUT /category-rules/order`), which gives every rule its priority from its place. A rule whose category has been
+  archived says it categorises nothing, and its form still offers that category. The SPA applies no rule itself: the
+  import preview and quick add answer the categories the rules give.
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
   edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
   date, and works out every date (`nextRunDate`). The SPA never computes a due date. A transaction a rule posted
@@ -387,7 +397,8 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeBudgetNotificationsApi` | `/api/v1/budget-notifications` and reading one or all (`/{id}/read`, `/read`): the newest first, a page at a time, with how many are unread; `raise` adds one, as a change that moved spent would on the API, and `reads` counts how often the list was asked for |
 | `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual`, `/api/v1/reports/net-worth` and `/api/v1/reports/cash-flow` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, `cashFlowAsked`, …), and can fail an answer |
-| `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch, its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds) and committing it (`commitRequests`); nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
+| `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch, its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds, and each row's `suggestedCategoryId` from the `rules` a test gives it) and committing it (`commitRequests`, with each row's own category); nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
+| `fakeCategorisationRulesApi` | `/api/v1/category-rules`: listing, setting up, editing, reordering (`/order`) and deleting rules, kept in `requests`; `categoriseWith` picks a category from rules as the API does, for `fakeImportsApi` and quick add in `fakeTransactionsApi` (each takes `rules`) |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
