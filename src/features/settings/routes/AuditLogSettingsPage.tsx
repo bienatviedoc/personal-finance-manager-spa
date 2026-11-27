@@ -16,6 +16,7 @@ const actionLabels: Record<AuditAction, ParseKeys> = {
   bulkEdit: 'settings.auditLog.actions.bulkEdit',
   bulkDelete: 'settings.auditLog.actions.bulkDelete',
   delete: 'settings.auditLog.actions.delete',
+  deletionRequest: 'settings.auditLog.actions.deletionRequest',
 }
 
 /**

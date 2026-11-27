@@ -137,7 +137,7 @@ describe('quick add', () => {
 
   it('takes the category of a categorisation rule the payee matches when the payee has no history, and says so', async () => {
     fakeApis([{ payee: 'Grab', categoryId: 'c-groceries' }], undefined, defaultTestCategories, [
-      { id: 'r-grab', matchText: 'grab', matchType: 'contains', categoryId: 'c-transport', priority: 0 },
+      { id: 'r-grab', matchText: 'grab', matchType: 'contains', categoryId: 'c-transport', priority: 0, rowVersion: '1' },
     ])
     const { user, drawer } = await quickAdd()
 

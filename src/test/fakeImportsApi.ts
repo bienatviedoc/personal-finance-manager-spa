@@ -114,6 +114,8 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       suggestedMapping: suggest(text),
       savedMapping: null,
       undoneAt: null,
+      savedExpenseCategoryId: null,
+      savedIncomeCategoryId: null,
       text,
     }
     state.batches.push(batch)

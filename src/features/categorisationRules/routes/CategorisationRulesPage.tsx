@@ -6,14 +6,23 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { FailureToast } from '@/shared/components/FailureToast'
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle'
 import { Button } from '@/shared/ui/button'
-import { categorisationRulesQuery, useCreateCategorisationRule, useDeleteCategorisationRule, useEditCategorisationRule, useReorderCategorisationRules, type CategorisationRule, type CategorisationRuleFields } from '../api/categorisationRules'
+import { isStale } from '@/shared/api/versionedSave'
+import {
+  categorisationRulesQuery,
+  useCreateCategorisationRule,
+  useDeleteCategorisationRule,
+  useEditCategorisationRule,
+  useReorderCategorisationRules,
+  type CategorisationRule,
+  type CategorisationRuleFields,
+} from '../api/categorisationRules'
 import { CategorisationRuleForm } from '../components/CategorisationRuleForm'
 
-/** What the form is open for, if anything: a new rule, or one to edit. */
-type Editing = { rule: CategorisationRule | null }
+/** What the form is open for, if anything: a new rule, or the one to edit, by its id, as it is listed now. */
+type Editing = { ruleId: string | null }
 
 // Built outside JSX, where lint would take the values for user-facing text.
-const newRule: Editing = { rule: null }
+const newRule: Editing = { ruleId: null }
 const emptyRule: CategorisationRuleFields = { matchText: '', matchType: 'contains', categoryId: '', priority: null }
 
 /**
@@ -28,41 +37,25 @@ export function CategorisationRulesPage() {
   const categories = useQuery(categoriesQuery({ includeArchived: true }))
   const allChoices = useCategoryChoices(categories.data ?? [])
   const [editing, setEditing] = useState<Editing | null>(null)
-  const create = useCreateCategorisationRule()
-  const edit = useEditCategorisationRule()
   const remove = useDeleteCategorisationRule()
   const reorder = useReorderCategorisationRules()
-  const formId = useId()
-  const save = create.isError ? create : edit
 
   const listed = rules.data ?? []
   const move = (from: number, to: number) => {
-    const ids = listed.map((rule) => rule.id)
-    ;[ids[from], ids[to]] = [ids[to]!, ids[from]!]
-    reorder.mutate(ids)
+    const order = [...listed]
+    ;[order[from], order[to]] = [order[to]!, order[from]!]
+    reorder.mutate(order)
   }
 
   const form = (() => {
     if (!editing) return null
     const close = () => setEditing(null)
-    const { rule } = editing
+    const rule = editing.ruleId === null ? null : listed.find((candidate) => candidate.id === editing.ruleId)
+    // Deleted somewhere else meanwhile: there is nothing left to edit.
+    if (rule === undefined) return null
     // A rule may keep a category archived since, but not move to another archived one.
     const choices = allChoices.filter((choice) => !choice.category.isArchived || choice.category.id === rule?.categoryId)
-    return (
-      <CategorisationRuleForm
-        id={formId}
-        key={rule?.id ?? 'new'}
-        title={t(rule ? 'categorisationRules.editTitle' : 'categorisationRules.newTitle')}
-        initial={rule ? { ...rule, priority: Number(rule.priority) } : emptyRule}
-        choices={choices}
-        onSave={async (values) => {
-          const outcome = await (rule ? edit.mutateAsync({ ...values, id: rule.id }) : create.mutateAsync(values))
-          if (outcome.saved) close()
-          return outcome
-        }}
-        onCancel={close}
-      />
-    )
+    return rule ? <EditRule key={rule.id} rule={rule} choices={choices} onClose={close} /> : <AddRule choices={choices} onClose={close} />
   })()
 
   return (
@@ -76,7 +69,7 @@ export function CategorisationRulesPage() {
       <p className="text-sm text-muted-foreground">{t('categorisationRules.intro')}</p>
 
       {rules.isError && <ErrorMessage>{t('categorisationRules.errors.generic')}</ErrorMessage>}
-      <FailureToast failed={save.isError} message={t('categorisationRules.errors.generic')} retry={{ form: formId }} onDismiss={save.reset} />
+      {reorder.data?.reordered === false && <ErrorMessage>{t('categorisationRules.errors.orderStale')}</ErrorMessage>}
       <FailureToast
         failed={remove.isError}
         message={t('categorisationRules.errors.generic')}
@@ -106,13 +99,66 @@ export function CategorisationRulesPage() {
                 busy={reorder.isPending}
                 onUp={index > 0 ? () => move(index, index - 1) : undefined}
                 onDown={index < listed.length - 1 ? () => move(index, index + 1) : undefined}
-                onEdit={() => setEditing({ rule })}
+                onEdit={() => setEditing({ ruleId: rule.id })}
                 onDelete={() => remove.mutateAsync(rule.id)}
               />
             ))}
           </ol>
         ))}
     </section>
+  )
+}
+
+type FormProps = { choices: CategoryChoice[]; onClose: () => void }
+
+function AddRule({ choices, onClose }: FormProps) {
+  const { t } = useTranslation()
+  const formId = useId()
+  const create = useCreateCategorisationRule()
+
+  return (
+    <>
+      <CategorisationRuleForm
+        id={formId}
+        title={t('categorisationRules.newTitle')}
+        initial={emptyRule}
+        choices={choices}
+        onSave={async (values) => {
+          const outcome = await create.mutateAsync(values)
+          if (outcome.saved) onClose()
+          return outcome
+        }}
+        onCancel={onClose}
+      />
+      <FailureToast failed={create.isError} message={t('categorisationRules.errors.generic')} retry={{ form: formId }} onDismiss={create.reset} />
+    </>
+  )
+}
+
+function EditRule({ rule, choices, onClose }: FormProps & { rule: CategorisationRule }) {
+  const { t } = useTranslation()
+  const formId = useId()
+  const edit = useEditCategorisationRule(rule)
+
+  return (
+    <>
+      {isStale(edit.data) && <ErrorMessage>{t('categorisationRules.errors.stale')}</ErrorMessage>}
+      {/* A new row version is a new rule to edit: the form starts again from what the API holds now. */}
+      <CategorisationRuleForm
+        key={rule.rowVersion}
+        id={formId}
+        title={t('categorisationRules.editTitle')}
+        initial={{ ...rule, priority: Number(rule.priority) }}
+        choices={choices}
+        onSave={async (values) => {
+          const outcome = await edit.mutateAsync(values)
+          if (outcome.saved) onClose()
+          return outcome
+        }}
+        onCancel={onClose}
+      />
+      <FailureToast failed={edit.isError} message={t('categorisationRules.errors.generic')} retry={{ form: formId }} onDismiss={edit.reset} />
+    </>
   )
 }
 

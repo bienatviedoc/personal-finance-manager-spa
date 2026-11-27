@@ -55,7 +55,8 @@ export function CategorisationRuleForm({ id, title, initial, choices, onSave, on
   const onSubmit = form.handleSubmit(async ({ priority, ...values }) => {
     // Whoever saves says that it failed; the form keeps what was entered, to be saved again.
     const outcome = await onSave({ ...values, priority: priority === '' ? null : Number(priority) }).catch(() => undefined)
-    if (!outcome || outcome.saved) return
+    // Stale: whoever saves says so, and the form starts again from the rule as it is now.
+    if (!outcome || outcome.saved || 'stale' in outcome) return
     for (const refused of outcome.fields) {
       const { field, message: refusal } = serverErrors[refused]
       form.setError(field, { message: refusal })

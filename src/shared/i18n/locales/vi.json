@@ -968,7 +968,8 @@
         "importUndo": "Hoàn tác lần nhập",
         "bulkEdit": "Sửa hàng loạt",
         "bulkDelete": "Xóa hàng loạt",
-        "delete": "Đã xóa"
+        "delete": "Đã xóa",
+        "deletionRequest": "Yêu cầu xóa hồ sơ"
       }
     },
     "data": {
@@ -1156,7 +1157,9 @@
       "matchType": "Chọn cách khớp nội dung.",
       "categoryRequired": "Chọn một danh mục.",
       "categoryRefused": "Không thể chọn danh mục này: có thể nó đã được lưu trữ. Hãy chọn danh mục khác.",
-      "priority": "Nhập một số nguyên từ 0 đến 1.000.000, hoặc để trống."
+      "priority": "Nhập một số nguyên từ 0 đến 1.000.000, hoặc để trống.",
+      "stale": "Quy tắc này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "orderStale": "Các quy tắc đã được thay đổi ở nơi khác. Thứ tự mới nhất đang được hiển thị; hãy di chuyển quy tắc lại."
     }
   },
   "colors": {

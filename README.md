@@ -218,7 +218,10 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   highest priority first), each set up, edited and deleted there with its match text, match type, category and
   priority (`CategorisationRuleForm`; a new rule left without a priority goes first). Moving a rule up or down sends
   the whole new order (`useReorderCategorisationRules`,
-  `PUT /category-rules/order`), which gives every rule its priority from its place. A rule whose category has been
+  `PUT /category-rules/order`), which gives every rule its priority from its place. Like every edit, editing a rule
+  sends its `rowVersion` as `If-Match` (`useEditCategorisationRule(rule)`), and a reorder sends each rule's: a 412,
+  the rules changed somewhere else, saves nothing, loads them again and says so, an open form starting again from
+  the rule as it is now. A rule whose category has been
   archived says it categorises nothing, and its form still offers that category. The SPA applies no rule itself: the
   import preview and quick add answer the categories the rules give.
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
@@ -407,7 +410,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual`, `/api/v1/reports/net-worth` and `/api/v1/reports/cash-flow` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, `cashFlowAsked`, …), and can fail an answer |
 | `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch, its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds, and each row's `suggestedCategoryId` from the `rules` a test gives it) and committing it (`commitRequests`, with each row's own category); nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
-| `fakeCategorisationRulesApi` | `/api/v1/category-rules`: listing, setting up, editing, reordering (`/order`) and deleting rules, kept in `requests`; `categoriseWith` picks a category from rules as the API does, for `fakeImportsApi` and quick add in `fakeTransactionsApi` (each takes `rules`) |
+| `fakeCategorisationRulesApi` | `/api/v1/category-rules`: listing, setting up, editing (naming the `rowVersion` in `If-Match`, kept in `ifMatches`: 412 when stale, 428 when missing), reordering (`/order`, each rule with its `rowVersion`: 400 on `rules` for one named twice, 412 when the rules changed since) and deleting rules, kept in `requests`; every change moves a rule's `rowVersion` on, and a test changes one "somewhere else" by setting it in `rules`; `categoriseWith` picks a category from rules as the API does, for `fakeImportsApi` and quick add in `fakeTransactionsApi` (each takes `rules`) |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.

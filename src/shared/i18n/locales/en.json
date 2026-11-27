@@ -968,7 +968,8 @@
         "importUndo": "Import undone",
         "bulkEdit": "Bulk edit",
         "bulkDelete": "Bulk delete",
-        "delete": "Deleted"
+        "delete": "Deleted",
+        "deletionRequest": "Asked to delete the profile"
       }
     },
     "data": {
@@ -1156,7 +1157,9 @@
       "matchType": "Choose how the text is matched.",
       "categoryRequired": "Choose a category.",
       "categoryRefused": "This category cannot be chosen: it may have been archived. Choose another.",
-      "priority": "Enter a whole number from 0 to 1,000,000, or leave it empty."
+      "priority": "Enter a whole number from 0 to 1,000,000, or leave it empty.",
+      "stale": "This rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "orderStale": "The rules were changed somewhere else. They are shown as they are now; move the rule again."
     }
   },
   "colors": {

@@ -14,10 +14,10 @@ const firstBatch = '01970000-0000-7000-8000-600000000000'
 const statement = ['Ngày;Mô tả;Số tiền', '02-11-2026;HIGHLANDS COFFEE;-55.000,00', '05-11-2026;LUONG THANG 11;28.500.000,00', '06-11-2026;GRABFOOD HCM;-146.000,00', ''].join('\n')
 
 const rules: FakeRule[] = [
-  { id: 'r-grab', matchText: 'grab', matchType: 'contains', categoryId: 'c-transport', priority: 1 },
-  { id: 'r-luong', matchText: 'luong', matchType: 'startsWith', categoryId: 'c-salary', priority: 0 },
+  { id: 'r-grab', matchText: 'grab', matchType: 'contains', categoryId: 'c-transport', priority: 1, rowVersion: '1' },
+  { id: 'r-luong', matchText: 'luong', matchType: 'startsWith', categoryId: 'c-salary', priority: 0, rowVersion: '1' },
   // An expense rule never categorises income.
-  { id: 'r-thang', matchText: 'thang', matchType: 'contains', categoryId: 'c-groceries', priority: 9 },
+  { id: 'r-thang', matchText: 'thang', matchType: 'contains', categoryId: 'c-groceries', priority: 9, rowVersion: '1' },
 ]
 
 function fakeApis() {

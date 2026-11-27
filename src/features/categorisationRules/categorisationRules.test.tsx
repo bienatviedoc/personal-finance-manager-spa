@@ -111,6 +111,26 @@ describe('the categorisation rules screen', () => {
       path: '/api/v1/category-rules/r-grab',
       body: { matchText: 'grab', matchType: 'exactly', categoryId: 'c-transport', priority: 1 },
     })
+    expect(api.ifMatches).toEqual(['"1"'])
+  })
+
+  it('edits a rule changed somewhere else since it was opened from the latest version, saying so', async () => {
+    const api = fakeApis([grab])
+    const { user } = renderApp('/settings/categorisation-rules')
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Contains “grab”' }))
+    // Given new match text in another tab, after this one was opened.
+    Object.assign(api.rules[0]!, { matchText: 'grab bike', rowVersion: '2' })
+    await user.selectOptions(within(screen.getByRole('form', { name: 'Edit rule' })).getByLabelText('Match'), 'Is exactly')
+    await user.click(within(screen.getByRole('form', { name: 'Edit rule' })).getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('This rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.')).toBeInTheDocument()
+    await waitFor(() => expect(within(screen.getByRole('form', { name: 'Edit rule' })).getByLabelText('Text to look for')).toHaveValue('grab bike'))
+    expect(api.rules[0]!.matchType).toBe('contains')
+
+    await user.click(within(screen.getByRole('form', { name: 'Edit rule' })).getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(api.ifMatches).toEqual(['"1"', '"2"']))
+    await waitFor(() => expect(screen.queryByRole('form')).not.toBeInTheDocument())
   })
 
   it('moves a rule up or down, which reorders them all', async () => {
@@ -120,11 +140,28 @@ describe('the categorisation rules screen', () => {
     await user.click(await screen.findByRole('button', { name: 'Move Is exactly “ACME LTD” up' }))
 
     await waitFor(async () => expect(await names()).toEqual(['Starts with “grabfood”', 'Is exactly “ACME LTD”', 'Contains “grab”']))
-    expect(api.requests.at(-1)).toEqual({ method: 'PUT', path: '/api/v1/category-rules/order', body: { ids: ['r-grabfood', 'r-acme', 'r-grab'] } })
+    expect(api.requests.at(-1)).toEqual({
+      method: 'PUT',
+      path: '/api/v1/category-rules/order',
+      body: { rules: [{ id: 'r-grabfood', rowVersion: '1' }, { id: 'r-acme', rowVersion: '1' }, { id: 'r-grab', rowVersion: '1' }] },
+    })
     expect(screen.getByRole('button', { name: 'Move Starts with “grabfood” up' })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Move Starts with “grabfood” down' }))
     await waitFor(async () => expect(await names()).toEqual(['Is exactly “ACME LTD”', 'Starts with “grabfood”', 'Contains “grab”']))
+  })
+
+  it('moves nothing when the rules were changed somewhere else since they were shown, saying so and showing them as they are now', async () => {
+    const api = fakeApis()
+    const { user } = renderApp('/settings/categorisation-rules')
+    await ruleList()
+    // Given a rule edited in another tab, after this one listed them.
+    Object.assign(api.rules.find((rule) => rule.id === 'r-grab')!, { matchText: 'grab bike', rowVersion: '2' })
+
+    await user.click(screen.getByRole('button', { name: 'Move Is exactly “ACME LTD” up' }))
+
+    expect(await screen.findByText('The rules were changed somewhere else. They are shown as they are now; move the rule again.')).toBeInTheDocument()
+    await waitFor(async () => expect(await names()).toEqual(['Starts with “grabfood”', 'Contains “grab bike”', 'Is exactly “ACME LTD”']))
   })
 
   it('deletes a rule once the user confirms', async () => {

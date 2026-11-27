@@ -4457,7 +4457,7 @@
         "tags": [
           "Categorisation rules"
         ],
-        "description": "Puts the rules in a new order: ids lists every one of the user's rules once, the one to try first first, and each takes its priority from its place (the last 0, the one before it 1, and so on). Any other list is refused on ids and changes nothing. Answers the rules in their new order.",
+        "description": "Puts the rules in a new order: rules lists every one of the user's rules once, the one to try first first, each with the row version it was read at, and each takes its priority from its place (the last 0, the one before it 1, and so on). A list that names a rule twice is refused on rules; one that is not the user's rules as they are now, because a rule was set up, edited or deleted since they were read, answers 412. Either changes nothing. Answers the rules in their new order.",
         "operationId": "ReorderCategorisationRules",
         "requestBody": {
           "content": {
@@ -4508,7 +4508,7 @@
         "tags": [
           "Categorisation rules"
         ],
-        "description": "Changes a rule's match text, match type, category and priority (left out, it keeps its own). It may keep a category that has been archived since, but not move to one.",
+        "description": "Changes a rule's match text, match type, category and priority (left out, it keeps its own). It may keep a category that has been archived since, but not move to one. Send the row version last read as If-Match: a stale one answers 412, none answers 428. Reordering the rules and merging a rule's category change the row version too.",
         "operationId": "EditCategorisationRule",
         "parameters": [
           {
@@ -4518,6 +4518,13 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -6601,7 +6608,8 @@
           "importUndo",
           "bulkEdit",
           "bulkDelete",
-          "delete"
+          "delete",
+          "deletionRequest"
         ]
       },
       "AuditEntityType": {
@@ -6609,7 +6617,11 @@
           "user",
           "importBatch",
           "transaction",
-          "transfer"
+          "transfer",
+          "attachment",
+          "budget",
+          "recurringRule",
+          "categorisationRule"
         ]
       },
       "AuditEntryResponse": {
@@ -7392,20 +7404,35 @@
           }
         }
       },
-      "CategorisationRuleOrderRequest": {
+      "CategorisationRuleOrderEntry": {
         "required": [
-          "ids"
+          "id",
+          "rowVersion"
         ],
         "type": "object",
         "properties": {
-          "ids": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rowVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "CategorisationRuleOrderRequest": {
+        "required": [
+          "rules"
+        ],
+        "type": "object",
+        "properties": {
+          "rules": {
             "type": [
               "null",
               "array"
             ],
             "items": {
-              "type": "string",
-              "format": "uuid"
+              "$ref": "#/components/schemas/CategorisationRuleOrderEntry"
             }
           }
         }
@@ -7448,7 +7475,8 @@
           "matchText",
           "matchType",
           "categoryId",
-          "priority"
+          "priority",
+          "rowVersion"
         ],
         "type": "object",
         "properties": {
@@ -7473,6 +7501,9 @@
               "string"
             ],
             "format": "int32"
+          },
+          "rowVersion": {
+            "type": "string"
           }
         }
       },
@@ -8474,7 +8505,9 @@
           "mapping",
           "suggestedMapping",
           "savedMapping",
-          "undoneAt"
+          "undoneAt",
+          "savedExpenseCategoryId",
+          "savedIncomeCategoryId"
         ],
         "type": "object",
         "properties": {
@@ -8589,6 +8622,20 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "savedExpenseCategoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "savedIncomeCategoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
