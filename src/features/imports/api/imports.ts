@@ -1,4 +1,5 @@
-import { keepPreviousData, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { infiniteQueryOptions, keepPreviousData, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { refreshTransactions } from '@/features/transactions'
 import { api } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
 import type { components } from '@/shared/api/schema'
@@ -39,6 +40,14 @@ export type CommitOutcome =
 
 /** The problem type of a commit refused while another statement is being imported into the same account. */
 const importInProgress = 'urn:pfm:problem:import-in-progress'
+/** The problem type of an undo refused while any transaction of the batch is reconciled. */
+const importReconciled = 'urn:pfm:problem:import-reconciled'
+
+/**
+ * What undoing a batch answers: the batch, undone, its transactions deleted; or that it was refused, nothing changed,
+ * because this many of its transactions are reconciled.
+ */
+export type UndoOutcome = { undone: true; batch: ImportBatch } | { undone: false; reconciled: number }
 
 const importsKey = ['imports']
 const batchKey = (id: string) => [...importsKey, id]
@@ -57,6 +66,21 @@ export const importBatchQuery = (id: string) =>
     },
     refetchInterval: (query) => (query.state.data?.status === 'committing' ? 1000 : false),
   })
+
+/**
+ * The user's past imports: every statement committed, whatever became of it, the last uploaded first, a page at a
+ * time. A statement uploaded and not committed is not one.
+ */
+export const pastImportsQuery = infiniteQueryOptions({
+  queryKey: [...importsKey, 'past'],
+  queryFn: async ({ pageParam }) => {
+    const { data, response } = await api.GET('/api/v1/imports', { params: { query: { cursor: pageParam } } })
+    if (!data) throw new Error(`Could not load the past imports: ${response.status}`)
+    return data
+  },
+  initialPageParam: undefined as string | undefined,
+  getNextPageParam: (last) => last.nextCursor ?? undefined,
+})
 
 /**
  * The statement read with a mapping (spec IMP-1): every row, the transaction each says, the rows that cannot be
@@ -116,10 +140,36 @@ export function useCommitImport(id: string) {
       throw new Error(`Committing a statement failed: ${response.status}`)
     },
     onSuccess: (outcome) => {
-      if (outcome.saved) queryClient.setQueryData(batchKey(id), outcome.batch)
-      else if ('committed' in outcome) return queryClient.invalidateQueries({ queryKey: batchKey(id) })
+      if (outcome.saved) {
+        queryClient.setQueryData(batchKey(id), outcome.batch)
+        return queryClient.invalidateQueries({ queryKey: [...importsKey, 'past'] })
+      } else if ('committed' in outcome) return queryClient.invalidateQueries({ queryKey: batchKey(id) })
       // Read the file again: what the other statement has imported meanwhile now shows as likely duplicates, unticked.
       else if ('importInProgress' in outcome) return queryClient.invalidateQueries({ queryKey: [...batchKey(id), 'preview'] })
+    },
+  })
+}
+
+/**
+ * Undoes an import (`UndoImport`, spec IMP-5): every transaction it created is deleted, edited or not, and can be
+ * restored for 30 days like any deleted transaction. A statement still being imported is stopped. Refused while any of
+ * its transactions is reconciled. Undone, the lists, balances, budgets and reports are loaded again.
+ */
+export function useUndoImport() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string): Promise<UndoOutcome> => {
+      const { data, error, response } = await api.DELETE('/api/v1/imports/{id}', { params: { path: { id } } })
+      if (data) return { undone: true, batch: data }
+      if (response.status === 409 && error && 'type' in error && error.type === importReconciled) {
+        return { undone: false, reconciled: Number((error as { reconciledCount?: unknown }).reconciledCount ?? 1) }
+      }
+      throw new Error(`Undoing an import failed: ${response.status}`)
+    },
+    onSuccess: async (outcome) => {
+      if (!outcome.undone) return
+      queryClient.setQueryData(batchKey(outcome.batch.id), outcome.batch)
+      await Promise.all([queryClient.invalidateQueries({ queryKey: [...importsKey, 'past'] }), refreshTransactions(queryClient)])
     },
   })
 }
