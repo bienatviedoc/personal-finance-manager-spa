@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { refreshRecurringRules } from '@/features/recurring'
 import { refreshTransactions } from '@/features/transactions'
 import { api } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
@@ -96,8 +97,8 @@ export function useMergeCategory() {
     },
     onSuccess: (outcome) => {
       if (!outcome.saved) return
-      // Every transaction and budget on it now shows under the category merged into.
-      return Promise.all([queryClient.invalidateQueries({ queryKey: categoriesKey }), refreshTransactions(queryClient)])
+      // Every transaction, budget and recurring rule on it now shows under the category merged into.
+      return Promise.all([queryClient.invalidateQueries({ queryKey: categoriesKey }), refreshTransactions(queryClient), refreshRecurringRules(queryClient)])
     },
   })
 }

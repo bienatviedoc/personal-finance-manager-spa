@@ -36,6 +36,17 @@ describe('budget notifications', () => {
     expect(items[1]).not.toHaveTextContent('Unread')
   })
 
+  it('say what was spent of the budget as one sentence in Vietnamese', async () => {
+    fakeProfileApi({ locale: 'vi' })
+    fakeBudgetNotificationsApi([transportOver])
+    const { user } = renderApp('/settings/profile')
+
+    await user.click(await screen.findByRole('button', { name: /^Thông báo ngân sách/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Thông báo ngân sách' })
+
+    expect(within(dialog).getByRole('listitem')).toHaveTextContent(/Đã chi 1\.050\.000\s₫ trên 1\.000\.000\s₫ \(105\s?%\)/)
+  })
+
   it('open the budget month of the one chosen, and mark it read', async () => {
     fakeProfileApi({ locale: 'en' })
     const categories = fakeCategoriesApi()

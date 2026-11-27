@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { refreshTransactions } from '@/features/transactions'
 import { api } from '@/shared/api/client'
 import { refusedFields } from '@/shared/api/refusedFields'
@@ -46,6 +46,11 @@ export type RecurringRuleField = (typeof recurringRuleFields)[number]
 export type SaveOutcome = VersionedSaveOutcome<'rule', RecurringRule, RecurringRuleField>
 
 const recurringRulesKey = ['recurring-rules']
+
+/** Loads the recurring rules again, for a change made elsewhere that moves them: a category merged into another. */
+export function refreshRecurringRules(queryClient: QueryClient) {
+  return queryClient.invalidateQueries({ queryKey: recurringRulesKey })
+}
 
 /** The user's recurring rules, the last set up first. A user has dozens, so every page is loaded. */
 export const recurringRulesQuery = queryOptions({

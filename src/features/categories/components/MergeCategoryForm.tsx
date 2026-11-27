@@ -14,6 +14,8 @@ type Props = {
   tree: Category[]
   onMerge: (targetId: string) => Promise<MergeOutcome>
   onCancel: () => void
+  /** The form's id, so a failure toast can submit it again. */
+  id: string
 }
 
 /**
@@ -22,7 +24,7 @@ type Props = {
  * category itself or one of its own subcategories, and one with subcategories only into a top-level one, so the
  * tree stays two levels deep. The API checks it all again, and the budget rule too.
  */
-export function MergeCategoryForm({ category, tree, onMerge, onCancel }: Props) {
+export function MergeCategoryForm({ category, tree, onMerge, onCancel, id }: Props) {
   const { t } = useTranslation()
   const [targetId, setTargetId] = useState('')
   const [refused, setRefused] = useState(false)
@@ -47,7 +49,7 @@ export function MergeCategoryForm({ category, tree, onMerge, onCancel }: Props) 
   }
 
   return (
-    <form aria-labelledby={titleId} onSubmit={(event) => void onSubmit(event)} className="mt-2 space-y-3 rounded-md bg-muted p-3">
+    <form id={id} aria-labelledby={titleId} onSubmit={(event) => void onSubmit(event)} className="mt-2 space-y-3 rounded-md bg-muted p-3">
       <h4 id={titleId} className="font-medium">
         {t('categories.merge.title', { name: category.name })}
       </h4>

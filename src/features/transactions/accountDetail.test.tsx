@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react'
+import { http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
 import { defaultTestCategories, fakeCategoriesApi } from '@/test/fakeCategoriesApi'
@@ -6,6 +7,7 @@ import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { fakeReportsApi } from '@/test/fakeReportsApi'
 import { fakeTransactionsApi } from '@/test/fakeTransactionsApi'
 import { renderApp } from '@/test/renderApp'
+import { apiUrl, problem, server } from '@/test/server'
 
 const everyday = '01970000-0000-7000-8000-200000000000'
 const savings = '01970000-0000-7000-8000-200000000001'
@@ -95,6 +97,15 @@ describe('the account detail page', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Old wallet' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.getByText('Archived')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Reconcile Old wallet' })).not.toBeInTheDocument()
+  })
+
+  it('says when its transactions could not be loaded, and still shows the account', async () => {
+    fakeApis()
+    server.use(http.get(apiUrl('/api/v1/categories'), () => problem(500)))
+    renderApp(`/accounts/${everyday}`)
+
+    expect(await screen.findByText("The account's transactions could not be loaded.", {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Everyday' })).toBeInTheDocument()
   })
 
   it('says when there is no such account', async () => {

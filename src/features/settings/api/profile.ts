@@ -32,10 +32,11 @@ export function useUpdateProfile() {
       if (!outcome.saved) return
       const before = queryClient.getQueryData(signedInUserQuery.queryKey)
       queryClient.setQueryData(signedInUserQuery.queryKey, outcome.profile)
-      // Totals the API converted into the old base currency are no longer what it would answer.
+      // Totals the API converted into the old base currency are no longer what it would answer, and a new warning
+      // threshold changes every budget's state and may raise budget notifications for this month.
       // Everything but the profile itself, which the save just answered. Keys are compared by what they hold:
       // the cache need not keep the very array a query was made with.
-      if (before?.baseCurrency !== outcome.profile.baseCurrency) {
+      if (before?.baseCurrency !== outcome.profile.baseCurrency || before?.budgetWarningPercent !== outcome.profile.budgetWarningPercent) {
         const profileKey = hashKey(signedInUserQuery.queryKey)
         return queryClient.invalidateQueries({ predicate: (query) => query.queryHash !== profileKey })
       }

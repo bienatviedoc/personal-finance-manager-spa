@@ -132,7 +132,8 @@ export function CategoriesPage() {
       <FailureToast
         failed={merge.isError}
         message={t('categories.errors.generic')}
-        retry={() => merge.variables !== undefined && merge.mutate(merge.variables)}
+        // Submitted again through its form, which closes once merged and says why the API refused the target.
+        retry={{ form: mergeFormId(merge.variables?.id ?? '') }}
         onDismiss={merge.reset}
       />
 
@@ -265,6 +266,7 @@ function CategoryRow({
       )}
       {merging && (
         <MergeCategoryForm
+          id={mergeFormId(category.id)}
           category={category}
           tree={mergeTargets}
           onMerge={async (targetId) => {
@@ -278,4 +280,9 @@ function CategoryRow({
       {children}
     </li>
   )
+}
+
+/** The id of the form that merges a category, one per row. */
+function mergeFormId(categoryId: string) {
+  return `merge-${categoryId}`
 }

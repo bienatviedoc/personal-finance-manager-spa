@@ -1,8 +1,10 @@
 import { screen, within } from '@testing-library/react'
+import { http } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { choose, offeredBy } from '@/test/combobox'
 import { renderApp } from '@/test/renderApp'
 import { fakeCategoriesApi } from '@/test/fakeCategoriesApi'
+import { apiUrl, problem, server } from '@/test/server'
 
 const expenseList = () => screen.getByRole('list', { name: 'Expense categories' })
 const incomeList = () => screen.getByRole('list', { name: 'Income categories' })
@@ -168,7 +170,9 @@ describe('the categories screen', () => {
 
   it('merges a category into another after showing how many transactions and budgets will move', async () => {
     const api = fakeCategoriesApi({ moving: { 'c-groceries': { transactions: 12, budgets: 1 } } })
-    const { user } = renderApp('/settings/categories')
+    const { user, queryClient } = renderApp('/settings/categories')
+    // The recurring screen was seen earlier: its rules on Groceries move too, so they are loaded again.
+    queryClient.setQueryData(['recurring-rules'], [])
 
     await user.click(await screen.findByRole('button', { name: 'Merge Groceries' }))
     const form = screen.getByRole('form', { name: 'Merge Groceries' })
@@ -179,6 +183,21 @@ describe('the categories screen', () => {
 
     await expect.poll(() => within(expenseList()).queryByRole('listitem', { name: 'Groceries' })).toBeNull()
     expect(api.requests.at(-1)).toEqual({ method: 'POST', body: { targetId: 'c-eating-out' } })
+    expect(queryClient.getQueryState(['recurring-rules'])?.isInvalidated).toBe(true)
+  })
+
+  it('says in a toast when a merge failed, and says why the API refused it when the user tries again', async () => {
+    fakeCategoriesApi({ refuseMergeInto: ['c-transport'] })
+    const { user } = renderApp('/settings/categories')
+    server.use(http.post(apiUrl('/api/v1/categories/:id/merge'), () => problem(500), { once: true }))
+
+    await user.click(await screen.findByRole('button', { name: 'Merge Groceries' }))
+    const form = screen.getByRole('form', { name: 'Merge Groceries' })
+    await choose(user, within(form).getByRole('combobox', { name: 'Merge into' }), 'Transport')
+    await user.click(await within(form).findByRole('button', { name: 'Merge' }))
+    await user.click(await screen.findByRole('button', { name: 'Try again' }))
+
+    expect(await within(form).findByText(/Groceries cannot be merged into Transport/)).toBeInTheDocument()
   })
 
   it('offers to merge only into another category of the same kind, never into its own subcategory', async () => {

@@ -229,7 +229,8 @@
     "allTransactions": "Tất cả giao dịch trên {{name}}",
     "noTransactions": "Tài khoản này chưa có giao dịch nào.",
     "errors": {
-      "notLoaded": "Không tải được tài khoản."
+      "notLoaded": "Không tải được tài khoản.",
+        "transactionsNotLoaded": "Không tải được giao dịch của tài khoản."
     }
   },
   "transactions": {
@@ -606,7 +607,7 @@
       "buttonUnread_other": "Thông báo ngân sách, {{count}} chưa đọc",
       "warning": "{{name}} đã dùng {{percent}}% ngân sách {{month}}",
       "over": "{{name}} đã vượt ngân sách {{month}}",
-      "spentOf": "đã chi trên",
+      "spentOf": "Đã chi {{spent}} trên {{budgeted}}",
       "unread": "Chưa đọc",
       "readAll": "Đánh dấu tất cả là đã đọc",
       "more": "Xem thêm",

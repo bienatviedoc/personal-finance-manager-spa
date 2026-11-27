@@ -91,6 +91,8 @@ export function AccountDetailPage() {
             </Suspense>
           </section>
 
+          {/* The transactions are named by category, so without them there is no list to show. */}
+          {categories.isError && <ErrorMessage>{t('accountDetail.errors.transactionsNotLoaded')}</ErrorMessage>}
           {categories.data && <AccountTransactions accountId={account.id} name={account.name} categories={categories.data} accounts={accounts.data!.accounts} />}
         </>
       )}

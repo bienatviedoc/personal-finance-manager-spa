@@ -8,7 +8,7 @@ import { ErrorMessage } from '@/shared/components/ErrorMessage'
 import { formatMonth, isCalendarMonth } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
-import { Money } from '@/shared/money'
+import { formatMoney } from '@/shared/money'
 import { Button } from '@/shared/ui/button'
 import { budgetNotificationsQuery, useReadAllBudgetNotifications, useReadBudgetNotification, type BudgetNotification } from '../api/budgetNotifications'
 import { budgetStates } from './budgetStates'
@@ -90,8 +90,10 @@ function Item({ notification, onChoose }: { notification: BudgetNotification; on
             {notification.state === 'over' ? t('budgets.notifications.over', values) : t('budgets.notifications.warning', values)}
           </span>
           <span className="block text-sm text-muted-foreground">
-            <Money amount={notification.spent} currency={notification.currency} /> {t('budgets.notifications.spentOf')}{' '}
-            <Money amount={notification.budgeted} currency={notification.currency} />
+            {t('budgets.notifications.spentOf', {
+              spent: formatMoney(notification.spent, notification.currency, locale),
+              budgeted: formatMoney(notification.budgeted, notification.currency, locale),
+            })}
             {notification.percentSpent !== null && ` (${t('budgets.percent', { percent: notification.percentSpent })})`}
           </span>
           {unread && <span className="block text-xs font-medium">{t('budgets.notifications.unread')}</span>}

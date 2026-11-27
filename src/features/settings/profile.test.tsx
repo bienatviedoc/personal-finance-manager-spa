@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderApp } from '@/test/renderApp'
 import { http } from 'msw'
+import { fakeBudgetNotificationsApi } from '@/test/fakeBudgetNotificationsApi'
 import { fakeProfileApi } from '@/test/fakeProfileApi'
 import { apiUrl, problem, server } from '@/test/server'
 
@@ -46,6 +47,24 @@ describe('profile settings', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Your settings are saved.')
     expect(api.profile.budgetWarningPercent).toBe(90)
     expect(threshold).toHaveValue(90)
+  })
+
+  it('show the budget notifications a lower warning threshold raises once it is saved', async () => {
+    const api = fakeProfileApi({ locale: 'en' })
+    const notifications = fakeBudgetNotificationsApi()
+    const { user } = renderApp('/settings/profile')
+
+    const threshold = await screen.findByRole('spinbutton', { name: 'Budget warning threshold (%)' })
+    expect(await screen.findByRole('button', { name: 'Budget notifications' })).toBeInTheDocument()
+    await user.clear(threshold)
+    await user.type(threshold, '60')
+    notifications.raise({
+      id: 'n-1', month: '2026-11', categoryName: 'Transport', state: 'warning', budgeted: '1000000.00', spent: '700000.00', percentSpent: 70,
+    })
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('button', { name: 'Budget notifications, 1 unread' })).toBeInTheDocument()
+    expect(api.profile.budgetWarningPercent).toBe(60)
   })
 
   it('email budget notifications until the user switches that off, and save it', async () => {

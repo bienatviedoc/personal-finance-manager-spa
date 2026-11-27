@@ -229,7 +229,8 @@
     "allTransactions": "All transactions on {{name}}",
     "noTransactions": "No transactions on this account yet.",
     "errors": {
-      "notLoaded": "The account could not be loaded."
+      "notLoaded": "The account could not be loaded.",
+        "transactionsNotLoaded": "The account's transactions could not be loaded."
     }
   },
   "transactions": {
@@ -606,7 +607,7 @@
       "buttonUnread_other": "Budget notifications, {{count}} unread",
       "warning": "{{name}} reached {{percent}}% of its budget for {{month}}",
       "over": "{{name}} went over its budget for {{month}}",
-      "spentOf": "spent of",
+      "spentOf": "{{spent}} spent of {{budgeted}}",
       "unread": "Unread",
       "readAll": "Mark all as read",
       "more": "Show more",
