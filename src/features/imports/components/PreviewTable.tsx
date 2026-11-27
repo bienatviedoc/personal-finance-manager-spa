@@ -1,5 +1,5 @@
 import type { ParseKeys } from 'i18next'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatDate } from '@/shared/dates'
 import { useLocale } from '@/shared/i18n/useLocale'
@@ -55,11 +55,15 @@ export function RawRows({ preview, columns }: { preview: ImportPreview; columns:
   )
 }
 
+type Option = { value: string; label: string }
+
 type Props = {
   preview: ImportPreview
   /** The numbers of the rows ticked to import. */
   selection: ReadonlySet<number>
   onToggle: (row: number) => void
+  /** Each transaction's own category: the choices of each kind, the one a row is on ('' for the batch's), and changing it. */
+  categories: { expense: Option[]; income: Option[]; of: (row: PreviewRow) => string; onPick: (row: number, categoryId: string) => void }
 }
 
 /**
@@ -68,7 +72,7 @@ type Props = {
  * API answers every row at once; the table shows them a page at a time, and what is ticked is kept by the screen
  * around it, so it stays as it was from page to page. A new preview starts again at the first page.
  */
-export function PreviewTable({ preview, selection, onToggle }: Props) {
+export function PreviewTable({ preview, selection, onToggle, categories }: Props) {
   const { t } = useTranslation()
   const locale = useLocale()
   const [page, setPage] = useState<{ preview: ImportPreview; index: number } | null>(null)
@@ -99,6 +103,9 @@ export function PreviewTable({ preview, selection, onToggle }: Props) {
                 {t('imports.preview.amount')}
               </th>
               <th scope="col" className="p-2 font-medium">
+                {t('imports.preview.category')}
+              </th>
+              <th scope="col" className="p-2 font-medium">
                 {t('imports.preview.status')}
               </th>
             </tr>
@@ -123,6 +130,7 @@ export function PreviewTable({ preview, selection, onToggle }: Props) {
                 <td className="p-2 text-right whitespace-nowrap tabular-nums">
                   {row.amount && <Money amount={signedAmount(row.amount, row.type === 'expense')} currency={preview.currency} />}
                 </td>
+                <td className="p-2">{row.kind === 'parsed' && <RowCategory row={row} categories={categories} />}</td>
                 <td className="p-2">
                   <RowStatus row={row} />
                 </td>
@@ -143,6 +151,38 @@ export function PreviewTable({ preview, selection, onToggle }: Props) {
             {t('imports.preview.next')}
           </Button>
         </nav>
+      )}
+    </div>
+  )
+}
+
+/** A transaction's own category, starting on the rule's suggestion, which it says until the user picks another. */
+function RowCategory({ row, categories }: { row: PreviewRow; categories: Props['categories'] }) {
+  const { t } = useTranslation()
+  const hintId = useId()
+  const value = categories.of(row)
+  const suggested = value !== '' && value === row.suggestedCategoryId
+
+  return (
+    <div className="min-w-40 space-y-1">
+      <select
+        aria-label={t('imports.preview.categoryFor', { number: row.number })}
+        aria-describedby={suggested ? hintId : undefined}
+        className={cn('h-8 w-full rounded-lg border border-input bg-background px-2 text-sm', focusRing)}
+        value={value}
+        onChange={(event) => categories.onPick(Number(row.number), event.target.value)}
+      >
+        <option value="">{t('imports.preview.batchCategory')}</option>
+        {(row.type === 'income' ? categories.income : categories.expense).map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {suggested && (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {t('imports.preview.suggested')}
+        </p>
       )}
     </div>
   )

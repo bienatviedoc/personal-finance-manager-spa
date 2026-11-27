@@ -12,6 +12,7 @@ import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
 import { useUploadStatement, type StartAgain, type UploadField } from '../api/imports'
+import { PastImports } from '../components/PastImports'
 
 /** What the file picker offers: CSV files, which some systems call plain text. */
 const accepted = '.csv,text/csv,text/plain'
@@ -94,6 +95,7 @@ export function ImportPage() {
         </Button>
         <FailureToast failed={upload.isError} message={t('imports.errors.notUploaded')} retry={{ form: formId }} onDismiss={upload.reset} />
       </form>
+      <PastImports />
     </section>
   )
 }

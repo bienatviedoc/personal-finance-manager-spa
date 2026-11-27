@@ -15,9 +15,10 @@ export function ImportBatchPage() {
   const { t } = useTranslation()
   const { batchId = '' } = useParams()
   const batch = useQuery(importBatchQuery(batchId))
-  // Started again after an import stopped: its mapping, rather than the API's guess at the layout.
+  // Started again after an import stopped: its mapping. Else the one saved for the account (spec IMP-2), else the API's guess at the layout.
   const kept = (useLocation().state as StartAgain | null)?.mapping
-  const startFrom = kept ?? batch.data?.suggestedMapping
+  const saved = kept ? null : batch.data?.savedMapping
+  const startFrom = kept ?? saved ?? batch.data?.suggestedMapping
   const title = batch.data ? t('imports.batchTitle', { fileName: batch.data.fileName }) : t('screens.import')
   useDocumentTitle(title)
 
@@ -37,7 +38,7 @@ export function ImportBatchPage() {
       )}
       {batch.data &&
         (batch.data.status === 'uploaded' && startFrom ? (
-          <MapAndPreview batch={batch.data} suggested={startFrom} />
+          <MapAndPreview batch={batch.data} suggested={startFrom} fromSaved={!!saved} />
         ) : (
           <ImportProgress batch={batch.data} />
         ))}
