@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { choose, offeredBy } from '@/test/combobox'
 import { fakeAccountsApi } from '@/test/fakeAccountsApi'
+import type { FakeRule } from '@/test/fakeCategorisationRulesApi'
 import { defaultTestCategories, fakeCategoriesApi, type FakeCategory } from '@/test/fakeCategoriesApi'
 import { fakeInstitutionsApi } from '@/test/fakeInstitutionsApi'
 import { fakeTransactionsApi } from '@/test/fakeTransactionsApi'
@@ -17,11 +18,12 @@ function fakeApis(
   transactions: Parameters<typeof fakeTransactionsApi>[0] = [],
   accounts: Parameters<typeof fakeAccountsApi>[0] = [{ name: 'Everyday' }, { name: 'Savings in dollars', currency: 'USD' }],
   categories: FakeCategory[] = defaultTestCategories,
+  rules: FakeRule[] = [],
 ) {
   fakeInstitutionsApi()
   const accountsApi = fakeAccountsApi(accounts)
   const categoriesApi = fakeCategoriesApi({ categories })
-  return fakeTransactionsApi(transactions, { accounts: accountsApi.accounts, categories: categoriesApi.categories, today })
+  return fakeTransactionsApi(transactions, { accounts: accountsApi.accounts, categories: categoriesApi.categories, today, rules })
 }
 
 /** Presses N on a screen and answers the drawer it opens. */
@@ -131,6 +133,24 @@ describe('quick add', () => {
     await waitFor(() => expect(drawer.getByLabelText('Category')).toHaveValue('Salary'))
     await user.type(drawer.getByLabelText('Payee'), ' Corporation')
     await waitFor(() => expect(drawer.getByLabelText('Category')).toHaveValue(''))
+  })
+
+  it('takes the category of a categorisation rule the payee matches when the payee has no history, and says so', async () => {
+    fakeApis([{ payee: 'Grab', categoryId: 'c-groceries' }], undefined, defaultTestCategories, [
+      { id: 'r-grab', matchText: 'grab', matchType: 'contains', categoryId: 'c-transport', priority: 0 },
+    ])
+    const { user, drawer } = await quickAdd()
+
+    await user.type(drawer.getByLabelText('Payee'), 'Grab bike')
+
+    await waitFor(() => expect(drawer.getByLabelText('Category')).toHaveValue('Transport'))
+    expect(drawer.getByLabelText('Category')).toHaveAccessibleDescription('Suggested by your categorisation rule for this payee.')
+
+    // A payee with history keeps the category it usually has.
+    await user.clear(drawer.getByLabelText('Payee'))
+    await user.type(drawer.getByLabelText('Payee'), 'Grab')
+    await waitFor(() => expect(drawer.getByLabelText('Category')).toHaveValue('Food & drink › Groceries'))
+    expect(drawer.getByLabelText('Category')).toHaveAccessibleDescription('Suggested from your earlier transactions with this payee.')
   })
 
   it('keeps the category the user chose, whatever the payee suggests', async () => {

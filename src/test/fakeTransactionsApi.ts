@@ -3,6 +3,7 @@ import { maxBulkSelection } from '@/shared/api/limits'
 import type { components } from '@/shared/api/schema'
 import { fakeAttachmentsApi } from './fakeAttachmentsApi'
 import type { FakeCategory } from './fakeCategoriesApi'
+import { categoriseWith, type FakeRule } from './fakeCategorisationRulesApi'
 import { apiUrl, problem, refuseWithoutToken, server } from './server'
 
 type Transaction = components['schemas']['TransactionResponse']
@@ -29,6 +30,8 @@ type Options = {
   categories: FakeCategory[]
   /** Today's date for the user; dates after it are refused. */
   today?: string
+  /** The user's categorisation rules: quick add suggests the category of one a payee with no history matches. */
+  rules?: FakeRule[]
 }
 
 /**
@@ -82,7 +85,7 @@ type Options = {
  * which stays once no transaction has it. `tag` narrows the list to the transactions with it, in any case, and
  * `/api/v1/tags` lists the user's tags by name, those containing `q`, a page at a time.
  */
-export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20' }: Options) {
+export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], { accounts, categories, today = '2026-11-20', rules = [] }: Options) {
   let recorded = 0
   const state = {
     transactions: transactions.map((transaction, index): Transaction => {
@@ -620,10 +623,13 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
         }
       }
       const mostUsed = [...times].toSorted(([, a], [, b]) => b - a)[0]
+      // A payee with no history takes the category of the rule it matches, as the API's does.
+      const ruled = mostUsed ? null : categoriseWith(rules, categories, payee, type === 'income' || type === 'expense' ? type : null)
       return HttpResponse.json({
         // Income and expenses only: a transfer does not change where quick add starts.
         lastAccountId: lastFirst.find((transaction) => !transaction.transferId && !isArchived(transaction.accountId))?.accountId ?? null,
-        suggestedCategoryId: mostUsed?.[0] ?? null,
+        suggestedCategoryId: mostUsed?.[0] ?? ruled,
+        suggestedBy: mostUsed ? 'history' : ruled ? 'rule' : null,
       })
     }),
     http.get(apiUrl('/api/v1/transactions/:id'), ({ params }) => {

@@ -125,13 +125,17 @@ export const lastAccountQuery = queryOptions({
 })
 
 /**
- * The category the user most often gave this payee on transactions of this type; null when they never used
- * the payee. Asks nothing while there is no payee.
+ * The category suggested for this payee on transactions of this type, and what suggested it: the one the user most
+ * often gave the payee (`history`), or else the one of the categorisation rule it matches (`rule`); a null category
+ * when neither gives one. Asks nothing while there is no payee.
  */
 export const suggestedCategoryQuery = ({ type, payee }: { type: TransactionType; payee: string }) =>
   queryOptions({
     queryKey: [...quickAddKey, 'suggested-category', { type, payee: payee.trim().toLowerCase() }],
-    queryFn: async () => (await quickAdd({ type, payee: payee.trim() })).suggestedCategoryId,
+    queryFn: async () => {
+      const { suggestedCategoryId, suggestedBy } = await quickAdd({ type, payee: payee.trim() })
+      return { categoryId: suggestedCategoryId, by: suggestedBy }
+    },
     enabled: payee.trim() !== '',
   })
 

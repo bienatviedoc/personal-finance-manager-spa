@@ -416,7 +416,8 @@
     "export": {
       "start": "Export CSV",
       "failed": "The CSV file could not be downloaded. Try again in a moment."
-    }
+    },
+    "categorySuggestedByRule": "Suggested by your categorisation rule for this payee."
   },
   "transfers": {
     "add": "Transfer between accounts",
@@ -989,7 +990,8 @@
         "confirmBody": "You will be signed out now. In 30 days your profile and everything in it is erased, unless you sign in again before then. Enter your password to go ahead.",
         "submit": "Delete my profile"
       }
-    }
+    },
+    "rules": "Rules"
   },
   "categories": {
     "option": "{{parent}} › {{name}}",
@@ -1105,6 +1107,56 @@
       "pieChart": "Pie chart",
       "tag": "Tag",
       "more": "More"
+    }
+  },
+  "rules": {
+    "title": "Categorisation rules",
+    "intro": "A rule gives a category to a payee or a statement row’s description that contains, starts with or is exactly its text, whatever its case, accents or spaces. Statement imports and quick add start from it, and you can still change the category. A rule only categorises transactions of its category’s kind. When several rules match, the one higher in this list wins.",
+    "add": "Add rule",
+    "list": "Rules, in the order they are tried",
+    "empty": "No rules yet. Add one to have imports and quick add pick a category for you.",
+    "newTitle": "New rule",
+    "editTitle": "Edit rule",
+    "matchText": "Text to look for",
+    "matchTextHint": "In the payee, or a statement row’s description.",
+    "matchType": "Match",
+    "matchTypes": {
+      "contains": "Contains",
+      "startsWith": "Starts with",
+      "exactly": "Is exactly"
+    },
+    "named": {
+      "contains": "Contains “{{text}}”",
+      "startsWith": "Starts with “{{text}}”",
+      "exactly": "Is exactly “{{text}}”"
+    },
+    "category": "Category",
+    "chooseCategory": "Choose a category",
+    "priority": "Priority",
+    "priorityHint": "Higher wins when several rules match. Leave it empty to put a new rule first.",
+    "priorityOf": "Priority {{priority}}",
+    "unknownCategory": "A category that is gone",
+    "categoryArchived": "Its category is archived: this rule categorises nothing until you choose another.",
+    "up": "Up",
+    "down": "Down",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "edit": "Edit",
+    "editAction": "Edit {{name}}",
+    "delete": "Delete",
+    "deleteAction": "Delete {{name}}",
+    "deleteRule": "Delete rule",
+    "deleteConfirm": "Delete the rule {{name}}? What it categorised keeps its category.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "errors": {
+      "generic": "Something went wrong with the rules. Try again.",
+      "matchTextRequired": "Enter the text to look for.",
+      "matchTextTooLong": "Keep the text to look for to 100 characters.",
+      "matchType": "Choose how the text is matched.",
+      "categoryRequired": "Choose a category.",
+      "categoryRefused": "This category cannot be chosen: it may have been archived. Choose another.",
+      "priority": "Enter a whole number from 0 to 1,000,000, or leave it empty."
     }
   },
   "colors": {
@@ -1232,7 +1284,7 @@
     "rawMore_other": "The first {{shown}} rows of {{count}}.",
     "previewTable": "Rows of the statement",
     "commit": "Import the rows ticked",
-    "categoriesIntro": "Imported transactions are recorded on these categories. You can change any of them afterwards.",
+    "categoriesIntro": "Rows left on “The category chosen below” are recorded on these categories. You can change any of them afterwards.",
     "expenseCategory": "Category for money going out",
     "incomeCategory": "Category for money coming in",
     "chooseCategory": "Choose a category",
@@ -1295,7 +1347,11 @@
       "pages": "Pages of the statement",
       "previous": "Previous rows",
       "next": "Next rows",
-      "page": "Rows {{from}}–{{to}} of {{count}}"
+      "page": "Rows {{from}}–{{to}} of {{count}}",
+      "category": "Category",
+      "categoryFor": "Category for row {{number}}",
+      "batchCategory": "The category chosen below",
+      "suggested": "Suggested by a categorisation rule."
     },
     "problems": {
       "missingColumns": "The row has fewer cells than the columns chosen.",
@@ -1349,7 +1405,8 @@
         "expenseCategoryId": "Choose one of your expense categories that is not archived.",
         "incomeCategoryId": "Choose one of your income categories that is not archived.",
         "mapping": "Choose the date column and the amount column, or the debit and credit columns.",
-        "id": "The account has been archived since the statement was uploaded."
+        "id": "The account has been archived since the statement was uploaded.",
+        "rowCategories": "A category chosen for a row cannot be used: it may have been archived. Choose another."
       },
       "importInProgress": "Another statement is being imported into this account. Wait for it to finish, then check the rows again: those it imported will show as likely duplicates."
     },

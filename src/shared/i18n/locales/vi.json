@@ -416,7 +416,8 @@
     "export": {
       "start": "Xuất CSV",
       "failed": "Không tải được tệp CSV. Hãy thử lại sau ít phút."
-    }
+    },
+    "categorySuggestedByRule": "Gợi ý theo quy tắc phân loại của bạn cho bên này."
   },
   "transfers": {
     "add": "Chuyển giữa các tài khoản",
@@ -989,7 +990,8 @@
         "confirmBody": "Bạn sẽ bị đăng xuất ngay bây giờ. Sau 30 ngày, hồ sơ của bạn và mọi thứ trong đó sẽ bị xóa, trừ khi bạn đăng nhập lại trước lúc đó. Nhập mật khẩu để tiếp tục.",
         "submit": "Xóa hồ sơ của tôi"
       }
-    }
+    },
+    "rules": "Quy tắc"
   },
   "categories": {
     "option": "{{parent}} › {{name}}",
@@ -1105,6 +1107,56 @@
       "pieChart": "Biểu đồ tròn",
       "tag": "Nhãn",
       "more": "Khác"
+    }
+  },
+  "rules": {
+    "title": "Quy tắc phân loại",
+    "intro": "Một quy tắc gán danh mục cho người nhận hoặc mô tả của một dòng sao kê có chứa, bắt đầu bằng hoặc đúng bằng nội dung của nó, không phân biệt hoa thường, dấu hay khoảng trắng. Nhập sao kê và thêm nhanh sẽ bắt đầu từ danh mục đó, và bạn vẫn có thể đổi. Một quy tắc chỉ phân loại giao dịch cùng loại với danh mục của nó. Khi nhiều quy tắc cùng khớp, quy tắc đứng cao hơn trong danh sách này được áp dụng.",
+    "add": "Thêm quy tắc",
+    "list": "Các quy tắc, theo thứ tự được thử",
+    "empty": "Chưa có quy tắc nào. Hãy thêm một quy tắc để việc nhập sao kê và thêm nhanh tự chọn danh mục cho bạn.",
+    "newTitle": "Quy tắc mới",
+    "editTitle": "Sửa quy tắc",
+    "matchText": "Nội dung cần tìm",
+    "matchTextHint": "Trong người nhận, hoặc mô tả của một dòng sao kê.",
+    "matchType": "Cách khớp",
+    "matchTypes": {
+      "contains": "Có chứa",
+      "startsWith": "Bắt đầu bằng",
+      "exactly": "Đúng bằng"
+    },
+    "named": {
+      "contains": "Có chứa “{{text}}”",
+      "startsWith": "Bắt đầu bằng “{{text}}”",
+      "exactly": "Đúng bằng “{{text}}”"
+    },
+    "category": "Danh mục",
+    "chooseCategory": "Chọn danh mục",
+    "priority": "Độ ưu tiên",
+    "priorityHint": "Số cao hơn được áp dụng khi nhiều quy tắc cùng khớp. Để trống để đặt quy tắc mới lên đầu.",
+    "priorityOf": "Ưu tiên {{priority}}",
+    "unknownCategory": "Một danh mục không còn nữa",
+    "categoryArchived": "Danh mục của quy tắc đã được lưu trữ: quy tắc này không phân loại gì cho đến khi bạn chọn danh mục khác.",
+    "up": "Lên",
+    "down": "Xuống",
+    "moveUp": "Đưa {{name}} lên",
+    "moveDown": "Đưa {{name}} xuống",
+    "edit": "Sửa",
+    "editAction": "Sửa {{name}}",
+    "delete": "Xóa",
+    "deleteAction": "Xóa {{name}}",
+    "deleteRule": "Xóa quy tắc",
+    "deleteConfirm": "Xóa quy tắc {{name}}? Những gì nó đã phân loại vẫn giữ danh mục.",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "errors": {
+      "generic": "Đã có lỗi với các quy tắc. Hãy thử lại.",
+      "matchTextRequired": "Nhập nội dung cần tìm.",
+      "matchTextTooLong": "Nội dung cần tìm tối đa 100 ký tự.",
+      "matchType": "Chọn cách khớp nội dung.",
+      "categoryRequired": "Chọn một danh mục.",
+      "categoryRefused": "Không thể chọn danh mục này: có thể nó đã được lưu trữ. Hãy chọn danh mục khác.",
+      "priority": "Nhập một số nguyên từ 0 đến 1.000.000, hoặc để trống."
     }
   },
   "colors": {
@@ -1232,7 +1284,7 @@
     "rawMore_other": "{{shown}} dòng đầu tiên trong {{count}} dòng.",
     "previewTable": "Các dòng của sao kê",
     "commit": "Nhập các dòng đã chọn",
-    "categoriesIntro": "Giao dịch được nhập sẽ được ghi vào các danh mục này. Bạn có thể đổi từng giao dịch sau.",
+    "categoriesIntro": "Các dòng để ở “Danh mục chọn bên dưới” sẽ được ghi vào các danh mục này. Bạn có thể đổi từng giao dịch sau.",
     "expenseCategory": "Danh mục cho tiền ra",
     "incomeCategory": "Danh mục cho tiền vào",
     "chooseCategory": "Chọn danh mục",
@@ -1295,7 +1347,11 @@
       "pages": "Các trang của sao kê",
       "previous": "Các dòng trước",
       "next": "Các dòng sau",
-      "page": "Dòng {{from}}–{{to}} trên {{count}}"
+      "page": "Dòng {{from}}–{{to}} trên {{count}}",
+      "category": "Danh mục",
+      "categoryFor": "Danh mục cho dòng {{number}}",
+      "batchCategory": "Danh mục chọn bên dưới",
+      "suggested": "Gợi ý theo một quy tắc phân loại."
     },
     "problems": {
       "missingColumns": "Dòng có ít ô hơn số cột đã chọn.",
@@ -1349,7 +1405,8 @@
         "expenseCategoryId": "Chọn một danh mục chi tiêu của bạn chưa được lưu trữ.",
         "incomeCategoryId": "Chọn một danh mục thu nhập của bạn chưa được lưu trữ.",
         "mapping": "Chọn cột ngày và cột số tiền, hoặc cột ghi nợ và ghi có.",
-        "id": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên."
+        "id": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên.",
+        "rowCategories": "Không thể dùng danh mục đã chọn cho một dòng: có thể nó đã được lưu trữ. Hãy chọn danh mục khác."
       },
       "importInProgress": "Một sao kê khác đang được nhập vào tài khoản này. Hãy đợi nó xong rồi kiểm tra lại các dòng: những dòng nó đã nhập sẽ hiện là có thể trùng."
     },

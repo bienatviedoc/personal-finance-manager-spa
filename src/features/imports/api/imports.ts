@@ -26,7 +26,7 @@ export type UploadField = (typeof uploadFields)[number]
 export type UploadOutcome = { saved: true; batch: ImportBatch } | { saved: false; fields: UploadField[] }
 
 /** What a commit can be refused on: `id` is the batch itself, refused when its account was archived after the upload. */
-const commitFields = ['rows', 'expenseCategoryId', 'incomeCategoryId', 'mapping', 'id'] as const
+const commitFields = ['rows', 'rowCategories', 'expenseCategoryId', 'incomeCategoryId', 'mapping', 'id'] as const
 export type CommitField = (typeof commitFields)[number]
 /**
  * What committing answers: the batch, now being imported; the fields the API refused; that it was committed already,

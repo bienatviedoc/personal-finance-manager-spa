@@ -181,7 +181,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
   // What the payee typed now suggests, among the categories offered: '' when nothing, undefined while it is not
   // known, which it is not while the payee is still being typed or has just been emptied by a save.
   const suggestedId =
-    suggestion.data === undefined || settledPayee !== payee ? undefined : (categoryOptions.find((option) => option.value === suggestion.data)?.value ?? '')
+    suggestion.data === undefined || settledPayee !== payee ? undefined : (categoryOptions.find((option) => option.value === suggestion.data.categoryId)?.value ?? '')
   // Whether the category shown is the one suggested for what is typed now, which the picker says under itself.
   const suggested = !pickedCategory && suggestedId !== undefined && suggestedId !== '' && suggestedId === categoryId
   const { setValue, getValues } = form
@@ -370,7 +370,7 @@ export function TransactionForm({ id, transaction, accounts, categories, lastAcc
                 label={t('transactions.category')}
                 placeholder={t('transactions.chooseCategory')}
                 noMatches={t('transactions.noCategoryMatches')}
-                hint={suggested ? t('transactions.categorySuggested') : undefined}
+                hint={suggested ? t(suggestion.data?.by === 'rule' ? 'transactions.categorySuggestedByRule' : 'transactions.categorySuggested') : undefined}
                 error={errors.categoryId?.message && t(errors.categoryId.message as ParseKeys)}
                 options={categoryOptions}
                 ref={field.ref}
