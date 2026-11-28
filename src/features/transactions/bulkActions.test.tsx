@@ -274,18 +274,67 @@ describe('bulk actions', () => {
     expect(transactionsApi.transactions.filter((transaction) => transaction.tags.includes('weekly'))).toHaveLength(0)
   })
 
-  it('unselecting one row of all of them keeps the others that are loaded', async () => {
+  it('unselecting rows of all of them keeps every other one that passes the filters, loaded or not, and acts on the filters except those', async () => {
+    const transactionsApi = fakeApis(
+      Array.from({ length: 60 }, (_, index) => ({
+        type: 'expense' as const,
+        accountId: everyday,
+        amount: '1000.00',
+        date: '2026-11-02',
+        categoryId: 'c-groceries',
+        payee: `Shop ${index}`,
+      })),
+    )
+    window.innerHeight = 768
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select all 60 transactions' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Select Shop 59' }))
+    expect(screen.getByRole('checkbox', { name: 'Select Shop 59' })).not.toBeChecked()
+    expect(bar().getByText('59 selected')).toBeInTheDocument()
+    await user.click(screen.getByRole('checkbox', { name: 'Select Shop 58' }))
+    expect(bar().getByText('58 selected')).toBeInTheDocument()
+    // Selected again, it is one of all of them again.
+    await user.click(screen.getByRole('checkbox', { name: 'Select Shop 58' }))
+    expect(bar().getByText('59 selected')).toBeInTheDocument()
+    await user.type(bar().getByLabelText('Tag'), 'weekly')
+    await user.click(bar().getByRole('button', { name: 'Add tag' }))
+
+    const shop59 = transactionsApi.transactions.find((transaction) => transaction.payee === 'Shop 59')!
+    await waitFor(() => expect(transactionsApi.bulkRequests).toEqual([{ action: 'addTag', filter: {}, exceptTransactionIds: [shop59.id], tag: 'weekly' }]))
+    await waitFor(() => expect(transactionsApi.transactions.filter((transaction) => transaction.tags.includes('weekly'))).toHaveLength(59))
+    expect(shop59.tags).toEqual([])
+  })
+
+  it('show all of them as partly selected once rows are left out, and select every one again from there', async () => {
     const transactionsApi = fakeApis(shopping)
     const { user } = renderApp('/transactions')
 
-    const [coop, grab] = transactionsApi.transactions.map((transaction) => transaction.id)
-    await user.click(await screen.findByRole('checkbox', { name: 'Select all 3 transactions' }))
-    await user.click(screen.getByRole('checkbox', { name: 'Select Payroll' }))
-    expect(bar().getByText('2 selected')).toBeInTheDocument()
+    const selectAll = await screen.findByRole('checkbox', { name: 'Select all 3 transactions' })
+    await user.click(selectAll)
+    await user.click(screen.getByRole('checkbox', { name: 'Select Grab' }))
+    expect(selectAll).toBePartiallyChecked()
+    expect(selectAll).not.toBeChecked()
+
+    await user.click(selectAll)
+    expect(selectAll).toBeChecked()
+    expect(selectAll).not.toBePartiallyChecked()
+    expect(screen.getByRole('checkbox', { name: 'Select Grab' })).toBeChecked()
+    expect(bar().getByText('3 selected')).toBeInTheDocument()
     await user.click(bar().getByRole('button', { name: 'Delete' }))
     await user.click(bar().getByRole('button', { name: 'Delete them' }))
+    await waitFor(() => expect(transactionsApi.bulkRequests).toEqual([{ action: 'delete', filter: {} }]))
+  })
 
-    await waitFor(() => expect(transactionsApi.bulkRequests).toEqual([{ action: 'delete', transactionIds: [coop, grab] }]))
+  it('unselecting every row of all of them clears the selection', async () => {
+    fakeApis(shopping)
+    const { user } = renderApp('/transactions')
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select all 3 transactions' }))
+    for (const name of ['Co.op Mart', 'Grab', 'Payroll']) await user.click(screen.getByRole('checkbox', { name: `Select ${name}` }))
+
+    expect(screen.queryByRole('region', { name: 'Selected transactions' })).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Select all 3 transactions' })).not.toBeChecked()
   })
 
   it('say so with a way to try again when the request fails', async () => {
