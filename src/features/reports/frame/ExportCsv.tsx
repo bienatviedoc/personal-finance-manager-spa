@@ -12,7 +12,7 @@ export type ReportCsv = {
   columns: readonly string[]
   /**
    * The numbers of the table view, a row each: amounts as the API answers them, plain decimals, beside a currency
-   * column. Nothing in them is translated, so a file is the same in every language: a report with rows of more than
+   * column, each number passed as `csvNumber` so it is written as a number (a string is always text). Nothing in them is translated, so a file is the same in every language: a report with rows of more than
    * one kind starts each with a `row` column, a fixed code saying what it is (`month`, `total`, `unbudgeted`), and
    * names only what the user named (a category, an account), left empty on a total.
    */

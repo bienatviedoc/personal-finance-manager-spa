@@ -8,6 +8,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, formatMoney, Money, type Currency } from '@/shared/money'
 import { incomeVsExpensesQuery, type IncomeAndExpenses, type MonthIncomeAndExpenses } from '../api/incomeVsExpenses'
+import { csvNumber } from '@/shared/lib/csv'
 import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
@@ -41,11 +42,11 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
     row,
     period.from,
     period.to,
-    flow.income,
-    flow.expenses,
-    flow.net,
-    flow.savingsRate,
-    flow.notConverted,
+    csvNumber(flow.income),
+    csvNumber(flow.expenses),
+    csvNumber(flow.net),
+    csvNumber(flow.savingsRate),
+    csvNumber(flow.notConverted),
     currency,
   ]
   const exported = [
