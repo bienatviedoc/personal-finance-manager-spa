@@ -117,7 +117,8 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   pass offers no "Select all" and says to narrow the filters, and if more pass by the time the action is sent, the
   API's 422 (`bulk-selection-too-large`) says the same. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
   they were selected in. Unselecting one of all of them leaves only that one out (the count goes down by one), loaded or
-  not, and the others stay selected; unselecting the last clears the selection.
+  not, and the others stay selected; unselecting the last clears the selection. With some left out, "Select all" shows
+  as partly checked (mixed), and ticking it selects every one again.
 - **Bulk actions** (spec TXN-7; see the glossary). `BulkActions` acts on what is selected through
   `POST /transactions/bulk` (`useBulkEdit`): set the category, add or remove a tag, move to another account, or
   delete (once confirmed). Selected one by one, it sends their `transactionIds`; all of them, the view's filters as

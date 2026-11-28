@@ -421,7 +421,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     if ((ids === null) === !body.filter || (ids !== null && (ids.length === 0 || ids.length > maxBulkSelection)))
       return invalid('transactionIds', `Select 1 to ${maxBulkSelection} transactions by their ids, or by a filter.`)
     const except = new Set(body.exceptTransactionIds ?? [])
-    if ((except.size > 0 && !body.filter) || except.size > maxBulkSelection)
+    if ((body.exceptTransactionIds != null && !body.filter) || except.size > maxBulkSelection)
       return invalid('exceptTransactionIds', `Leave out at most ${maxBulkSelection} transactions, and only of those a filter selects.`)
     const refused: RefusedTransaction[] = []
     // Each refused one comes as it is, unchanged, so the screen can name it; one not found, as nothing.

@@ -152,7 +152,11 @@ export function TransactionsPage() {
           <input
             type="checkbox"
             className={cn('size-4', focusRing)}
-            checked={selection.allSelected}
+            checked={selection.allSelected && !selection.partlySelected}
+            // Partly selected shows as in between, which assistive technology reads as mixed.
+            ref={(input) => {
+              if (input) input.indeterminate = selection.partlySelected
+            }}
             onChange={selection.toggleAll}
           />
           {t('transactions.bulk.selectAll', { count: Number(total.count), total: Number(total.count).toLocaleString(locale) })}
