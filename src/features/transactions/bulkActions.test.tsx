@@ -306,6 +306,26 @@ describe('bulk actions', () => {
     expect(shop59.tags).toEqual([])
   })
 
+  it('show all of them as partly selected once rows are left out, and select every one again from there', async () => {
+    const transactionsApi = fakeApis(shopping)
+    const { user } = renderApp('/transactions')
+
+    const selectAll = await screen.findByRole('checkbox', { name: 'Select all 3 transactions' })
+    await user.click(selectAll)
+    await user.click(screen.getByRole('checkbox', { name: 'Select Grab' }))
+    expect(selectAll).toBePartiallyChecked()
+    expect(selectAll).not.toBeChecked()
+
+    await user.click(selectAll)
+    expect(selectAll).toBeChecked()
+    expect(selectAll).not.toBePartiallyChecked()
+    expect(screen.getByRole('checkbox', { name: 'Select Grab' })).toBeChecked()
+    expect(bar().getByText('3 selected')).toBeInTheDocument()
+    await user.click(bar().getByRole('button', { name: 'Delete' }))
+    await user.click(bar().getByRole('button', { name: 'Delete them' }))
+    await waitFor(() => expect(transactionsApi.bulkRequests).toEqual([{ action: 'delete', filter: {} }]))
+  })
+
   it('unselecting every row of all of them clears the selection', async () => {
     fakeApis(shopping)
     const { user } = renderApp('/transactions')

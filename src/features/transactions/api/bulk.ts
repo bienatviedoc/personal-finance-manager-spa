@@ -15,7 +15,10 @@ export type BulkAction =
  * Which transactions a bulk action acts on: the ones picked one by one, or every one that passes the list's
  * filters, which the API finds itself, loaded on the screen or not, but those in `exceptTransactionIds`.
  */
-export type BulkSelection = { transactionIds: string[] } | { filter: BulkFilter; exceptTransactionIds?: string[] }
+export type BulkSelection =
+  | { transactionIds: BulkRequestField<'transactionIds'> }
+  | { filter: BulkRequestField<'filter'>; exceptTransactionIds?: BulkRequestField<'exceptTransactionIds'> }
+type BulkRequestField<Name extends keyof components['schemas']['BulkEditRequest']> = NonNullable<components['schemas']['BulkEditRequest'][Name]>
 
 /** The list's filters, without its sort order: what selects every transaction that passes them. */
 export type BulkFilter = Omit<TransactionFilters, 'sort' | 'order'>

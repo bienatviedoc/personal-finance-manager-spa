@@ -10,6 +10,11 @@ type Selection = { rows: Transaction[] } | { allOf: string; except: string[] }
 
 const filtersKey = (view: TransactionFilters) => JSON.stringify(bulkFilterOf(view))
 
+/** The list without the item if it has it, by `key`, or with it added last if not. */
+function toggledIn<T>(list: T[], item: T, key: (item: T) => unknown = (each) => each): T[] {
+  return list.some((each) => key(each) === key(item)) ? list.filter((each) => key(each) !== key(item)) : [...list, item]
+}
+
 /**
  * The transactions selected in the list of a view: picked one by one, or all that pass its filters but those
  * unselected since, so the count goes down by one for each and none of the others is dropped. Picked one by one,
@@ -31,21 +36,22 @@ export function useSelection(view: TransactionFilters, saved: Transaction[], tot
 
   return {
     allSelected,
+    // All of them but some left out since.
+    partlySelected: allSelected && except.length > 0,
     pickedRows,
     picked,
     isSelected: (id: string) => (allSelected ? !except.includes(id) : pickedRows.some((row) => row.id === id)),
     toggle: (transaction: Transaction) =>
       setSelection((current) => {
-        if (allSelected && 'allOf' in current) {
+        if ('allOf' in current && current.allOf === filtersKey(view)) {
           // Unselecting one of all of them leaves out that one only; unselecting the last clears the selection.
-          const left = except.includes(transaction.id) ? except.filter((id) => id !== transaction.id) : [...except, transaction.id]
+          const left = toggledIn(current.except, transaction.id)
           return left.length >= Number(total?.count ?? 0) ? { rows: [] } : { ...current, except: left }
         }
-        return {
-          rows: pickedRows.some((row) => row.id === transaction.id) ? pickedRows.filter((row) => row.id !== transaction.id) : [...pickedRows, transaction],
-        }
+        return { rows: toggledIn('rows' in current ? current.rows : [], transaction, (row) => row.id) }
       }),
-    toggleAll: () => setSelection(allSelected ? { rows: [] } : { allOf: filtersKey(view), except: [] }),
+    // All of them but some selects every one again; all of them, none.
+    toggleAll: () => setSelection(allSelected && except.length === 0 ? { rows: [] } : { allOf: filtersKey(view), except: [] }),
     clear,
     // Marking as a transfer is offered while what was picked could become one: one or two income or expenses.
     marking: !allSelected && pickedRows.length > 0 && pickedRows.length <= 2 && pickedRows.every(canBePicked),
