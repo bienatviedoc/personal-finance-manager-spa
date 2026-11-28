@@ -116,11 +116,12 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   screen or not. A bulk action takes at most 1,000 (`maxBulkSelection` in `src/shared/api/limits.ts`): a view more
   pass offers no "Select all" and says to narrow the filters, and if more pass by the time the action is sent, the
   API's 422 (`bulk-selection-too-large`) says the same. One by one, they stay selected as they were when a filter hides them; all of them belong to the view
-  they were selected in, and unselecting one leaves the others loaded selected one by one.
+  they were selected in. Unselecting one of all of them leaves only that one out (the count goes down by one), loaded or
+  not, and the others stay selected; unselecting the last clears the selection.
 - **Bulk actions** (spec TXN-7; see the glossary). `BulkActions` acts on what is selected through
   `POST /transactions/bulk` (`useBulkEdit`): set the category, add or remove a tag, move to another account, or
   delete (once confirmed). Selected one by one, it sends their `transactionIds`; all of them, the view's filters as
-  `filter`, and the API finds them. All take it or none does: the API decides, never the screen, and when it refuses
+  `filter` and the ones unselected since as `exceptTransactionIds`, and the API finds them. All take it or none does: the API decides, never the screen, and when it refuses
   (a 409) the screen names each transaction it refused with why, translated from its `reason`, and keeps the selection.
   Each refused one comes with the transaction as it is (`transaction`), so it is named by its title, date and amount
   whether it is loaded on the screen or not; one the API no longer has is named as the list had it.

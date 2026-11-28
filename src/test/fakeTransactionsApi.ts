@@ -71,7 +71,7 @@ type Options = {
  * same way, and is neither marked from a reconciled transaction nor unmarked.
  *
  * A bulk action (see the API's BulkEditTests) acts on the `transactionIds` sent or on every transaction that passes
- * `filter`, never both, at most 1000 (a filter more pass answers 422 `bulk-selection-too-large`), all or none: when any cannot take it, it answers 409 `bulk-action-refused` listing each one
+ * `filter` but those in `exceptTransactionIds` (only with a filter, at most 1000), never both, at most 1000 (a filter more pass answers 422 `bulk-selection-too-large`), all or none: when any cannot take it, it answers 409 `bulk-action-refused` listing each one
  * and why, and changes nothing. A category takes only transactions of its kind, and not a split or a leg; a
  * transaction moves only to an account in its currency, and not while reconciled or a leg; a reconciled one is not
  * deleted, and deleting a leg deletes its transfer; a transaction takes at most 20 tags.
@@ -420,6 +420,9 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
     const ids = body.transactionIds ? [...new Set(body.transactionIds)] : null
     if ((ids === null) === !body.filter || (ids !== null && (ids.length === 0 || ids.length > maxBulkSelection)))
       return invalid('transactionIds', `Select 1 to ${maxBulkSelection} transactions by their ids, or by a filter.`)
+    const except = new Set(body.exceptTransactionIds ?? [])
+    if ((except.size > 0 && !body.filter) || except.size > maxBulkSelection)
+      return invalid('exceptTransactionIds', `Leave out at most ${maxBulkSelection} transactions, and only of those a filter selects.`)
     const refused: RefusedTransaction[] = []
     // Each refused one comes as it is, unchanged, so the screen can name it; one not found, as nothing.
     const refuse = (transactionId: string, reason: RefusedTransaction['reason']) =>
@@ -430,7 +433,7 @@ export function fakeTransactionsApi(transactions: Partial<Transaction>[] = [], {
       selected = ids.flatMap((id) => find(id) ?? [])
     } else {
       const query = new URLSearchParams(Object.entries(body.filter!).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
-      selected = state.transactions.filter(passes(query))
+      selected = state.transactions.filter(passes(query)).filter((transaction) => !except.has(transaction.id))
       if (selected.length > maxBulkSelection)
         return problem(422, {
           type: 'urn:pfm:problem:bulk-selection-too-large',
