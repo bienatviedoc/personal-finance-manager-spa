@@ -9,6 +9,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { budgetVsActualQuery, type BudgetVsActual, type BudgetVsActualState } from '../api/budgetVsActual'
+import { csvNumber } from '@/shared/lib/csv'
 import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
@@ -53,22 +54,22 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
       ...report.items.map((item) => [
         'budget',
         item.category.name,
-        item.budgeted,
-        item.spent,
-        item.remaining,
-        item.percentSpent,
+        csvNumber(item.budgeted),
+        csvNumber(item.spent),
+        csvNumber(item.remaining),
+        csvNumber(item.percentSpent),
         item.state,
-        item.months,
-        item.notConverted,
+        csvNumber(item.months),
+        csvNumber(item.notConverted),
         currency,
       ]),
       ...(report.items.length > 0
-        ? [['total', null, totals.budgeted, totals.spent, totals.remaining, null, null, null, totals.notConverted, currency]]
+        ? [['total', null, csvNumber(totals.budgeted), csvNumber(totals.spent), csvNumber(totals.remaining), null, null, null, csvNumber(totals.notConverted), currency]]
         : []),
       // What was spent with no budget, apart as the screen lists it, and its total.
-      ...report.unbudgeted.map((item) => ['unbudgeted', item.category.name, null, item.spent, null, null, null, null, item.notConverted, currency]),
+      ...report.unbudgeted.map((item) => ['unbudgeted', item.category.name, null, csvNumber(item.spent), null, null, null, null, csvNumber(item.notConverted), currency]),
       ...(report.unbudgeted.length > 0
-        ? [['unbudgetedTotal', null, null, report.unbudgetedTotal.spent, null, null, null, null, report.unbudgetedTotal.notConverted, currency]]
+        ? [['unbudgetedTotal', null, null, csvNumber(report.unbudgetedTotal.spent), null, null, null, null, csvNumber(report.unbudgetedTotal.notConverted), currency]]
         : []),
     ],
   }

@@ -297,7 +297,9 @@ severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
   answers them, plain decimals beside a `currency` column, and dates are `YYYY-MM-DD`; a report that compares adds
   the period before. No report asks the API for a file. Text that starts with `=`, `+`, `-`, `@`, a tab or a carriage
   return (a category or account name, a payee) is written behind a single quote, so a spreadsheet shows it rather
-  than runs it (OWASP, CSV injection); an amount, even below zero, stays a number.
+  than runs it (OWASP, CSV injection, spec section 13). Every string is text, even one that looks like a number (a
+  payee typed as `-3`); only numbers are left alone, so a report passes each figure the API answers as
+  `csvNumber`, and an amount, even below zero, stays a number. The API's `Csv` applies the same rule.
 - **A CSV file is the same in every language.** Nothing in it is translated: a report whose rows are of more than one
   kind starts each with a `row` column, a fixed code in English saying what the row is, and its other columns hold only
   numbers, codes, dates and what the user named. Income vs expenses: `month`, `total`, `previousMonth`,

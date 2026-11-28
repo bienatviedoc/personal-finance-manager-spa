@@ -15,6 +15,7 @@ import { typingSettles, useDebounced } from '@/shared/lib/useDebounced'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { trendQuery, type PeriodChange, type Trend, type TrendType } from '../api/trends'
+import { csvNumber } from '@/shared/lib/csv'
 import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { formatChangePercent } from '../frame/formatChangePercent'
 import { monthName } from '../frame/monthName'
@@ -144,11 +145,11 @@ function TrendView({ trend, filters }: { trend: Trend; filters: ReportFilters })
       return [
         month.from,
         month.to,
-        month.total,
-        month.change?.amount,
-        month.change?.percent,
-        month.notConverted,
-        ...(previous ? [before?.from, before?.to, before?.total] : []),
+        csvNumber(month.total),
+        csvNumber(month.change?.amount),
+        csvNumber(month.change?.percent),
+        csvNumber(month.notConverted),
+        ...(previous ? [before?.from, before?.to, csvNumber(before?.total)] : []),
         currency,
       ]
     }),

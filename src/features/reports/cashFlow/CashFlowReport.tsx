@@ -9,6 +9,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { balanceIntervals, cashFlowQuery, type BalanceInterval, type CashFlow } from '../api/cashFlow'
+import { csvNumber } from '@/shared/lib/csv'
 import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
@@ -71,7 +72,7 @@ function CashFlowView({ cashFlow, filters }: { cashFlow: CashFlow; filters: Repo
   const csv: ReportCsv = {
     name: 'cash-flow',
     columns: ['date', 'balance', 'notConverted', 'currency'],
-    rows: items.map((item) => [item.date, item.balance, item.notConverted, currency]),
+    rows: items.map((item) => [item.date, csvNumber(item.balance), csvNumber(item.notConverted), currency]),
   }
 
   return (

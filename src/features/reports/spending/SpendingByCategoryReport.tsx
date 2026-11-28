@@ -12,6 +12,7 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { spendingByCategoryQuery, spendingTransactionsQuery, type CategorySpending, type ReportCategory, type SpendingByCategory } from '../api/spendingByCategory'
+import { csvNumber } from '@/shared/lib/csv'
 import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
@@ -114,10 +115,10 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
     rows: report.items.map((item) => [
       isDirectly(item) ? 'directly' : 'category',
       item.category.name,
-      item.spent,
-      item.share,
-      ...(report.previous ? [item.previousSpent] : []),
-      item.notConverted,
+      csvNumber(item.spent),
+      csvNumber(item.share),
+      ...(report.previous ? [csvNumber(item.previousSpent)] : []),
+      csvNumber(item.notConverted),
       report.currency,
     ]),
   }
@@ -276,11 +277,11 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
       item.payee,
       item.note,
       findAccount(accounts.data?.accounts ?? [], item.accountId)?.name,
-      item.amount,
+      csvNumber(item.amount),
       item.currency,
       item.isRefund,
       item.isSplit,
-      item.spent,
+      csvNumber(item.spent),
       currency,
     ]),
   }

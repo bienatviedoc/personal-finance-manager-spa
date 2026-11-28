@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { csvText } from './csv'
+import { csvNumber, csvText } from './csv'
 
 describe('CSV', () => {
   it('is a line of column names and a line for each row, comma-separated and ended by CRLF', () => {
@@ -17,7 +17,11 @@ describe('CSV', () => {
   })
 
   it('writes an amount below zero as the number it is, whether it comes as a number or as the API writes it', () => {
-    expect(csvText(['change', 'net'], [['-55000.00', -12.5], ['-3', 0]])).toBe('change,net\r\n-55000.00,-12.5\r\n-3,0\r\n')
+    expect(csvText(['change', 'net'], [[csvNumber('-55000.00'), -12.5], [csvNumber(-3), 0]])).toBe('change,net\r\n-55000.00,-12.5\r\n-3,0\r\n')
+  })
+
+  it('guards text that looks like a number, as a payee typed as -3, as the API does: only a number is left alone', () => {
+    expect(csvText(['payee', 'amount'], [['-3', csvNumber('-3.00')], ['+84 90', csvNumber(null)]])).toBe("payee,amount\r\n'-3,-3.00\r\n'+84 90,\r\n")
   })
 
   it('writes nothing for a missing value, and true or false for a flag', () => {
