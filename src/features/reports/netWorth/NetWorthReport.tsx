@@ -8,8 +8,8 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money } from '@/shared/money'
 import { netWorthQuery, type NetWorth } from '../api/netWorth'
-import { csvNumber } from '@/shared/lib/csv'
-import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
+import { ExportCsv } from '../frame/ExportCsv'
+import { numberColumn, type ReportCsv } from '../frame/reportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
@@ -43,8 +43,8 @@ function NetWorthView({ netWorth, filters }: { netWorth: NetWorth; filters: Repo
 
   const csv: ReportCsv = {
     name: 'net-worth',
-    columns: ['date', 'assets', 'liabilities', 'netWorth', 'notConverted', 'currency'],
-    rows: items.map((item) => [item.date, csvNumber(item.assets), csvNumber(item.liabilities), csvNumber(item.netWorth), csvNumber(item.notConverted), currency]),
+    columns: ['date', numberColumn('assets'), numberColumn('liabilities'), numberColumn('netWorth'), numberColumn('notConverted'), 'currency'],
+    rows: items.map((item) => [item.date, item.assets, item.liabilities, item.netWorth, item.notConverted, currency]),
   }
 
   return (

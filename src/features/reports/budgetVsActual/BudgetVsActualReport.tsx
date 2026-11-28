@@ -9,8 +9,8 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { budgetVsActualQuery, type BudgetVsActual, type BudgetVsActualState } from '../api/budgetVsActual'
-import { csvNumber } from '@/shared/lib/csv'
-import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
+import { ExportCsv } from '../frame/ExportCsv'
+import { numberColumn, type ReportCsv } from '../frame/reportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
@@ -49,27 +49,27 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
   // Each row says what it is by a code of its own, so the file is the same in every language (see ExportCsv).
   const csv: ReportCsv = {
     name: 'budget-vs-actual',
-    columns: ['row', 'category', 'budgeted', 'spent', 'remaining', 'percentSpent', 'state', 'months', 'notConverted', 'currency'],
+    columns: ['row', 'category', numberColumn('budgeted'), numberColumn('spent'), numberColumn('remaining'), numberColumn('percentSpent'), 'state', numberColumn('months'), numberColumn('notConverted'), 'currency'],
     rows: [
       ...report.items.map((item) => [
         'budget',
         item.category.name,
-        csvNumber(item.budgeted),
-        csvNumber(item.spent),
-        csvNumber(item.remaining),
-        csvNumber(item.percentSpent),
+        item.budgeted,
+        item.spent,
+        item.remaining,
+        item.percentSpent,
         item.state,
-        csvNumber(item.months),
-        csvNumber(item.notConverted),
+        item.months,
+        item.notConverted,
         currency,
       ]),
       ...(report.items.length > 0
-        ? [['total', null, csvNumber(totals.budgeted), csvNumber(totals.spent), csvNumber(totals.remaining), null, null, null, csvNumber(totals.notConverted), currency]]
+        ? [['total', null, totals.budgeted, totals.spent, totals.remaining, null, null, null, totals.notConverted, currency]]
         : []),
       // What was spent with no budget, apart as the screen lists it, and its total.
-      ...report.unbudgeted.map((item) => ['unbudgeted', item.category.name, null, csvNumber(item.spent), null, null, null, null, csvNumber(item.notConverted), currency]),
+      ...report.unbudgeted.map((item) => ['unbudgeted', item.category.name, null, item.spent, null, null, null, null, item.notConverted, currency]),
       ...(report.unbudgeted.length > 0
-        ? [['unbudgetedTotal', null, null, csvNumber(report.unbudgetedTotal.spent), null, null, null, null, csvNumber(report.unbudgetedTotal.notConverted), currency]]
+        ? [['unbudgetedTotal', null, null, report.unbudgetedTotal.spent, null, null, null, null, report.unbudgetedTotal.notConverted, currency]]
         : []),
     ],
   }

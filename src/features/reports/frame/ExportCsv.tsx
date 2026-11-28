@@ -1,23 +1,9 @@
 import { Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { saveCsv, type CsvValue } from '@/shared/lib/csv'
+import { saveCsv } from '@/shared/lib/csv'
 import { Button } from '@/shared/ui/button'
+import { reportCsvFile, type ReportCsv } from './reportCsv'
 import type { ReportFilters } from './useReportFilters'
-
-/** What a report downloads as CSV. */
-export type ReportCsv = {
-  /** What the file is named for, before its period: `net-worth` saves `net-worth-2026-01-01-2026-03-31.csv`. */
-  name: string
-  /** The names of the columns, the API's names for what the table shows. */
-  columns: readonly string[]
-  /**
-   * The numbers of the table view, a row each: amounts as the API answers them, plain decimals, beside a currency
-   * column, each number passed as `csvNumber` so it is written as a number (a string is always text). Nothing in them is translated, so a file is the same in every language: a report with rows of more than
-   * one kind starts each with a `row` column, a fixed code saying what it is (`month`, `total`, `unbudgeted`), and
-   * names only what the user named (a category, an account), left empty on a total.
-   */
-  rows: readonly (readonly CsvValue[])[]
-}
 
 /**
  * Downloads what a report shows as CSV (spec section 7, Export): the numbers of its table view, from the answer
@@ -26,7 +12,10 @@ export type ReportCsv = {
  */
 export function ExportCsv({ csv, filters }: { csv: ReportCsv; filters: ReportFilters }) {
   const { t } = useTranslation()
-  const save = () => saveCsv(`${csv.name}-${filters.from}-${filters.to}.csv`, csv.columns, csv.rows)
+  const save = () => {
+    const { columns, rows } = reportCsvFile(csv)
+    saveCsv(`${csv.name}-${filters.from}-${filters.to}.csv`, columns, rows)
+  }
 
   return (
     <Button variant="outline" className="w-fit" onClick={save}>

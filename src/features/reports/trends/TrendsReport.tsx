@@ -15,8 +15,8 @@ import { typingSettles, useDebounced } from '@/shared/lib/useDebounced'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { trendQuery, type PeriodChange, type Trend, type TrendType } from '../api/trends'
-import { csvNumber } from '@/shared/lib/csv'
-import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
+import { ExportCsv } from '../frame/ExportCsv'
+import { numberColumn, type ReportCsv } from '../frame/reportCsv'
 import { formatChangePercent } from '../frame/formatChangePercent'
 import { monthName } from '../frame/monthName'
 import { NotConverted } from '../frame/NotConverted'
@@ -139,17 +139,17 @@ function TrendView({ trend, filters }: { trend: Trend; filters: ReportFilters })
 
   const csv: ReportCsv = {
     name: 'trends',
-    columns: ['from', 'to', 'total', 'change', 'changePercent', 'notConverted', ...(previous ? ['previousFrom', 'previousTo', 'previousTotal'] : []), 'currency'],
+    columns: ['from', 'to', numberColumn('total'), numberColumn('change'), numberColumn('changePercent'), numberColumn('notConverted'), ...(previous ? ['previousFrom', 'previousTo', numberColumn('previousTotal')] : []), 'currency'],
     rows: trend.months.map((month, index) => {
       const before = previous?.months[index]
       return [
         month.from,
         month.to,
-        csvNumber(month.total),
-        csvNumber(month.change?.amount),
-        csvNumber(month.change?.percent),
-        csvNumber(month.notConverted),
-        ...(previous ? [before?.from, before?.to, csvNumber(before?.total)] : []),
+        month.total,
+        month.change?.amount,
+        month.change?.percent,
+        month.notConverted,
+        ...(previous ? [before?.from, before?.to, before?.total] : []),
         currency,
       ]
     }),
