@@ -8,8 +8,8 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, formatMoney, Money, type Currency } from '@/shared/money'
 import { incomeVsExpensesQuery, type IncomeAndExpenses, type MonthIncomeAndExpenses } from '../api/incomeVsExpenses'
-import { csvNumber } from '@/shared/lib/csv'
-import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
+import { ExportCsv } from '../frame/ExportCsv'
+import { numberColumn, type ReportCsv } from '../frame/reportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { monthName } from '../frame/monthName'
@@ -42,11 +42,11 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
     row,
     period.from,
     period.to,
-    csvNumber(flow.income),
-    csvNumber(flow.expenses),
-    csvNumber(flow.net),
-    csvNumber(flow.savingsRate),
-    csvNumber(flow.notConverted),
+    flow.income,
+    flow.expenses,
+    flow.net,
+    flow.savingsRate,
+    flow.notConverted,
     currency,
   ]
   const exported = [
@@ -58,7 +58,7 @@ export function IncomeVsExpensesReport({ filters }: { filters: ReportFilters }) 
 
   const csv: ReportCsv = {
     name: 'income-vs-expenses',
-    columns: ['row', 'from', 'to', 'income', 'expenses', 'net', 'savingsRate', 'notConverted', 'currency'],
+    columns: ['row', 'from', 'to', numberColumn('income'), numberColumn('expenses'), numberColumn('net'), numberColumn('savingsRate'), numberColumn('notConverted'), 'currency'],
     rows: exported,
   }
 
