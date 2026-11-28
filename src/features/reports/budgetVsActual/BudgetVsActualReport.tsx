@@ -9,7 +9,8 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn } from '@/shared/lib/utils'
 import { formatAxisAmount, Money, type Currency } from '@/shared/money'
 import { budgetVsActualQuery, type BudgetVsActual, type BudgetVsActualState } from '../api/budgetVsActual'
-import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
+import { ExportCsv } from '../frame/ExportCsv'
+import { numberColumn, type ReportCsv } from '../frame/reportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { reportQuery, type ReportFilters } from '../frame/useReportFilters'
@@ -48,7 +49,7 @@ function BudgetVsActualView({ report, filters }: { report: BudgetVsActual; filte
   // Each row says what it is by a code of its own, so the file is the same in every language (see ExportCsv).
   const csv: ReportCsv = {
     name: 'budget-vs-actual',
-    columns: ['row', 'category', 'budgeted', 'spent', 'remaining', 'percentSpent', 'state', 'months', 'notConverted', 'currency'],
+    columns: ['row', 'category', numberColumn('budgeted'), numberColumn('spent'), numberColumn('remaining'), numberColumn('percentSpent'), 'state', numberColumn('months'), numberColumn('notConverted'), 'currency'],
     rows: [
       ...report.items.map((item) => [
         'budget',

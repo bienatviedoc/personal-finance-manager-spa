@@ -12,7 +12,8 @@ import { useLocale } from '@/shared/i18n/useLocale'
 import { cn, focusRing } from '@/shared/lib/utils'
 import { Money } from '@/shared/money'
 import { spendingByCategoryQuery, spendingTransactionsQuery, type CategorySpending, type ReportCategory, type SpendingByCategory } from '../api/spendingByCategory'
-import { ExportCsv, type ReportCsv } from '../frame/ExportCsv'
+import { ExportCsv } from '../frame/ExportCsv'
+import { numberColumn, type ReportCsv } from '../frame/reportCsv'
 import { NotConverted } from '../frame/NotConverted'
 import { ReportLoading } from '../frame/ReportLoading'
 import { Share } from '../frame/Share'
@@ -110,7 +111,7 @@ function Breakdown({ report, filters, onChoose }: BreakdownProps) {
 
   const csv: ReportCsv = {
     name: 'spending-by-category',
-    columns: ['row', 'category', 'spent', 'share', ...(report.previous ? ['previousSpent'] : []), 'notConverted', 'currency'],
+    columns: ['row', 'category', numberColumn('spent'), numberColumn('share'), ...(report.previous ? [numberColumn('previousSpent')] : []), numberColumn('notConverted'), 'currency'],
     rows: report.items.map((item) => [
       isDirectly(item) ? 'directly' : 'category',
       item.category.name,
@@ -270,7 +271,7 @@ function CategoryTransactions({ filters, categoryId }: { filters: ReportFilters;
 
   const csv: ReportCsv = {
     name: 'spending-by-category-transactions',
-    columns: ['date', 'payee', 'note', 'account', 'amount', 'currency', 'isRefund', 'isSplit', 'spent', 'baseCurrency'],
+    columns: ['date', 'payee', 'note', 'account', numberColumn('amount'), 'currency', 'isRefund', 'isSplit', numberColumn('spent'), 'baseCurrency'],
     rows: items.map((item) => [
       item.date,
       item.payee,
