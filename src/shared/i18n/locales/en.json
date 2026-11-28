@@ -416,7 +416,8 @@
     "export": {
       "start": "Export CSV",
       "failed": "The CSV file could not be downloaded. Try again in a moment."
-    }
+    },
+    "categorySuggestedByRule": "Suggested by your categorisation rule for this payee."
   },
   "transfers": {
     "add": "Transfer between accounts",
@@ -638,7 +639,7 @@
     "notConverted_one": "{{count}} expense is not converted yet and is left out of spent.",
     "notConverted_other": "{{count}} expenses are not converted yet and are left out of spent.",
     "transactions": "See transactions",
-    "transactionsBehind": "Transactions behind {{name}} in {{month}}",
+    "transactionsBehind": "See transactions behind {{name}} in {{month}}",
     "overall": {
       "name": "Overall budget",
       "for": "Overall budget for {{month}}",
@@ -955,6 +956,33 @@
         "incorrect": "That is not your password."
       }
     },
+    "auditLog": {
+      "title": "Audit log",
+      "body": "A record of each sign-in, statement imported, import undone, bulk edit, delete and request to delete your profile, the newest first. Entries cannot be changed or deleted.",
+      "empty": "Nothing has been recorded yet.",
+      "notLoaded": "The audit log could not be loaded. Try again in a little while.",
+      "more": "Show older entries",
+      "actions": {
+        "signIn": "Signed in",
+        "importCommit": "Statement committed",
+        "importUndo": "Import undone",
+        "bulkEdit": "Bulk edit",
+        "bulkDelete": "Bulk delete",
+        "delete": "Deleted",
+        "deletionRequest": "Asked to delete the profile"
+      },
+      "entities": {
+        "user": "Profile",
+        "importBatch": "Import",
+        "transaction": "Transaction",
+        "transactions": "Transactions",
+        "transfer": "Transfer",
+        "attachment": "Attachment",
+        "budget": "Budget",
+        "recurringRule": "Recurring rule",
+        "categorisationRule": "Categorisation rule"
+      }
+    },
     "data": {
       "title": "Your data",
       "export": {
@@ -974,7 +1002,8 @@
         "confirmBody": "You will be signed out now. In 30 days your profile and everything in it is erased, unless you sign in again before then. Enter your password to go ahead.",
         "submit": "Delete my profile"
       }
-    }
+    },
+    "categorisationRules": "Rules"
   },
   "categories": {
     "option": "{{parent}} › {{name}}",
@@ -998,7 +1027,7 @@
     "edit": "Edit",
     "editAction": "Edit {{name}}",
     "addSubcategory": "Add subcategory",
-    "addSubcategoryAction": "Add a subcategory to {{name}}",
+    "addSubcategoryAction": "Add subcategory to {{name}}",
     "archive": "Archive",
     "archiveAction": "Archive {{name}}",
     "archived": "Archived",
@@ -1090,6 +1119,58 @@
       "pieChart": "Pie chart",
       "tag": "Tag",
       "more": "More"
+    }
+  },
+  "categorisationRules": {
+    "title": "Categorisation rules",
+    "intro": "A rule gives a category to a payee or a statement row’s description that contains, starts with or is exactly its text, whatever its case, accents or spaces. Statement imports and quick add start from it, and you can still change the category. A rule only categorises transactions of its category’s kind. When several rules match, the one higher in this list wins.",
+    "add": "Add rule",
+    "list": "Rules, in the order they are tried",
+    "empty": "No rules yet. Add one to have imports and quick add pick a category for you.",
+    "newTitle": "New rule",
+    "editTitle": "Edit rule",
+    "matchText": "Text to look for",
+    "matchTextHint": "In the payee, or a statement row’s description.",
+    "matchType": "Match",
+    "matchTypes": {
+      "contains": "Contains",
+      "startsWith": "Starts with",
+      "exactly": "Is exactly"
+    },
+    "named": {
+      "contains": "Contains “{{text}}”",
+      "startsWith": "Starts with “{{text}}”",
+      "exactly": "Is exactly “{{text}}”"
+    },
+    "category": "Category",
+    "chooseCategory": "Choose a category",
+    "priority": "Priority",
+    "priorityHint": "Higher wins when several rules match. Leave it empty to put a new rule first.",
+    "priorityOf": "Priority {{priority}}",
+    "unknownCategory": "A category that is gone",
+    "categoryArchived": "Its category is archived: this rule categorises nothing until you choose another.",
+    "up": "Up",
+    "down": "Down",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "edit": "Edit",
+    "editAction": "Edit {{name}}",
+    "delete": "Delete",
+    "deleteAction": "Delete {{name}}",
+    "deleteRule": "Delete rule",
+    "deleteConfirm": "Delete the rule {{name}}? What it categorised keeps its category.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "errors": {
+      "generic": "Something went wrong with the rules. Try again.",
+      "matchTextRequired": "Enter the text to look for.",
+      "matchTextTooLong": "Keep the text to look for to 100 characters.",
+      "matchType": "Choose how the text is matched.",
+      "categoryRequired": "Choose a category.",
+      "categoryRefused": "This category cannot be chosen: it may have been archived. Choose another.",
+      "priority": "Enter a whole number from 0 to 1,000,000, or leave it empty.",
+      "stale": "This rule was changed somewhere else since you opened it. The latest version is shown; check it and save again.",
+      "orderStale": "The rules were changed somewhere else. They are shown as they are now; move the rule again."
     }
   },
   "colors": {
@@ -1217,7 +1298,7 @@
     "rawMore_other": "The first {{shown}} rows of {{count}}.",
     "previewTable": "Rows of the statement",
     "commit": "Import the rows ticked",
-    "categoriesIntro": "Imported transactions are recorded on these categories. You can change any of them afterwards.",
+    "categoriesIntro": "Rows left on “The category chosen below” are recorded on these categories. You can change any of them afterwards.",
     "expenseCategory": "Category for money going out",
     "incomeCategory": "Category for money coming in",
     "chooseCategory": "Choose a category",
@@ -1280,7 +1361,11 @@
       "pages": "Pages of the statement",
       "previous": "Previous rows",
       "next": "Next rows",
-      "page": "Rows {{from}}–{{to}} of {{count}}"
+      "page": "Rows {{from}}–{{to}} of {{count}}",
+      "category": "Category",
+      "categoryFor": "Category for row {{number}}",
+      "batchCategory": "The category chosen below",
+      "suggested": "Suggested by a categorisation rule."
     },
     "problems": {
       "missingColumns": "The row has fewer cells than the columns chosen.",
@@ -1315,7 +1400,8 @@
       "failed_other": "{{count}} rows could not be read and were not imported.",
       "stopped": "The import stopped after {{imported}} of {{count}} transactions. Those stay.",
       "seeTransactions": "See them in the transactions",
-      "startAgain": "Start again"
+      "startAgain": "Start again",
+      "undone": "This import was undone. Its transactions were deleted; you can restore any of them from Recently deleted for 30 days."
     },
     "errors": {
       "generic": "The import could not be loaded. Try again in a moment.",
@@ -1333,7 +1419,8 @@
         "expenseCategoryId": "Choose one of your expense categories that is not archived.",
         "incomeCategoryId": "Choose one of your income categories that is not archived.",
         "mapping": "Choose the date column and the amount column, or the debit and credit columns.",
-        "id": "The account has been archived since the statement was uploaded."
+        "id": "The account has been archived since the statement was uploaded.",
+        "rowCategories": "A category chosen for a row cannot be used: it may have been archived. Choose another."
       },
       "importInProgress": "Another statement is being imported into this account. Wait for it to finish, then check the rows again: those it imported will show as likely duplicates."
     },
@@ -1343,6 +1430,39 @@
       "accountCurrencyChanged": "The account's currency changed after you imported the statement, so its rows no longer read the same.",
       "transactionRefused": "A row could not be recorded as a transaction.",
       "unexpected": "Something went wrong while importing it. Start again, and if it happens again, tell us."
+    },
+    "savedMapping": "Read with the mapping saved for this account when its last statement was imported. Change anything this one does differently.",
+    "recentlyDeleted": "Recently deleted",
+    "undo": {
+      "action": "Undo",
+      "named": "Undo {{fileName}}",
+      "explained_one": "This deletes the {{count}} transaction this statement imported, edited or not. You can restore it from Recently deleted for 30 days.",
+      "explained_other": "This deletes the {{count}} transactions this statement imported, edited or not. You can restore any of them from Recently deleted for 30 days.",
+      "confirm": "Undo import",
+      "cancel": "Cancel",
+      "reconciled_one": "{{count}} of its transactions is reconciled. Reopen the reconciliation, then undo the import.",
+      "reconciled_other": "{{count}} of its transactions are reconciled. Reopen the reconciliation, then undo the import.",
+      "failed": "The import could not be undone."
+    },
+    "history": {
+      "title": "Past imports",
+      "none": "No statements imported yet.",
+      "notLoaded": "The past imports could not be loaded. Try again in a moment.",
+      "more": "Show more",
+      "imported_one": "{{count}} transaction imported",
+      "imported_other": "{{count}} transactions imported",
+      "skippedDuplicates_one": "{{count}} likely duplicate skipped",
+      "skippedDuplicates_other": "{{count}} likely duplicates skipped",
+      "failed_one": "{{count}} row could not be read",
+      "failed_other": "{{count}} rows could not be read",
+      "undoneNote": "Its transactions were deleted and can be restored for 30 days:",
+      "status": {
+        "uploaded": "Not imported",
+        "committing": "Importing",
+        "committed": "Imported",
+        "failed": "Stopped",
+        "undone": "Undone"
+      }
     }
   }
 }

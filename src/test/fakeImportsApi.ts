@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type { components } from '@/shared/api/schema'
 import type { FakeCategory } from './fakeCategoriesApi'
+import { categoriseWith, type FakeRule } from './fakeCategorisationRulesApi'
 import { apiUrl, problem, refuseWithoutToken, server } from './server'
 
 type Batch = components['schemas']['ImportBatchResponse']
@@ -21,10 +22,12 @@ type Options = {
   categories: FakeCategory[]
   /** The transactions already on the accounts, as `fakeTransactionsApi` keeps them: what a likely duplicate is matched against. */
   transactions?: Transaction[]
-  /** Statements uploaded before the test starts. */
-  batches?: { accountId: string; fileName?: string; text: string }[]
+  /** Statements uploaded before the test starts, and how far each got: uploaded unless said otherwise. */
+  batches?: { accountId: string; fileName?: string; text: string; past?: Partial<Pick<Batch, 'status' | 'createdAt' | 'importedCount' | 'selectedCount' | 'duplicateCount' | 'failedCount' | 'rowCount' | 'failure'>> }[]
   /** Today for the user: a row dated after it cannot be imported. */
   today?: string
+  /** The user's categorisation rules: the preview suggests the category of the one each parsed row's description matches. */
+  rules?: FakeRule[]
 }
 
 /** A CSV text cut into rows and cells, as RFC 4180 has it, with any separator. */
@@ -72,10 +75,12 @@ const normalised = (description: string | null | undefined) =>
  * date, amount, direction and normalised description of a transaction on the account (or the date, amount and
  * direction of a transfer leg on it) as a likely duplicate, unticked, each transaction matching one row at most; a commit takes rows the preview parses, a category for each
  * direction chosen, and answers 202 with the batch committing (409 `import-committed` once committed, 409
- * `import-in-progress` while another batch is committing into the account, 400 on `id` once its account is archived). Nothing
- * imports by itself: `importNext` moves a committing batch on, as the worker would.
+ * `import-in-progress` while another batch is committing into the account, 400 on `id` once its account is archived), and
+ * saves its mapping and categories for the account, offered with the account's next upload; past imports are listed,
+ * the last uploaded first, and one is undone unless any of its transactions is reconciled. Nothing imports by itself:
+ * `importNext` moves a committing batch on, as the worker would.
  */
-export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20' }: Options) {
+export function fakeImportsApi({ accounts, categories, transactions = [], batches = [], today = '2026-11-20', rules = [] }: Options) {
   type Kept = Batch & { text: string | null }
   let uploaded = 0
   // Previews answered at once, unless held back for a test of what shows while one loads.
@@ -87,6 +92,12 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
     commitRequests: [] as CommitRequest[],
     /** Every query a preview was asked with. */
     previews: [] as Record<string, string>[],
+    /** The mapping saved for each account: the one its last statement was committed with. */
+    savedMappings: new Map<string, Mapping>(),
+    /** The categories saved with each account's mapping: those its last statements were committed with. */
+    savedCategories: new Map<string, { expenseCategoryId: string | null; incomeCategoryId: string | null }>(),
+    /** How many transactions of a batch are reconciled, which refuses its undo. */
+    reconciled: new Map<string, number>(),
   }
 
   const keep = (accountId: string, fileName: string, text: string) => {
@@ -105,18 +116,30 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       committedAt: null,
       mapping: null,
       suggestedMapping: suggest(text),
+      savedMapping: null,
+      undoneAt: null,
+      savedExpenseCategoryId: null,
+      savedIncomeCategoryId: null,
       text,
     }
     state.batches.push(batch)
     return batch
   }
-  for (const batch of batches) keep(batch.accountId, batch.fileName ?? 'statement.csv', batch.text)
+  for (const batch of batches) Object.assign(keep(batch.accountId, batch.fileName ?? 'statement.csv', batch.text), batch.past)
 
   /** The batch as the API answers it: the file it keeps is not part of that. */
   const answer = (kept: Kept): Batch => {
     const batch: Partial<Kept> = { ...kept }
     delete batch.text
-    return { ...(batch as Batch), suggestedMapping: kept.status === 'uploaded' ? kept.suggestedMapping : null }
+    const uploaded = kept.status === 'uploaded'
+    const savedCategories = uploaded ? state.savedCategories.get(kept.accountId) : undefined
+    return {
+      ...(batch as Batch),
+      suggestedMapping: uploaded ? kept.suggestedMapping : null,
+      savedMapping: uploaded ? (state.savedMappings.get(kept.accountId) ?? null) : null,
+      savedExpenseCategoryId: savedCategories?.expenseCategoryId ?? null,
+      savedIncomeCategoryId: savedCategories?.incomeCategoryId ?? null,
+    }
   }
   const find = (id: unknown) => state.batches.find((batch) => batch.id === id)
 
@@ -227,7 +250,10 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
     const footer = last + 1 - mapping.skipLastRows
     const header = mapping.hasHeaderRow ? (all[mapping.skipFirstRows] ?? []) : []
     const rows: Row[] = all.map((cells, index) => {
-      const row: Row = { number: index + 1, cells, kind: 'unmapped', date: null, type: null, amount: null, description: null, problem: null, likelyDuplicate: false, selected: false }
+      const row: Row = {
+        number: index + 1, cells, kind: 'unmapped', date: null, type: null, amount: null, description: null, problem: null, likelyDuplicate: false, selected: false,
+        suggestedCategoryId: null,
+      }
       if (mapping.hasHeaderRow && index === mapping.skipFirstRows) return { ...row, kind: 'header' }
       if (index < mapping.skipFirstRows || (index >= footer && index <= last)) return { ...row, kind: 'skipped' }
       if (cells.every((cell) => cell.trim() === '')) return { ...row, kind: 'blank' }
@@ -257,7 +283,9 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       const amount = Math.abs(signed)
       if (Number(amount.toFixed(decimals[account.currency])) !== amount) return failed('tooManyDecimals')
       const description = mapping.descriptionColumn === null ? null : cells[mapping.descriptionColumn]!.trim().split(/\s+/).join(' ').slice(0, 200) || null
-      return { ...row, kind: 'parsed', date, type: signed < 0 ? 'expense' : 'income', amount: amount.toFixed(2), description, selected: true }
+      const type = signed < 0 ? 'expense' : 'income'
+      const suggestedCategoryId = categoriseWith(rules, categories, description, type)
+      return { ...row, kind: 'parsed', date, type, amount: amount.toFixed(2), description, selected: true, suggestedCategoryId }
     })
 
     // Income and expenses match on the description too; a transfer leg, which has none, on the date, amount and direction alone.
@@ -292,6 +320,7 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
 
   const committed = () => problem(409, { type: 'urn:pfm:problem:import-committed' })
   const importing = () => problem(409, { type: 'urn:pfm:problem:import-in-progress' })
+  const order = (a: Kept, b: Kept) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)
 
   server.use(
     http.post(apiUrl('/api/v1/imports'), async ({ request }) => {
@@ -314,6 +343,32 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       if (Object.keys(errors).length > 0) return problem(400, { errors })
       const batch = keep(account!.id, (file as File).name, text)
       return HttpResponse.json(answer(batch), { status: 201, headers: { Location: `/api/v1/imports/${batch.id}` } })
+    }),
+    http.get(apiUrl('/api/v1/imports'), ({ request }) => {
+      const query = new URL(request.url).searchParams
+      const accountId = query.get('accountId')
+      const limit = Number(query.get('limit') ?? 50)
+      const past = state.batches.filter((batch) => batch.status !== 'uploaded' && (!accountId || batch.accountId === accountId)).sort(order)
+      const after = query.get('cursor')
+      const start = after === null ? 0 : past.findIndex((batch) => batch.id === after) + 1
+      const page = past.slice(start, start + limit)
+      return HttpResponse.json({ items: page.map(answer), nextCursor: start + limit < past.length ? page.at(-1)!.id : null })
+    }),
+    http.delete(apiUrl('/api/v1/imports/:id'), ({ request, params }) => {
+      const refused = refuseWithoutToken(request)
+      if (refused) return refused
+      const batch = find(params.id)
+      if (!batch) return problem(404)
+      if (batch.status === 'uploaded') return problem(409, { type: 'urn:pfm:problem:import-not-committed' })
+      const reconciled = state.reconciled.get(batch.id) ?? 0
+      if (reconciled > 0) {
+        return problem(409, { type: 'urn:pfm:problem:import-reconciled', title: 'This statement cannot be undone while any of its transactions is reconciled.', reconciledCount: reconciled })
+      }
+      if (batch.status !== 'undone') {
+        Object.assign(batch, { status: 'undone', undoneAt: '2026-11-20T10:00:00Z', text: null })
+        for (let at = transactions.length - 1; at >= 0; at--) if (transactions[at]!.importBatchId === batch.id) transactions.splice(at, 1)
+      }
+      return HttpResponse.json(answer(batch))
     }),
     http.get(apiUrl('/api/v1/imports/:id'), ({ params }) => {
       const batch = find(params.id)
@@ -350,14 +405,32 @@ export function fakeImportsApi({ accounts, categories, transactions = [], batche
       const parsed = new Map(read.rows.filter((row) => row.kind === 'parsed').map((row) => [row.number, row]))
       if (chosen.length === 0 || chosen.some((row) => !parsed.has(row))) return problem(400, { errors: { rows: ['Choose rows the preview reads as transactions.'] } })
       const errors: Record<string, string[]> = {}
+      // A row's own category is of its kind, not archived, given once, and for a row chosen; the batch's are for the rest.
+      const own = new Map<number, string>()
+      for (const { row, categoryId } of body.rowCategories ?? []) {
+        const number = Number(row)
+        const category = categories.find((candidate) => candidate.id === categoryId)
+        const kind = parsed.get(number)?.type
+        if (own.has(number)) errors.rowCategories = [`Give row ${number} one category.`]
+        else if (!chosen.includes(number)) errors.rowCategories = [`Row ${number} is not chosen to import.`]
+        else if (!category || category.isArchived || category.kind !== kind) errors.rowCategories = [`Row ${number} takes one of your ${kind} categories that is not archived.`]
+        own.set(number, categoryId)
+      }
       for (const [field, kind] of [['expenseCategoryId', 'expense'], ['incomeCategoryId', 'income']] as const) {
-        const needed = chosen.some((row) => parsed.get(row)!.type === kind)
+        const needed = chosen.some((row) => !own.has(Number(row)) && parsed.get(row)!.type === kind)
         const id = body[field]
         const category = categories.find((candidate) => candidate.id === id)
         if ((needed && !id) || (id && (!category || category.isArchived || category.kind !== kind))) errors[field] = [`Choose one of your ${kind} categories that is not archived.`]
       }
       if (Object.keys(errors).length > 0) return problem(400, { errors })
       if (state.batches.some((other) => other !== batch && other.accountId === batch.accountId && other.status === 'committing')) return importing()
+      state.savedMappings.set(batch.accountId, mapping as Mapping)
+      // A category not sent (no row needed one of its kind) keeps the one saved.
+      const before = state.savedCategories.get(batch.accountId)
+      state.savedCategories.set(batch.accountId, {
+        expenseCategoryId: body.expenseCategoryId ?? before?.expenseCategoryId ?? null,
+        incomeCategoryId: body.incomeCategoryId ?? before?.incomeCategoryId ?? null,
+      })
       Object.assign(batch, {
         status: 'committing',
         mapping,

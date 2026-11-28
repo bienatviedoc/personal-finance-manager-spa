@@ -416,7 +416,8 @@
     "export": {
       "start": "Xuất CSV",
       "failed": "Không tải được tệp CSV. Hãy thử lại sau ít phút."
-    }
+    },
+    "categorySuggestedByRule": "Gợi ý theo quy tắc phân loại của bạn cho bên này."
   },
   "transfers": {
     "add": "Chuyển giữa các tài khoản",
@@ -638,7 +639,7 @@
     "notConverted_one": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "notConverted_other": "{{count}} khoản chi chưa được quy đổi và không được tính vào số đã chi.",
     "transactions": "Xem giao dịch",
-    "transactionsBehind": "Các giao dịch của {{name}} trong {{month}}",
+    "transactionsBehind": "Xem giao dịch của {{name}} trong {{month}}",
     "overall": {
       "name": "Ngân sách tổng",
       "for": "Ngân sách tổng {{month}}",
@@ -955,6 +956,33 @@
         "incorrect": "Đó không phải mật khẩu của bạn."
       }
     },
+    "auditLog": {
+      "title": "Nhật ký hoạt động",
+      "body": "Ghi lại mỗi lần đăng nhập, nhập sao kê, hoàn tác lần nhập, sửa hàng loạt, xóa và yêu cầu xóa hồ sơ, mới nhất ở trên cùng. Không thể sửa hay xóa các mục trong nhật ký.",
+      "empty": "Chưa có gì được ghi lại.",
+      "notLoaded": "Không tải được nhật ký hoạt động. Hãy thử lại sau ít phút.",
+      "more": "Xem các mục cũ hơn",
+      "actions": {
+        "signIn": "Đăng nhập",
+        "importCommit": "Xác nhận nhập sao kê",
+        "importUndo": "Hoàn tác lần nhập",
+        "bulkEdit": "Sửa hàng loạt",
+        "bulkDelete": "Xóa hàng loạt",
+        "delete": "Đã xóa",
+        "deletionRequest": "Yêu cầu xóa hồ sơ"
+      },
+      "entities": {
+        "user": "Hồ sơ",
+        "importBatch": "Lần nhập",
+        "transaction": "Giao dịch",
+        "transactions": "Các giao dịch",
+        "transfer": "Chuyển khoản",
+        "attachment": "Tệp đính kèm",
+        "budget": "Ngân sách",
+        "recurringRule": "Quy tắc định kỳ",
+        "categorisationRule": "Quy tắc phân loại"
+      }
+    },
     "data": {
       "title": "Dữ liệu của bạn",
       "export": {
@@ -974,7 +1002,8 @@
         "confirmBody": "Bạn sẽ bị đăng xuất ngay bây giờ. Sau 30 ngày, hồ sơ của bạn và mọi thứ trong đó sẽ bị xóa, trừ khi bạn đăng nhập lại trước lúc đó. Nhập mật khẩu để tiếp tục.",
         "submit": "Xóa hồ sơ của tôi"
       }
-    }
+    },
+    "categorisationRules": "Quy tắc"
   },
   "categories": {
     "option": "{{parent}} › {{name}}",
@@ -1090,6 +1119,58 @@
       "pieChart": "Biểu đồ tròn",
       "tag": "Nhãn",
       "more": "Khác"
+    }
+  },
+  "categorisationRules": {
+    "title": "Quy tắc phân loại",
+    "intro": "Một quy tắc gán danh mục cho người nhận hoặc mô tả của một dòng sao kê có chứa, bắt đầu bằng hoặc đúng bằng nội dung của nó, không phân biệt hoa thường, dấu hay khoảng trắng. Nhập sao kê và thêm nhanh sẽ bắt đầu từ danh mục đó, và bạn vẫn có thể đổi. Một quy tắc chỉ phân loại giao dịch cùng loại với danh mục của nó. Khi nhiều quy tắc cùng khớp, quy tắc đứng cao hơn trong danh sách này được áp dụng.",
+    "add": "Thêm quy tắc",
+    "list": "Các quy tắc, theo thứ tự được thử",
+    "empty": "Chưa có quy tắc nào. Hãy thêm một quy tắc để việc nhập sao kê và thêm nhanh tự chọn danh mục cho bạn.",
+    "newTitle": "Quy tắc mới",
+    "editTitle": "Sửa quy tắc",
+    "matchText": "Nội dung cần tìm",
+    "matchTextHint": "Trong người nhận, hoặc mô tả của một dòng sao kê.",
+    "matchType": "Cách khớp",
+    "matchTypes": {
+      "contains": "Có chứa",
+      "startsWith": "Bắt đầu bằng",
+      "exactly": "Đúng bằng"
+    },
+    "named": {
+      "contains": "Có chứa “{{text}}”",
+      "startsWith": "Bắt đầu bằng “{{text}}”",
+      "exactly": "Đúng bằng “{{text}}”"
+    },
+    "category": "Danh mục",
+    "chooseCategory": "Chọn danh mục",
+    "priority": "Độ ưu tiên",
+    "priorityHint": "Số cao hơn được áp dụng khi nhiều quy tắc cùng khớp. Để trống để đặt quy tắc mới lên đầu.",
+    "priorityOf": "Ưu tiên {{priority}}",
+    "unknownCategory": "Một danh mục không còn nữa",
+    "categoryArchived": "Danh mục của quy tắc đã được lưu trữ: quy tắc này không phân loại gì cho đến khi bạn chọn danh mục khác.",
+    "up": "Lên",
+    "down": "Xuống",
+    "moveUp": "Đưa {{name}} lên",
+    "moveDown": "Đưa {{name}} xuống",
+    "edit": "Sửa",
+    "editAction": "Sửa {{name}}",
+    "delete": "Xóa",
+    "deleteAction": "Xóa {{name}}",
+    "deleteRule": "Xóa quy tắc",
+    "deleteConfirm": "Xóa quy tắc {{name}}? Những gì nó đã phân loại vẫn giữ danh mục.",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "errors": {
+      "generic": "Đã có lỗi với các quy tắc. Hãy thử lại.",
+      "matchTextRequired": "Nhập nội dung cần tìm.",
+      "matchTextTooLong": "Nội dung cần tìm tối đa 100 ký tự.",
+      "matchType": "Chọn cách khớp nội dung.",
+      "categoryRequired": "Chọn một danh mục.",
+      "categoryRefused": "Không thể chọn danh mục này: có thể nó đã được lưu trữ. Hãy chọn danh mục khác.",
+      "priority": "Nhập một số nguyên từ 0 đến 1.000.000, hoặc để trống.",
+      "stale": "Quy tắc này đã được thay đổi ở nơi khác sau khi bạn mở. Phiên bản mới nhất đang được hiển thị; hãy kiểm tra và lưu lại.",
+      "orderStale": "Các quy tắc đã được thay đổi ở nơi khác. Thứ tự mới nhất đang được hiển thị; hãy di chuyển quy tắc lại."
     }
   },
   "colors": {
@@ -1217,7 +1298,7 @@
     "rawMore_other": "{{shown}} dòng đầu tiên trong {{count}} dòng.",
     "previewTable": "Các dòng của sao kê",
     "commit": "Nhập các dòng đã chọn",
-    "categoriesIntro": "Giao dịch được nhập sẽ được ghi vào các danh mục này. Bạn có thể đổi từng giao dịch sau.",
+    "categoriesIntro": "Các dòng để ở “Danh mục chọn bên dưới” sẽ được ghi vào các danh mục này. Bạn có thể đổi từng giao dịch sau.",
     "expenseCategory": "Danh mục cho tiền ra",
     "incomeCategory": "Danh mục cho tiền vào",
     "chooseCategory": "Chọn danh mục",
@@ -1280,7 +1361,11 @@
       "pages": "Các trang của sao kê",
       "previous": "Các dòng trước",
       "next": "Các dòng sau",
-      "page": "Dòng {{from}}–{{to}} trên {{count}}"
+      "page": "Dòng {{from}}–{{to}} trên {{count}}",
+      "category": "Danh mục",
+      "categoryFor": "Danh mục cho dòng {{number}}",
+      "batchCategory": "Danh mục chọn bên dưới",
+      "suggested": "Gợi ý theo một quy tắc phân loại."
     },
     "problems": {
       "missingColumns": "Dòng có ít ô hơn số cột đã chọn.",
@@ -1315,7 +1400,8 @@
       "failed_other": "{{count}} dòng không đọc được và không được nhập.",
       "stopped": "Việc nhập đã dừng sau {{imported}} trên {{count}} giao dịch. Những giao dịch đó vẫn được giữ.",
       "seeTransactions": "Xem trong danh sách giao dịch",
-      "startAgain": "Bắt đầu lại"
+      "startAgain": "Bắt đầu lại",
+      "undone": "Lần nhập này đã được hoàn tác. Các giao dịch của nó đã bị xóa; bạn có thể khôi phục bất kỳ giao dịch nào trong mục Đã xóa gần đây trong 30 ngày."
     },
     "errors": {
       "generic": "Không tải được việc nhập. Hãy thử lại sau giây lát.",
@@ -1333,7 +1419,8 @@
         "expenseCategoryId": "Chọn một danh mục chi tiêu của bạn chưa được lưu trữ.",
         "incomeCategoryId": "Chọn một danh mục thu nhập của bạn chưa được lưu trữ.",
         "mapping": "Chọn cột ngày và cột số tiền, hoặc cột ghi nợ và ghi có.",
-        "id": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên."
+        "id": "Tài khoản đã được lưu trữ kể từ khi sao kê được tải lên.",
+        "rowCategories": "Không thể dùng danh mục đã chọn cho một dòng: có thể nó đã được lưu trữ. Hãy chọn danh mục khác."
       },
       "importInProgress": "Một sao kê khác đang được nhập vào tài khoản này. Hãy đợi nó xong rồi kiểm tra lại các dòng: những dòng nó đã nhập sẽ hiện là có thể trùng."
     },
@@ -1343,6 +1430,39 @@
       "accountCurrencyChanged": "Loại tiền của tài khoản đã thay đổi sau khi bạn nhập sao kê, nên các dòng không còn đọc như trước.",
       "transactionRefused": "Một dòng không thể ghi thành giao dịch.",
       "unexpected": "Đã có lỗi khi nhập. Hãy bắt đầu lại, và nếu lỗi lặp lại, hãy báo cho chúng tôi."
+    },
+    "savedMapping": "Đọc theo cách đã lưu cho tài khoản này khi nhập sao kê lần trước. Hãy đổi những gì sao kê này khác đi.",
+    "recentlyDeleted": "Đã xóa gần đây",
+    "undo": {
+      "action": "Hoàn tác",
+      "named": "Hoàn tác {{fileName}}",
+      "explained_one": "Thao tác này xóa {{count}} giao dịch mà sao kê đã nhập, dù đã sửa hay chưa. Bạn có thể khôi phục trong mục Đã xóa gần đây trong 30 ngày.",
+      "explained_other": "Thao tác này xóa {{count}} giao dịch mà sao kê đã nhập, dù đã sửa hay chưa. Bạn có thể khôi phục bất kỳ giao dịch nào trong mục Đã xóa gần đây trong 30 ngày.",
+      "confirm": "Hoàn tác lần nhập",
+      "cancel": "Hủy",
+      "reconciled_one": "{{count}} giao dịch của nó đã được đối soát. Hãy mở lại kỳ đối soát, rồi hoàn tác lần nhập.",
+      "reconciled_other": "{{count}} giao dịch của nó đã được đối soát. Hãy mở lại kỳ đối soát, rồi hoàn tác lần nhập.",
+      "failed": "Không thể hoàn tác lần nhập."
+    },
+    "history": {
+      "title": "Các lần nhập trước",
+      "none": "Chưa nhập sao kê nào.",
+      "notLoaded": "Không tải được các lần nhập trước. Hãy thử lại sau giây lát.",
+      "more": "Xem thêm",
+      "imported_one": "Đã nhập {{count}} giao dịch",
+      "imported_other": "Đã nhập {{count}} giao dịch",
+      "skippedDuplicates_one": "Bỏ qua {{count}} dòng có thể trùng",
+      "skippedDuplicates_other": "Bỏ qua {{count}} dòng có thể trùng",
+      "failed_one": "{{count}} dòng không đọc được",
+      "failed_other": "{{count}} dòng không đọc được",
+      "undoneNote": "Các giao dịch của nó đã bị xóa và có thể khôi phục trong 30 ngày:",
+      "status": {
+        "uploaded": "Chưa nhập",
+        "committing": "Đang nhập",
+        "committed": "Đã nhập",
+        "failed": "Đã dừng",
+        "undone": "Đã hoàn tác"
+      }
     }
   }
 }

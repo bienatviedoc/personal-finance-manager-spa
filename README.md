@@ -25,12 +25,14 @@ http://localhost:8025.
 | `npm run lint` | ESLint, failing on any warning |
 | `npm run typecheck` | `tsc` with no output |
 | `npm test` | Unit and component tests (Vitest) |
+| `npm run e2e` | End-to-end and accessibility tests (Playwright and axe) against the whole stack in Docker; see [below](#end-to-end-and-accessibility-tests) |
 | `npm run build` | Typecheck and production build into `dist/` |
 | `npm run preview` | Serve the production build locally, with the headers the nginx image sends |
 | `npm run api:sync` | Copy the API's OpenAPI document and regenerate the client's types |
 
-CI runs lint, typecheck, tests and the build on every pull request, and fails when the generated API client no
-longer matches the API, when a dependency has a known vulnerability of high severity, or when the image does.
+CI runs lint, typecheck, tests, the build and the end-to-end and accessibility tests on every pull request, and
+fails when the generated API client no longer matches the API, when a dependency has a known vulnerability of high
+severity, when the image does, or when axe finds a WCAG 2.1 AA violation.
 
 ## Talking to the API
 
@@ -81,9 +83,10 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   the shell: pressing N anywhere opens the drawer that records a transaction (not while typing, and not over
   another drawer or dialog), and nothing is loaded until it first opens. The transactions screen's own button
   opens the same drawer through `useQuickAdd()`. The form starts on the account the API says was used last
-  (`lastAccountQuery`), and a new transaction takes the category its payee most often had
-  (`suggestedCategoryQuery`, asked once the payee has been left alone for a moment) until the user picks one
-  themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
+  (`lastAccountQuery`), and a new transaction takes the category its payee most often had, or for a payee with no
+  history the category of the categorisation rule it matches (`suggestedCategoryQuery`, asked once the payee has
+  been left alone for a moment; the hint under the picker says which, from the API's `suggestedBy`) until the user
+  picks one themselves. Enter saves and the drawer stays open, cleared, for the next transaction.
 - **A type-ahead picker** is `<ComboboxField>` from `@/shared/components`: typing narrows the options, whatever
   the case or accents; the arrows and Enter, a click, or leaving the field choose. Enter with its list closed is
   the form's. In a `Drawer`, Escape closes its list before the drawer (`escapeClosesPickerFirst`). Tests choose from
@@ -183,8 +186,11 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   likely duplicate, the rows that cannot be read with why (translated from the API's `problem`), and the rows
   passed over. A new mapping is a new preview, so the ticks start again from the API's. The screen says how many
   rows will be imported, how many likely duplicates skipped and how many rows cannot be read, counting the rows the
-  API answered; it adds up no amount. Committing sends the mapping, the rows ticked and a category for money going
-  out and one for money coming in, asked for only when a row ticked moves money that way (`useCommitImport`). A
+  API answered; it adds up no amount. Each transaction has a category picker of its kind, starting on the category
+  the API's categorisation rules suggest for it (`suggestedCategoryId`, spec IMP-4, saying so until changed) or on
+  "the category chosen below". Committing sends the mapping, the rows ticked, the rows' own categories
+  (`rowCategories`, only when there are some) and a category for money going out and one for money coming in, each
+  asked for only when a row ticked without a category of its own moves money that way (`useCommitImport`). A
   commit refused because another statement is being imported into the account (409 `import-in-progress`) says to
   wait and check the rows again; one refused on `id` says the account was archived after the upload.
   The API's worker then imports in the background: the batch is asked for every second while it is `committing`
@@ -192,8 +198,34 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   and skipped, or that it stopped and why (translated from the API's `failure` code), and loads the lists, balances,
   budgets and reports again (`refreshTransactions`). A stopped import offers to start again: the upload screen
   opens with the account chosen (unless it was archived) and the next file starts from the stopped batch's mapping
-  rather than the API's guess (`StartAgain`, carried as router state). Every imported transaction carries its `importBatchId`. Saving the mapping per account,
-  undoing a batch and auto-categorisation are still to come (#23, #24).
+  rather than the API's guess (`StartAgain`, carried as router state). Every imported transaction carries its `importBatchId`.
+- **The mapping saved for an account** (spec IMP-2; see the glossary: saved mapping). The API saves the mapping a
+  statement is committed with for its account, and answers it with the next upload for that account
+  (`savedMapping`). `ImportBatchPage` starts from it, ahead of the API's guess, and says so; every choice can still be
+  changed, and what is committed is saved in its place. Starting again after a stopped import keeps that import's
+  mapping instead. The expense and income categories the last statement was committed with are saved too
+  (`savedExpenseCategoryId`, `savedIncomeCategoryId`), and the commit form starts on them while they can still be
+  chosen (not archived since), so a repeat import of the same bank needs no choices; each can still be changed.
+- **Past imports and undo** (spec IMP-5; see the glossary: undo). Under the upload form, `PastImports` lists every
+  statement committed, the last first, a page at a time (`pastImportsQuery`): its file name (opening its screen),
+  account, the day it was uploaded on the user's calendar, where it got to and its counts, all as the API answers
+  them. A statement being imported, imported or stopped offers Undo (`UndoImport`, `useUndoImport`), here and on its
+  own screen: once confirmed, the API deletes every transaction it created, edited or not, and stops it if it is still
+  being imported; they can be restored from Recently deleted for 30 days, which the screen links to. While any of
+  them is reconciled the API refuses (409 `import-reconciled`, with how many), and the screen says how many and to
+  reopen the reconciliation first. Undone, the lists, balances, budgets and reports load again.
+- **Categorisation rules** (spec IMP-4; see the glossary) are `features/categorisationRules` (types
+  `CategorisationRule`, messages `categorisationRules.*`, named so in full beside recurring rules), at Settings > Rules
+  (`/settings/categorisation-rules`): the user's rules in the order the API tries them (`categorisationRulesQuery`,
+  highest priority first), each set up, edited and deleted there with its match text, match type, category and
+  priority (`CategorisationRuleForm`; a new rule left without a priority goes first). Moving a rule up or down sends
+  the whole new order (`useReorderCategorisationRules`,
+  `PUT /category-rules/order`), which gives every rule its priority from its place. Like every edit, editing a rule
+  sends its `rowVersion` as `If-Match` (`useEditCategorisationRule(rule)`), and a reorder sends each rule's: a 412,
+  the rules changed somewhere else, saves nothing, loads them again and says so, an open form starting again from
+  the rule as it is now. A rule whose category has been
+  archived says it categorises nothing, and its form still offers that category. The SPA applies no rule itself: the
+  import preview and quick add answer the categories the rules give.
 - **Recurring rules** (`features/recurring`) are income and expenses that repeat. The SPA only sets them up,
   edits, pauses, resumes and deletes them; the API's worker records each occurrence as a transaction on its due
   date, and works out every date (`nextRunDate`). The SPA never computes a due date. A transaction a rule posted
@@ -299,6 +331,11 @@ longer matches the API, when a dependency has a known vulnerability of high seve
   cancel by signing in again. When a sign-in does cancel a deletion the API says so, and the shell shows a
   notice until the user dismisses it. The interface says "delete your profile", never "account": an account is
   where money sits (see the glossary), and a test checks both languages.
+- **The audit log** is Settings > Audit log (`/settings/audit-log`): the user's sign-ins, statements committed, imports
+  undone, bulk actions, deletes (of transactions, transfers, attachments, budgets and rules) and requests to delete the
+  profile, the newest first, older ones a page at a time. The API writes every entry and its summary (in the user's
+  locale when it was written); the SPA names the action and the kind of thing it affected (`entityType`, or the
+  transactions a bulk action took), writes when it happened in the user's time zone, and shows the summary as it came. Entries cannot be changed or deleted, so the screen only reads.
 - **Lockout and rate limiting are the API's.** A locked user is answered like a wrong password, so the sign-in
   screen warns about the lock beside that message; a 429 becomes "too many attempts".
 - **Screens inside the shell need a signed-in user.** The shell's loader sends anyone else to `/login`, which
@@ -363,6 +400,7 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeProfileApi` | `GET` and `PATCH /api/v1/me` |
 | `fakeSecurityApi` | Changing the password and two-factor sign-in (`/api/v1/me/password`, `/api/v1/me/two-factor/...`) |
 | `fakeDataApi` | The full export and deleting the user (`/api/v1/export/all.zip`, `/api/v1/me/deletion`) |
+| `fakeAuditLogApi` | The audit log (`/api/v1/me/audit-log`): the entries a test gives it (`auditEntry` fills in the rest), the newest first, a page at a time; `fail` makes it answer a server error |
 | `fakeInstitutionsApi` | `/api/v1/institutions` |
 | `fakeAccountsApi` | `/api/v1/accounts` |
 | `fakeCategoriesApi` | `/api/v1/categories`, and merging one (`moving` says what each moves, `refuseMergeInto` the targets it refuses) |
@@ -374,7 +412,8 @@ in its own file under `src/test/`, keeping state across requests and following t
 | `fakeBudgetNotificationsApi` | `/api/v1/budget-notifications` and reading one or all (`/{id}/read`, `/read`): the newest first, a page at a time, with how many are unread; `raise` adds one, as a change that moved spent would on the API, and `reads` counts how often the list was asked for |
 | `fakeDashboardApi` | `/api/v1/reports/dashboard`: it answers the dashboard a test gives it, over a new user's empty one (`emptyDashboard`), as the API works it out from what other fakes stand in for; it counts how often it was asked, can fail, and can hold its answer until `release`, to show the skeletons |
 | `fakeReportsApi` | `/api/v1/reports/spending-by-category` and its `/transactions`, `/api/v1/reports/trends`, `/api/v1/reports/income-vs-expenses` (from the `income` and `expenses` a test gives it), `/api/v1/reports/budget-vs-actual`, `/api/v1/reports/net-worth` and `/api/v1/reports/cash-flow` (from the `holdings` a test gives it); it groups, ranks, compares, drills down and follows month by month the expenses a test gives it, sets them against the `budgets` it gives, adds up the holdings at each month end, as the API does, keeps each report's queries in a list of its own (`reportsAsked` for spending by category, `incomeVsExpensesAsked`, `netWorthAsked`, `cashFlowAsked`, …), and can fail an answer |
-| `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch, its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds) and committing it (`commitRequests`); nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
+| `fakeImportsApi` | `/api/v1/imports`: uploading a statement (a form, refused when not text), the batch (with the mapping and categories saved for its account while it is uploaded: `savedMappings`, `savedCategories`, which a commit replaces, keeping a category it sends none of), its preview read with the mapping in the query (rows, problems, likely duplicates against the transactions `fakeTransactionsApi` holds, and each row's `suggestedCategoryId` from the `rules` a test gives it) and committing it (`commitRequests`, with each row's own category); listing past imports (`GET /api/v1/imports`, every batch but those only uploaded, the last uploaded first, a page at a time, of one account with `accountId`; a test gives past ones as `batches` with `past`); and undoing one (`DELETE`, deleting its transactions, refused with 409 `import-reconciled` and its `reconciledCount` while `reconciled` says any is). Nothing imports by itself: `importNext` and `fail` move a batch on as the API's worker would |
+| `fakeCategorisationRulesApi` | `/api/v1/category-rules`: listing, setting up, editing (naming the `rowVersion` in `If-Match`, kept in `ifMatches`: 412 when stale, 428 when missing), reordering (`/order`, each rule with its `rowVersion`: 400 on `rules` for one named twice, 412 when the rules changed since) and deleting rules, kept in `requests`; every change moves a rule's `rowVersion` on, and a test changes one "somewhere else" by setting it in `rules`; `categoriseWith` picks a category from rules as the API does, for `fakeImportsApi` and quick add in `fakeTransactionsApi` (each takes `rules`) |
 | `fakeMonthlySummaryApi` | `/api/v1/reports/monthly-summary.pdf`; it answers a stand-in file named after the month, refuses a month or locale the API would, and keeps every query it was asked with |
 
 A new feature's endpoints get a `fake<Feature>Api.ts` there too. A request no handler expects fails the test.
@@ -397,6 +436,36 @@ stand-in tab (see `attachments.test.tsx`).
 
 jsdom has no `matchMedia`, so `src/test/mediaQueries.ts` stands in for it: every test starts on a light-themed
 desktop, and `setScreenWidth(360)` or `setSystemTheme('dark')` changes the pretend device mid-test.
+
+### End-to-end and accessibility tests
+
+`e2e/` holds a [Playwright](https://playwright.dev) suite that drives the real app in Chromium against the whole
+stack (spec section 13):
+
+```bash
+npm run e2e        # needs Docker; the first run builds every image and takes a few minutes
+```
+
+`scripts/e2e.sh` starts the API repository's `compose.yaml` (PostgreSQL, migrations, the API, the worker, Mailpit)
+with `e2e/compose.yaml` on top, which adds this repository's nginx image in front of the API, as deployed, on
+http://localhost:8081. It runs as its own Compose project, `pfm-e2e`, publishing only the SPA and Mailpit (on 8026),
+so a development stack can keep running. It seeds a user with a year of sample data, runs the tests, and takes the
+stack down with its data. The API is the clone next to this one (`../personal-finance-manager-api`), or
+`PFM_API_DIR` (a worktree of this repository must set it: the clone next to a worktree is not the API's); CI
+checks out the API's main branch, as it does for the client's types, so a wave that needs API changes not yet merged
+fails e2e until the API merges, as the client check does: merge the API first. Arguments go to Playwright
+(`npm run e2e -- e2e/journey.spec.ts`), and `PFM_E2E_KEEP=1` leaves the stack running afterwards.
+
+| File | What it proves |
+| --- | --- |
+| `journey.spec.ts` | One new user, step by step: registers and confirms the email address from the link Mailpit caught, signs in, adds two accounts, an income and an expense, makes a transfer and checks both balances, sets a budget and sees its spent, reads spending by category, and imports the Vietcombank stand-in statement from the API repository (`tests/statements/synthetic-stand-ins`), mapping every column itself, through to the worker's import |
+| `accessibility.spec.ts` | [axe](https://github.com/dequelabs/axe-core) finds no WCAG 2.1 AA violation on the signed-out screens, every screen of the shell (the reports' and recently deleted among them), an account and reconciling it, each report as a chart and as a table, the transaction and transfer drawers, a categorisation rule being set up, and a statement's mapping, preview, import screen and place among past imports with its undo open, in the light and the dark theme, signed in as the seeded user so the screens are full. Each screen must have loaded first: what it shows once it has is visible, and no alert says it could not, so a screen whose endpoint the API lacks fails rather than being checked in its error state |
+
+Find things the way a user does, by role and accessible name (`getByRole`, `getByLabel`), never by class or test id:
+the suite then also checks the names a screen reader reads, and survives a change of layout. A radio drawn as a
+segmented control is chosen by its label (`choose`), a type-ahead picker by typing (`pick`), both in
+`e2e/support/ui.ts`; a statement of the API's golden files is `syntheticStatement(name)` (`e2e/support/statements.ts`). Each run registers its own user, so nothing depends on what an earlier run left. A violation
+axe finds is fixed in the app, not excluded from the check.
 
 ## Layout
 
@@ -475,7 +544,10 @@ next to a currency code; the SPA keeps it a string from the response to the scre
   the amount input takes the decimals of the chosen account's currency.
 - **Dates:** a calendar date (`YYYY-MM-DD`, no time) is written with `formatDate(date, locale)` from
   `@/shared/dates`, which never shifts it a day. `todayIn(timeZone)` is today's date in the user's time zone
-  (from `useUserSettings()` in `@/features/settings`), not the browser's. A month (`2026-11`, such as a budget month) is a
+  (from `useUserSettings()` in `@/features/settings`), not the browser's. A moment the API sends (an ISO timestamp,
+  such as `at` or `createdAt`) is written with `formatMoment(moment, locale, timeZone)`, its date and time in the
+  user's time zone, or its date alone with `{ time: false }`; nothing formats one with `Intl.DateTimeFormat` itself.
+  A month (`2026-11`, such as a budget month) is a
   `CalendarMonth`, made only by `isCalendarMonth`, `monthOf` or `shiftMonth` and written with `formatMonth`.
 - The user's base currency and time zone come from `useUserSettings()`.
 - **Not converted.** An amount the API could not convert, for want of an exchange rate, comes back under
@@ -526,6 +598,12 @@ next to a currency code; the SPA keeps it a string from the response to the scre
 The target is WCAG 2.1 AA (spec section 8).
 
 - Lint runs `jsx-a11y-x`, the ESLint 10 compatible fork of `eslint-plugin-jsx-a11y`.
+- `npm run e2e` runs axe on the main screens in both themes, and CI fails on any WCAG 2.1 AA violation (see
+  [End-to-end and accessibility tests](#end-to-end-and-accessibility-tests)).
+- A control's accessible name starts with the words it shows (WCAG 2.5.3, label in name): a "See transactions"
+  link is named "See transactions behind Groceries in November 2026", not "Transactions behind …".
+- Text keeps a contrast of 4.5:1 on whatever it sits on, tints included: the unpicked options of a segmented control
+  are `text-foreground/70` on `bg-muted`, not `text-muted-foreground`, which falls just short there.
 - Every screen names itself in the browser tab with `useDocumentTitle`.
 - Controls styled by hand take the `focusRing` class from `src/shared/lib/utils.ts`, so keyboard focus is
   always visible; a label wrapping a visually hidden radio or checkbox takes `focusRingWithin` instead. shadcn primitives bring their own.

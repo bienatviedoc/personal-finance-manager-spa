@@ -54,7 +54,7 @@ describe('the categories screen', () => {
     const api = fakeCategoriesApi()
     const { user } = renderApp('/settings/categories')
 
-    await user.click(await screen.findByRole('button', { name: 'Add a subcategory to Food & drink' }))
+    await user.click(await screen.findByRole('button', { name: 'Add subcategory to Food & drink' }))
     const form = screen.getByRole('form', { name: 'New subcategory of Food & drink' })
     expect(within(form).queryByRole('radio', { name: 'Income' })).not.toBeInTheDocument()
     await user.type(within(form).getByLabelText('Name'), 'Coffee')
@@ -108,7 +108,7 @@ describe('the categories screen', () => {
     const api = fakeCategoriesApi()
     const { user } = renderApp('/settings/categories')
 
-    await user.click(await screen.findByRole('button', { name: /Add a subcategory.*Transport/ }))
+    await user.click(await screen.findByRole('button', { name: /Add subcategory to Transport/ }))
     api.categories.find((category) => category.id === 'c-transport')!.isArchived = true
     const form = screen.getByRole('form')
     await user.type(within(form).getByRole('textbox', { name: 'Name' }), 'Parking')

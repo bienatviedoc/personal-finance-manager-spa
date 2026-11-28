@@ -95,7 +95,7 @@ export function MappingForm({ mapping, onChange, columns, separate, onSeparateCh
             <label
               key={choice}
               className={cn(
-                'cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-muted-foreground has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
+                'cursor-pointer rounded-md px-3 py-1.5 text-center text-sm font-medium text-foreground/70 has-checked:bg-background has-checked:text-foreground has-checked:shadow-sm',
                 focusRingWithin,
               )}
             >

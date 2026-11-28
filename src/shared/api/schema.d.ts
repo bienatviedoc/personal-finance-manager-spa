@@ -68,6 +68,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The signed-in user's audit log, the newest entry first, a page at a time: each sign-in, statement committed or import undone, bulk edit, bulk delete, delete of a transaction, a transfer, an attachment, a budget, a recurring rule or a categorisation rule, and the user asking to be deleted, with what it affected, when, and a short summary in the user's locale when it was written. Entries cannot be changed or deleted. */
+        get: operations["ListAuditEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/export/transactions.csv": {
         parameters: {
             query?: never;
@@ -458,7 +475,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description What quick add starts a new transaction from: the account, not archived, that the user recorded a transaction on last, and the category, not archived, they most often gave the payee. Send the payee as typed; it suggests a category once it is, in any case, a payee the user has used before. */
+        /** @description What quick add starts a new transaction from: the account, not archived, that the user recorded a transaction on last, and the category, not archived, they most often gave the payee. Send the payee as typed; it suggests a category once it is, in any case, a payee the user has used before, and otherwise the category of the highest-priority categorisation rule the payee matches. */
         get: operations["GetQuickAdd"];
         put?: never;
         post?: never;
@@ -905,6 +922,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/category-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every one of the user's categorisation rules, unpaged (a user has a few dozen), in the order they are tried: highest priority first, and of equal ones the one set up first. A rule whose category has been archived stays listed, and categorises nothing until it is moved to another. */
+        get: operations["ListCategorisationRules"];
+        put?: never;
+        /** @description Sets up a rule: a payee, or a statement row's description, that contains, starts with or is exactly the match text (compared without case, accents or extra spaces) takes the category. It categorises only transactions of its category's kind. Of several rules that match, the one of highest priority wins. Left out, the priority is one above the user's highest. */
+        post: operations["CreateCategorisationRule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category-rules/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Puts the rules in a new order: rules lists every one of the user's rules once, the one to try first first, each with the row version it was read at, and each takes its priority from its place (the last 0, the one before it 1, and so on). A list that names a rule twice is refused on rules; one that is not the user's rules as they are now, because a rule was set up, edited or deleted since they were read, answers 412. Either changes nothing. Answers the rules in their new order. */
+        put: operations["ReorderCategorisationRules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/category-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Changes a rule's match text, match type, category and priority (left out, it keeps its own). It may keep a category that has been archived since, but not move to one. Send the row version last read as If-Match: a stale one answers 412, none answers 428. Reordering the rules and merging a rule's category change the row version too. */
+        put: operations["EditCategorisationRule"];
+        post?: never;
+        /** @description Deletes the rule: it categorises nothing more. What it categorised keeps its category. */
+        delete: operations["DeleteCategorisationRule"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/budgets": {
         parameters: {
             query?: never;
@@ -1033,7 +1103,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description The user's past import batches: every statement committed, whatever became of it since (committing, committed, failed or undone), with its file name, when it was uploaded and its counts, the last uploaded first, a page at a time. accountId lists one account's. A statement uploaded and not committed is not listed. */
+        get: operations["ListImportBatches"];
         put?: never;
         /** @description Uploads a bank statement to import into one of the user's accounts: a CSV file of at most 5 MB and 10,000 rows, saved as text (UTF-8, or UTF-16 with a byte order mark), sent as the file field of a multipart/form-data body beside accountId. Nothing is imported yet: the answer is the import batch, with a first guess at how to read the file (suggestedMapping) for the user to confirm or change in the preview. */
         post: operations["UploadStatement"];
@@ -1054,7 +1125,8 @@ export interface paths {
         get: operations["GetImportBatch"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Undoes the import batch: every transaction it created is deleted, edited or not, and can be restored for 30 days like any deleted transaction. One marked as a leg of a transfer since deletes the transfer, the other leg with it. A batch still being imported is stopped, and what it imported so far deleted. The answer is the batch, undone; undoing it again answers the same. While any of its transactions (or the other leg of a transfer one is a leg of) is reconciled it answers 409 with the problem type urn:pfm:problem:import-reconciled and changes nothing: reopen the reconciliation first. A statement uploaded and never committed answers 409 with the problem type urn:pfm:problem:import-not-committed. */
+        delete: operations["UndoImport"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1086,7 +1158,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Commits the statement: the rows chosen (rows the preview reads as transactions, with the same mapping) are imported in the background as income (on incomeCategoryId) or expenses (on expenseCategoryId) on the batch's account, each belonging to the batch, and the answer is 202 with the batch, committing. A likely duplicate is imported only when it is chosen; those left out are counted in duplicateCount. A batch whose account has been archived since it was uploaded is refused on id. A batch committed already answers 409 with the problem type urn:pfm:problem:import-committed. While another statement is being imported into the same account it answers 409 with the problem type urn:pfm:problem:import-in-progress and changes nothing: once that one is imported, preview again, and the rows it brought in are likely duplicates. */
+        /** @description Commits the statement: the rows chosen (rows the preview reads as transactions, with the same mapping) are imported in the background as income or expenses on the batch's account, each on the category rowCategories gives it, or else on incomeCategoryId or expenseCategoryId, each belonging to the batch, and the answer is 202 with the batch, committing. A likely duplicate is imported only when it is chosen; those left out are counted in duplicateCount. A batch whose account has been archived since it was uploaded is refused on id. A batch committed already answers 409 with the problem type urn:pfm:problem:import-committed. While another statement is being imported into the same account it answers 409 with the problem type urn:pfm:problem:import-in-progress and changes nothing: once that one is imported, preview again, and the rows it brought in are likely duplicates. */
         post: operations["CommitImport"];
         delete?: never;
         options?: never;
@@ -1320,6 +1392,25 @@ export interface components {
             expiresAt: string;
         };
         /** @enum {unknown} */
+        AuditAction: "signIn" | "importCommit" | "importUndo" | "bulkEdit" | "bulkDelete" | "delete" | "deletionRequest";
+        /** @enum {unknown} */
+        AuditEntityType: "user" | "importBatch" | "transaction" | "transfer" | "attachment" | "budget" | "recurringRule" | "categorisationRule";
+        AuditEntryResponse: {
+            /** Format: uuid */
+            id: string;
+            action: components["schemas"]["AuditAction"];
+            entityType: components["schemas"]["AuditEntityType"];
+            /** Format: uuid */
+            entityId: null | string;
+            /** Format: date-time */
+            at: string;
+            summary: string;
+        };
+        AuditLogResponse: {
+            items: components["schemas"]["AuditEntryResponse"][];
+            nextCursor: null | string;
+        };
+        /** @enum {unknown} */
         BalanceInterval: "day" | "week";
         BaseCurrencyTotalResponse: {
             currency: components["schemas"]["Currency"];
@@ -1487,6 +1578,38 @@ export interface components {
             accountId: null | string;
             items: components["schemas"]["CashFlowPointResponse"][];
         };
+        /** @enum {unknown} */
+        CategorisationMatch: "contains" | "startsWith" | "exactly";
+        CategorisationRuleListResponse: {
+            items: components["schemas"]["CategorisationRuleResponse"][];
+        };
+        CategorisationRuleOrderEntry: {
+            /** Format: uuid */
+            id: string;
+            rowVersion: string;
+        };
+        CategorisationRuleOrderRequest: {
+            rules: null | components["schemas"]["CategorisationRuleOrderEntry"][];
+        };
+        CategorisationRuleRequest: {
+            matchText: string;
+            matchType: null | string;
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: int32 */
+            priority?: null | number | string;
+        };
+        CategorisationRuleResponse: {
+            /** Format: uuid */
+            id: string;
+            matchText: string;
+            matchType: components["schemas"]["CategorisationMatch"];
+            /** Format: uuid */
+            categoryId: string;
+            /** Format: int32 */
+            priority: number | string;
+            rowVersion: string;
+        };
         CategoryChangeRequest: {
             name: string;
             kind: components["schemas"]["CategoryKind"];
@@ -1528,6 +1651,8 @@ export interface components {
             isArchived: boolean;
             subcategories: components["schemas"]["CategoryResponse"][];
         };
+        /** @enum {unknown} */
+        CategorySuggestion: "history" | "rule" | null;
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
@@ -1539,6 +1664,7 @@ export interface components {
             expenseCategoryId: null | string;
             /** Format: uuid */
             incomeCategoryId: null | string;
+            rowCategories?: null | components["schemas"]["RowCategoryRequest"][];
         };
         ConfirmReminderRequest: {
             amount?: null | string;
@@ -1713,6 +1839,10 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        ImportBatchListResponse: {
+            items: components["schemas"]["ImportBatchResponse"][];
+            nextCursor: null | string;
+        };
         ImportBatchResponse: {
             /** Format: uuid */
             id: string;
@@ -1737,9 +1867,16 @@ export interface components {
             committedAt: null | string;
             mapping: null | components["schemas"]["MappingResponse"];
             suggestedMapping: null | components["schemas"]["MappingResponse"];
+            savedMapping: null | components["schemas"]["MappingResponse"];
+            /** Format: date-time */
+            undoneAt: null | string;
+            /** Format: uuid */
+            savedExpenseCategoryId: null | string;
+            /** Format: uuid */
+            savedIncomeCategoryId: null | string;
         };
         /** @enum {unknown} */
-        ImportBatchStatus: "uploaded" | "committing" | "committed" | "failed";
+        ImportBatchStatus: "uploaded" | "committing" | "committed" | "failed" | "undone";
         /** @enum {unknown} */
         ImportFailure: "accountArchived" | "categoryArchived" | "accountCurrencyChanged" | "transactionRefused" | "unexpected" | null;
         ImportPreviewResponse: {
@@ -1944,6 +2081,8 @@ export interface components {
             problem: null | components["schemas"]["RowProblem"];
             likelyDuplicate: boolean;
             selected: boolean;
+            /** Format: uuid */
+            suggestedCategoryId: null | string;
         };
         PreviousIncomeVsExpensesResponse: {
             /** Format: date */
@@ -1997,6 +2136,7 @@ export interface components {
             lastAccountId: null | string;
             /** Format: uuid */
             suggestedCategoryId: null | string;
+            suggestedBy: null | components["schemas"]["CategorySuggestion"];
         };
         ReconciliationListResponse: {
             items: components["schemas"]["ReconciliationResponse"][];
@@ -2127,6 +2267,12 @@ export interface components {
             userId: string;
             token: string;
             password: string;
+        };
+        RowCategoryRequest: {
+            /** Format: int32 */
+            row: number | string;
+            /** Format: uuid */
+            categoryId: string;
         };
         /** @enum {unknown} */
         RowProblem: "missingColumns" | "noDate" | "dateUnreadable" | "dateInFuture" | "noAmount" | "amountUnreadable" | "zeroAmount" | "tooManyDecimals" | "debitAndCredit" | null;
@@ -2525,6 +2671,47 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListAuditEntries: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditLogResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5867,6 +6054,217 @@ export interface operations {
             };
         };
     };
+    ListCategorisationRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorisationRuleListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateCategorisationRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategorisationRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorisationRuleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReorderCategorisationRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategorisationRuleOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorisationRuleListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    EditCategorisationRule: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategorisationRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategorisationRuleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteCategorisationRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListBudgets: {
         parameters: {
             query?: {
@@ -6315,6 +6713,48 @@ export interface operations {
             };
         };
     };
+    ListImportBatches: {
+        parameters: {
+            query?: {
+                accountId?: string;
+                limit?: number | string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     UploadStatement: {
         parameters: {
             query?: never;
@@ -6396,6 +6836,62 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    UndoImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportBatchResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

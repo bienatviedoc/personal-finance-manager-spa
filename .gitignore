@@ -158,3 +158,8 @@ vite.config.ts.timestamp-*
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# Playwright (npm run e2e)
+/test-results/
+/playwright-report/
+/blob-report/

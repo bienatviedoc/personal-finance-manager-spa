@@ -41,6 +41,52 @@ jobs:
       - name: Production build
         run: npm run build
 
+  # The journey of spec section 13 and axe on the main screens (spec section 8), in a browser against the whole stack
+  # in Docker Compose: this SPA's nginx image in front of the API, worker and database built from the API repository's
+  # main branch, the same API the client's types are generated from. See "End-to-end and accessibility tests" in the
+  # README.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: bienatviedoc/personal-finance-manager-api
+          ref: main
+          path: api
+
+      # Out of this repository's folder, so the SPA's image is not built with the API in it.
+      - name: Move the API next to the SPA
+        run: mv api "$RUNNER_TEMP/api"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end and accessibility tests
+        run: npm run e2e
+        env:
+          PFM_API_DIR: ${{ runner.temp }}/api
+
+      - name: Keep the test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
   # Builds the nginx image on the newest base, then scans it. A vulnerability of high or critical severity that
   # has a fix fails the job; one with no fix yet cannot be acted on, so it does not.
   image:
